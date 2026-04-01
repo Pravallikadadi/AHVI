@@ -1,0 +1,3632 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/widgets/ahvi_lens_sheet.dart';
+
+enum _TryOnStage { preview, loading, camera, captured }
+
+class DailyWearScreen extends StatefulWidget {
+  const DailyWearScreen({super.key});
+
+  @override
+  State<DailyWearScreen> createState() => _DailyWearScreenState();
+}
+
+class _DailyWearScreenState extends State<DailyWearScreen>
+    with TickerProviderStateMixin {
+  AppThemeTokens get _t => context.themeTokens;
+  Color get _bg => _t.backgroundPrimary;
+  Color get _bg2 => _t.backgroundSecondary;
+  Color get _panel => _t.panel;
+  Color get _panel2 => _t.panelBorder;
+  Color get _cardBorder => _t.cardBorder;
+  Color get _text => _t.textPrimary;
+  Color get _muted => _t.mutedText;
+  Color get _accent => _t.accent.primary;
+  Color get _accent2 => _t.accent.secondary;
+  Color get _accent3 => _t.accent.tertiary;
+  Color get _accent4 => _t.accent.primary;
+  Color get _accent5 => _t.accent.secondary;
+  Color get _tileText => _t.tileText;
+  Color get _phoneShell => _t.phoneShell;
+  Color get _phoneShellInner => _t.phoneShellInner;
+
+  Color get bgColor => _bg;
+  Color get bg2Color => _bg2;
+  Color get panelColor => _panel;
+  Color get panel2Color => _panel2;
+  Color get cardBorderColor => _cardBorder;
+  Color get textColor => _text;
+  Color get mutedColor => _muted;
+  Color get accentColor => _accent;
+  Color get accent2Color => _accent2;
+  Color get accent3Color => _accent3;
+  Color get accent4Color => _accent4;
+  Color get accent5Color => _accent5;
+  Color get tileTextColor => _tileText;
+  Color get phoneShellColor => _phoneShell;
+  Color get phoneShellInnerColor => _phoneShellInner;
+
+  int _carouselIndex = 0;
+  bool _chatOpen = false;
+  bool _tryOnOpen = false;
+  final PageController _pageController = PageController();
+  final TextEditingController _chatController = TextEditingController();
+  final ScrollController _chatScrollController = ScrollController();
+
+  late final Map<String, bool> _savedCarouselById;
+  late final Map<String, bool> _savedOptionById;
+
+  String? _wornOutfitId;
+  Timer? _autoPlayTimer;
+  bool _userScrolling = false;
+  final List<_ChatMessage> _messages = [];
+  bool _isTyping = false;
+  bool _quickPromptsVisible = true;
+  Timer? _chatGreetingTimer;
+
+  // ── Chat History ─────────────────────────────────────────────────────
+  final List<_ChatSession> _chatHistory = [];
+  String _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+  final GlobalKey<ScaffoldState> _chatScaffoldKey = GlobalKey<ScaffoldState>();
+
+  int? _speakingMessageId;
+
+  String _liveDay = 'THU';
+  String _liveDate = 'FEB 19';
+  String _liveTime = '00:00';
+  Timer? _clockTimer;
+
+  String _weatherIcon = '☀️';
+  String _weatherLabel = 'Clear';
+  String _weatherDetail = 'Fetching conditions';
+  String _weatherTemp = '--°';
+  String _weatherContext = '';
+  String? _suggestionBanner;
+
+  late final List<Map<String, dynamic>> _allOutfits = [
+    {
+      'id': 'o0',
+      'name': 'Linen & Air',
+      'desc': 'Breathable layers · Perfect for mild days',
+      'tip': 'Ideal for hot & humid weather',
+      'range': [26, 99],
+      'occ': ['Casual', 'Weekend', 'Travel'],
+      'colors': ['#e8e0d5', '#c8b89a', '#d4a472'],
+      'arTags': const [
+        {'t': 'Linen Overshirt', 'top': 0.28, 'left': 0.18},
+        {'t': 'Drawstring Shorts', 'top': 0.60, 'left': 0.12},
+        {'t': 'Sandals', 'top': 0.82, 'left': 0.22},
+      ],
+      'tags': ['Breezy', 'Linen', 'Relaxed Fit', 'Warm Weather'],
+      'img':
+          'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
+      'localImg': 'images/outfit_linen_air.jpg',
+    },
+    {
+      'id': 'o1',
+      'name': 'Coffee Run',
+      'desc': 'Cosy & put-together · Weekend energy',
+      'tip': 'Great for mild & cool days',
+      'range': [15, 25],
+      'occ': ['Casual', 'Weekend', 'Errands'],
+      'colors': ['#8d8d8d', '#4a6fa5', '#f5f5f5'],
+      'arTags': const [
+        {'t': 'Oversized Hoodie', 'top': 0.30, 'left': 0.15},
+        {'t': 'Straight Jeans', 'top': 0.62, 'left': 0.10},
+        {'t': 'Chunky Sneakers', 'top': 0.83, 'left': 0.20},
+      ],
+      'tags': ['Cosy', 'Casual', 'Everyday', 'Comfortable'],
+      'img':
+          'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
+      'localImg': 'images/outfit_coffee_run.jpg',
+    },
+    {
+      'id': 'o2',
+      'name': 'Office Hours',
+      'desc': 'Sharp & confident · Boardroom ready',
+      'tip': 'Best in comfortable indoor weather',
+      'range': [18, 28],
+      'occ': ['Work', 'Meetings', 'Formal'],
+      'colors': ['#2c3e50', '#a8bbd1', '#1a1a1a'],
+      'arTags': const [
+        {'t': 'Slim Blazer', 'top': 0.28, 'left': 0.16},
+        {'t': 'Tailored Trousers', 'top': 0.63, 'left': 0.11},
+        {'t': 'Chelsea Boots', 'top': 0.83, 'left': 0.21},
+      ],
+      'tags': ['Smart', 'Formal', 'Polished', 'Work-ready'],
+      'img':
+          'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
+      'localImg': 'images/outfit_office_hours.jpg',
+    },
+    {
+      'id': 'o3',
+      'name': 'Golden Hour',
+      'desc': 'Earth tones · Warm palette for evenings',
+      'tip': 'Perfect for warm evenings out',
+      'range': [20, 30],
+      'occ': ['Date Night', 'Casual', 'Dinner'],
+      'colors': ['#c8864a', '#8b6f5c', '#d4b483'],
+      'arTags': const [
+        {'t': 'Knit Polo', 'top': 0.29, 'left': 0.16},
+        {'t': 'Camel Trousers', 'top': 0.62, 'left': 0.10},
+        {'t': 'Suede Loafers', 'top': 0.83, 'left': 0.20},
+      ],
+      'tags': ['Earth Tones', 'Trendy', 'Textured', 'Date Night'],
+      'img':
+          'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
+      'localImg': 'images/outfit_golden_hour.jpg',
+    },
+  ];
+  late List<Map<String, dynamic>> _displayedOutfits;
+
+  _TryOnStage _tryOnStage = _TryOnStage.preview;
+  String? _tryOnOutfitId;
+  bool _frontCamera = true;
+  int _selectedSwatchIndex = 0;
+  int _visibleArTags = 0;
+
+  Timer? _tryOnStageTimer;
+  final List<Timer> _arTagTimers = [];
+  String _tryOnLoadingMessage = 'Requesting camera…';
+
+  late AnimationController _optCard0Ctrl;
+  late AnimationController _optCard1Ctrl;
+  late AnimationController _optCard2Ctrl;
+  late Animation<Offset> _optCard0Slide;
+  late Animation<Offset> _optCard1Slide;
+  late Animation<Offset> _optCard2Slide;
+  late Animation<double> _optCard0Fade;
+  late Animation<double> _optCard1Fade;
+  late Animation<double> _optCard2Fade;
+
+  late AnimationController _fabEntryCtrl;
+  late Animation<double> _fabEntryScale;
+  late Animation<double> _fabEntryOpacity;
+
+  late AnimationController _fabPulseCtrl;
+  late Animation<double> _fabPulseScale;
+  late Animation<double> _fabPulseOpacity;
+
+  late AnimationController _chatSlideCtrl;
+  late Animation<Offset> _chatSlideAnim;
+  late Animation<double> _chatFadeAnim;
+
+  late AnimationController _tryOnSlideCtrl;
+  late Animation<Offset> _tryOnSlideAnim;
+  late Animation<double> _tryOnFadeAnim;
+
+  late AnimationController _micPulseCtrl;
+  late Animation<double> _micPulseScale;
+  late AnimationController _scanCtrl;
+  late Animation<double> _scanLineY;
+
+  OverlayEntry? _toastEntry;
+  Timer? _toastTimer;
+
+  final FocusNode _chatFocusNode = FocusNode();
+  bool _micActive = false;
+  Timer? _clockAlignTimer;
+
+  final List<String> quickPrompts = [
+    'What to wear today? 🌤️',
+    'Style tips 👔',
+    'First date outfit 💫',
+    'How to style linen? 🌿',
+    'Best colours 🎨',
+    'Office outfit ideas 💼',
+  ];
+
+  List<Map<String, dynamic>> get optionCards {
+    final options = _displayedOutfits.skip(1).take(3).toList();
+    final borders = [accentColor, accent3Color, accent2Color];
+    final gradients = [
+      [
+        accentColor.withValues(alpha: 0.14),
+        accentColor.withValues(alpha: 0.06),
+      ],
+      [
+        accent3Color.withValues(alpha: 0.12),
+        accent3Color.withValues(alpha: 0.05),
+      ],
+      [
+        accent2Color.withValues(alpha: 0.13),
+        accent2Color.withValues(alpha: 0.06),
+      ],
+    ];
+    return List.generate(options.length, (index) {
+      final outfit = options[index];
+      return {
+        'outfitId': outfit['id'],
+        'name': outfit['name'],
+        'sub': outfit['desc'],
+        'img': outfit['img'],
+        'borderColor': borders[index],
+        'gradient': gradients[index],
+      };
+    });
+  }
+
+  Map<String, dynamic> get _currentOutfit => _displayedOutfits[_carouselIndex];
+
+  @override
+  void initState() {
+    super.initState();
+    _displayedOutfits = List<Map<String, dynamic>>.from(_allOutfits);
+    _savedCarouselById = {
+      for (final outfit in _allOutfits) outfit['id'] as String: false,
+    };
+    _savedOptionById = {
+      for (final outfit in _allOutfits) outfit['id'] as String: false,
+    };
+    _tryOnOutfitId = _displayedOutfits.first['id'] as String;
+
+    _updateClock();
+    _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) _updateClock();
+    });
+    final now = DateTime.now();
+    final nextMinute = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute + 1,
+    );
+    _clockAlignTimer = Timer(nextMinute.difference(now), () {
+      if (!mounted) return;
+      _updateClock();
+      _clockTimer?.cancel();
+      _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+        if (mounted) _updateClock();
+      });
+    });
+
+    _optCard0Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _optCard1Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _optCard2Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _optCard0Slide = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Slide = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Slide = Tween<Offset>(
+      begin: const Offset(0, 0.35),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+    _optCard0Fade = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Fade = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Fade = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+    _restartOptionCardAnimations();
+
+    _fabEntryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _fabEntryScale = Tween<double>(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fabEntryCtrl, curve: Curves.elasticOut));
+    _fabEntryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _fabEntryCtrl,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted) _fabEntryCtrl.forward();
+    });
+
+    _fabPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+    _fabPulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+    _fabPulseOpacity = Tween<double>(
+      begin: 0.55,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+
+    _chatSlideCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 440),
+    );
+    _chatSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _chatSlideCtrl,
+            curve: const Cubic(0.32, 0.72, 0, 1),
+          ),
+        );
+    _chatFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _chatSlideCtrl, curve: const Interval(0, 0.4)),
+    );
+
+    _tryOnSlideCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _tryOnSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _tryOnSlideCtrl,
+            curve: const Cubic(0.32, 0.72, 0, 1),
+          ),
+        );
+    _tryOnFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Interval(0, 0.4)),
+    );
+
+    _micPulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _micPulseScale = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _micPulseCtrl, curve: Curves.easeInOut));
+    _scanCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+    _scanLineY = Tween<double>(
+      begin: 0.10,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
+
+    _startAutoPlay();
+    _pageController.addListener(_onPageScroll);
+    _fetchWeather();
+  }
+
+  void _restartOptionCardAnimations() {
+    _optCard0Ctrl.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 70), () {
+      if (mounted) _optCard1Ctrl.forward(from: 0);
+    });
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (mounted) _optCard2Ctrl.forward(from: 0);
+    });
+  }
+
+  void _updateClock() {
+    final now = DateTime.now();
+    const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    setState(() {
+      _liveDay = days[now.weekday % 7];
+      _liveDate = '${months[now.month - 1]} ${now.day}';
+      _liveTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    });
+  }
+
+  void _onPageScroll() {
+    final pos = _pageController.page ?? 0;
+    if ((pos - pos.round()).abs() > 0.01) {
+      if (!_userScrolling) {
+        _userScrolling = true;
+        _autoPlayTimer?.cancel();
+      }
+    } else if (_userScrolling) {
+      _userScrolling = false;
+      _startAutoPlay();
+    }
+  }
+
+  void _startAutoPlay() {
+    _autoPlayTimer?.cancel();
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _userScrolling || _displayedOutfits.isEmpty) return;
+      final next = (_carouselIndex + 1) % _displayedOutfits.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _fetchWeather() async {
+    const fallbackLat = 16.5062;
+    const fallbackLon = 80.648;
+    try {
+      final url = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast'
+        '?latitude=$fallbackLat&longitude=$fallbackLon'
+        '&current=temperature_2m,weathercode,apparent_temperature'
+        '&timezone=auto',
+      );
+      final res = await http.get(url).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final current = data['current'] as Map<String, dynamic>;
+        final temp = (current['temperature_2m'] as num).round();
+        final feel = (current['apparent_temperature'] as num).round();
+        final code = current['weathercode'] as int;
+        _applyWeather(temp, feel, code);
+      }
+    } catch (_) {
+      final hour = DateTime.now().hour;
+      const baseTemps = [
+        22,
+        21,
+        21,
+        21,
+        22,
+        23,
+        25,
+        27,
+        29,
+        31,
+        32,
+        33,
+        33,
+        33,
+        32,
+        31,
+        30,
+        29,
+        28,
+        27,
+        26,
+        25,
+        24,
+        23,
+      ];
+      final t = baseTemps[hour];
+      final feel = t + (hour >= 10 && hour <= 16 ? 2 : 0);
+      final code = (hour >= 6 && hour <= 18)
+          ? (hour >= 11 && hour <= 14 ? 1 : 2)
+          : 0;
+      _applyWeather(t, feel, code);
+    }
+  }
+
+  void _applyWeather(int temp, int feel, int code) {
+    const wm = <int, List<String>>{
+      0: ['☀️', 'Clear sky', 'Great day for light, breezy outfits!'],
+      1: ['🌤️', 'Mostly clear', 'A light layer is all you need.'],
+      2: ['⛅', 'Partly cloudy', 'Perfect for light layers today.'],
+      3: ['☁️', 'Overcast', 'Layer up a little — skies are grey.'],
+      45: ['🌫️', 'Foggy', 'Keep it cosy today.'],
+      51: ['🌦️', 'Light drizzle', 'Grab a light jacket just in case.'],
+      61: ['🌧️', 'Light rain', "Don't forget an umbrella."],
+      63: ['🌧️', 'Rain', 'Waterproof shoes are a must.'],
+      65: ['⛈️', 'Heavy rain', 'Stay dry — full rain gear today.'],
+      80: ['🌦️', 'Showers', 'Pack a compact umbrella.'],
+      95: ['⛈️', 'Thunderstorm', 'Best to stay in today.'],
+    };
+    final feelsLike = feel >= 36
+        ? 'Very Hot'
+        : feel >= 30
+        ? 'Hot'
+        : feel >= 24
+        ? 'Warm'
+        : feel >= 18
+        ? 'Mild'
+        : feel >= 10
+        ? 'Cool'
+        : 'Cold';
+
+    final w = wm[code] ?? wm[2]!;
+    if (!mounted) return;
+    setState(() {
+      _weatherIcon = w[0];
+      _weatherLabel = '${w[1]} · $feelsLike';
+      _weatherDetail = w[2];
+      _weatherTemp = '$temp°';
+      _weatherContext = '${w[1]}, $feelsLike, $temp°C';
+    });
+    _sortOutfitsForWeather(temp);
+  }
+
+  void _sortOutfitsForWeather(int temp) {
+    int score(Map<String, dynamic> outfit) {
+      final range = (outfit['range'] as List).cast<int>();
+      final low = range[0];
+      final high = range[1];
+      if (temp >= low && temp <= high) return 2;
+      final delta = temp < low ? low - temp : temp - high;
+      return delta <= 5 ? 1 : 0;
+    }
+
+    final sorted = List<Map<String, dynamic>>.from(_allOutfits)
+      ..sort((a, b) => score(b).compareTo(score(a)));
+    final hero = sorted.first;
+    final icon = temp >= 30
+        ? '🌡️'
+        : temp >= 22
+        ? '🌤️'
+        : temp >= 15
+        ? '🍃'
+        : '🧣';
+    final banner = score(hero) == 2
+        ? '$icon ${hero['name']} is a perfect fit at $temp°'
+        : '$icon Sorted for $temp° today';
+    setState(() {
+      _displayedOutfits = sorted;
+      _carouselIndex = 0;
+      _suggestionBanner = banner;
+      _tryOnOutfitId ??= sorted.first['id'] as String;
+    });
+    _pageController.jumpToPage(0);
+    _restartOptionCardAnimations();
+  }
+
+  @override
+  void dispose() {
+    _pageController.removeListener(_onPageScroll);
+    _pageController.dispose();
+    _chatController.dispose();
+    _chatScrollController.dispose();
+    _fabEntryCtrl.dispose();
+    _fabPulseCtrl.dispose();
+    _chatSlideCtrl.dispose();
+    _tryOnSlideCtrl.dispose();
+    _micPulseCtrl.dispose();
+    _scanCtrl.dispose();
+    _autoPlayTimer?.cancel();
+    _toastTimer?.cancel();
+
+    try {
+      _toastEntry?.remove();
+    } catch (_) {}
+    _chatFocusNode.dispose();
+    _clockAlignTimer?.cancel();
+    _clockTimer?.cancel();
+    _chatGreetingTimer?.cancel();
+    _tryOnStageTimer?.cancel();
+    for (final timer in _arTagTimers) {
+      timer.cancel();
+    }
+    _optCard0Ctrl.dispose();
+    _optCard1Ctrl.dispose();
+    _optCard2Ctrl.dispose();
+    super.dispose();
+  }
+
+  void _showToast(String message, {bool green = false}) {
+    _toastEntry?.remove();
+    _toastEntry = null;
+    _toastTimer?.cancel();
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _ToastWidget(message: message, green: green),
+    );
+    _toastEntry = entry;
+    Overlay.of(context).insert(entry);
+    _toastTimer = Timer(const Duration(milliseconds: 2800), () {
+      try {
+        entry.remove();
+      } catch (_) {}
+      if (_toastEntry == entry) _toastEntry = null;
+    });
+  }
+
+  void _wearOutfit(String outfitId, {bool closeModal = false}) {
+    final outfit = _allOutfits.firstWhere((o) => o['id'] == outfitId);
+    HapticFeedback.lightImpact();
+    setState(() {
+      _wornOutfitId = outfitId;
+      if (closeModal) _tryOnOpen = false;
+    });
+    _showToast('✓ ${outfit['name']} — wearing today!', green: true);
+  }
+
+  void _openChat() {
+    HapticFeedback.lightImpact();
+    setState(() => _chatOpen = true);
+    _chatGreetingTimer?.cancel();
+    if (_messages.isEmpty) {
+      _chatGreetingTimer = Timer(const Duration(milliseconds: 700), () {
+        if (!mounted || _messages.isNotEmpty) return;
+        setState(() {
+          _messages.add(
+            _ChatMessage(
+              id: DateTime.now().microsecondsSinceEpoch,
+              text:
+                  "Hi! I'm AHVI, your personal AI stylist ✦\n\nI can see today's weather and your outfit options. What would you like help with — styling tips, what to wear, or outfit advice for any occasion?",
+              isUser: false,
+              createdAt: DateTime.now(),
+            ),
+          );
+        });
+        _scrollChatToBottom();
+      });
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.88,
+        child: Scaffold(
+          key: _chatScaffoldKey,
+          backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: false,
+          drawer: _historyDrawer(),
+          body: Container(
+            decoration: BoxDecoration(
+              color: bg2Color,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: panel2Color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                _chatHeader(),
+                Expanded(child: _chatMessages()),
+                if (_quickPromptsVisible) _chatQuickPrompts(),
+                _chatBar(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) setState(() => _chatOpen = false);
+    });
+  }
+
+  void _closeChat() {
+    _chatGreetingTimer?.cancel();
+    Navigator.of(context).pop();
+  }
+
+  void _openTryOn([String? outfitId]) {
+    HapticFeedback.lightImpact();
+    _resetTryOnSimulation();
+    setState(() {
+      _tryOnOutfitId = outfitId ?? _currentOutfit['id'] as String;
+      _tryOnOpen = true;
+      _tryOnStage = _TryOnStage.preview;
+    });
+    _tryOnSlideCtrl.forward(from: 0);
+  }
+
+  void _closeTryOn() {
+    _resetTryOnSimulation();
+    _tryOnSlideCtrl.reverse().then((_) {
+      if (mounted) setState(() => _tryOnOpen = false);
+    });
+  }
+
+  void _resetTryOnSimulation() {
+    _tryOnStageTimer?.cancel();
+    for (final timer in _arTagTimers) {
+      timer.cancel();
+    }
+    _arTagTimers.clear();
+    if (mounted) {
+      setState(() {
+        _visibleArTags = 0;
+        _selectedSwatchIndex = 0;
+        _frontCamera = true;
+        _tryOnLoadingMessage = 'Requesting camera…';
+        _tryOnStage = _TryOnStage.preview;
+      });
+    } else {
+      _visibleArTags = 0;
+      _selectedSwatchIndex = 0;
+      _frontCamera = true;
+      _tryOnLoadingMessage = 'Requesting camera…';
+      _tryOnStage = _TryOnStage.preview;
+    }
+  }
+
+  void _startTryOnCamera() {
+    setState(() {
+      _tryOnStage = _TryOnStage.loading;
+      _tryOnLoadingMessage = 'Requesting camera…';
+    });
+    _tryOnStageTimer?.cancel();
+    _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
+      setState(() => _tryOnLoadingMessage = 'Initialising AR…');
+      _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
+        if (!mounted) return;
+        setState(() {
+          _tryOnStage = _TryOnStage.camera;
+          _visibleArTags = 0;
+        });
+        _scheduleArTags();
+      });
+    });
+  }
+
+  void _scheduleArTags() {
+    final tags = (_selectedTryOnOutfit['arTags'] as List)
+        .cast<Map<String, dynamic>>();
+    for (var i = 0; i < tags.length; i++) {
+      final timer = Timer(Duration(milliseconds: i * 300), () {
+        if (mounted && _tryOnStage == _TryOnStage.camera) {
+          setState(() => _visibleArTags = i + 1);
+        }
+      });
+      _arTagTimers.add(timer);
+    }
+  }
+
+  void _flipCamera() {
+    HapticFeedback.selectionClick();
+    setState(() => _frontCamera = !_frontCamera);
+  }
+
+  void _captureTryOn() {
+    HapticFeedback.lightImpact();
+    setState(() => _tryOnStage = _TryOnStage.captured);
+    _showToast('📸 Look captured!');
+  }
+
+  void _saveCapturedLook() {
+    HapticFeedback.selectionClick();
+    _showToast('💾 Saved!', green: true);
+  }
+
+  void _toggleMic() {
+    setState(() => _micActive = !_micActive);
+    if (_micActive) {
+      _micPulseCtrl.repeat(reverse: true);
+      _showToast('🎙 Voice mode on');
+    } else {
+      _micPulseCtrl.stop();
+      _micPulseCtrl.reset();
+    }
+  }
+
+  void _scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent + 140,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void _sendMessage(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _isTyping) return;
+    _chatController.clear();
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          id: DateTime.now().microsecondsSinceEpoch,
+          text: trimmed,
+          isUser: true,
+          createdAt: DateTime.now(),
+        ),
+      );
+      _isTyping = true;
+      _quickPromptsVisible = false;
+    });
+    _scrollChatToBottom();
+    _callAnthropicApi(trimmed);
+  }
+
+  Future<void> _callAnthropicApi(String userText) async {
+    final currentOutfit = _currentOutfit;
+    final wornNote = _wornOutfitId != null
+        ? 'Wearing today: "${_allOutfits.firstWhere((o) => o['id'] == _wornOutfitId)['name']}"'
+        : 'No outfit chosen yet.';
+    final systemPrompt =
+        'You are AHVI, a warm, elegant personal AI fashion stylist. '
+        'Tone: refined, friendly, like a personal shopper.\n'
+        'Context: Outfit shown: "${currentOutfit['name']}" — ${currentOutfit['desc']}. '
+        'Tags: ${(currentOutfit['tags'] as List<String>).join(', ')}. '
+        'Occasions: ${(currentOutfit['occ'] as List<String>).join(', ')}. '
+        'Weather: ${_weatherContext.isEmpty ? 'unknown' : _weatherContext}. $wornNote\n'
+        'Outfits available: Linen & Air (hot/linen/casual), Coffee Run (mild/cosy/weekend), Office Hours (work/formal), Golden Hour (evnings/earth tones).\n'
+        'Keep responses concise — 2–4 sentences max or a short list. Be specific. Reference outfit names when relevant. Light emoji (1–2). Never be generic.';
+
+    final history = _messages
+        .take(_messages.length - 1)
+        .map(
+          (m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.text},
+        )
+        .toList();
+    history.add({'role': 'user', 'content': userText});
+
+    const apiKey = String.fromEnvironment(
+      'ANTHROPIC_API_KEY',
+      defaultValue: '',
+    );
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('https://api.anthropic.com/v1/messages'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: jsonEncode({
+              'model': 'claude-sonnet-4-20250514',
+              'max_tokens': 380,
+              'system': systemPrompt,
+              'messages': history,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final content = data['content'];
+      final replyText = (content is List && content.isNotEmpty)
+          ? content[0]['text'] as String?
+          : null;
+      final message = _ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        text: replyText ?? "I'm having a moment — try again ✦",
+        isUser: false,
+        createdAt: DateTime.now(),
+      );
+      setState(() {
+        _isTyping = false;
+        _messages.add(message);
+      });
+      _scrollChatToBottom();
+      _saveCurrentSession();
+      if (_micActive) _speakMessage(message);
+    } catch (_) {
+      if (!mounted) return;
+      final fallbacks = [
+        "Based on today's conditions, **${_currentOutfit['name']}** is your strongest choice right now. ✦",
+        'For a first date, **Golden Hour** is hard to beat — earth tones feel warm and approachable. 💫',
+        'Linen excels in heat, but fit is everything — slightly relaxed, never shapeless. 🌿',
+      ];
+      final message = _ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        text: fallbacks[DateTime.now().second % fallbacks.length],
+        isUser: false,
+        createdAt: DateTime.now(),
+      );
+      setState(() {
+        _isTyping = false;
+        _messages.add(message);
+      });
+      _scrollChatToBottom();
+      _saveCurrentSession();
+      if (_micActive) _speakMessage(message);
+    }
+  }
+
+  void _speakMessage(_ChatMessage message) {
+    setState(() => _speakingMessageId = message.id);
+    // ignore: deprecated_member_use
+    SemanticsService.announce(_stripMarkdown(message.text), TextDirection.ltr);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _speakingMessageId == message.id) {
+        setState(() => _speakingMessageId = null);
+      }
+    });
+  }
+
+  void _saveCurrentSession() {
+    if (_messages.isEmpty) return;
+    final userMessages = _messages.where((m) => m.isUser).toList();
+    if (userMessages.isEmpty) return;
+    final title = userMessages.first.text.length > 40
+        ? '${userMessages.first.text.substring(0, 40)}…'
+        : userMessages.first.text;
+    final existingIdx =
+        _chatHistory.indexWhere((s) => s.id == _currentSessionId);
+    final session = _ChatSession(
+      id: _currentSessionId,
+      title: title,
+      createdAt: DateTime.now(),
+      messages: List.from(_messages),
+    );
+    if (existingIdx != -1) {
+      _chatHistory[existingIdx] = session;
+    } else {
+      _chatHistory.insert(0, session);
+    }
+  }
+
+  void _startNewChat() {
+    _saveCurrentSession();
+    _chatScaffoldKey.currentState?.closeDrawer();
+    setState(() {
+      _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+      _messages.clear();
+      _quickPromptsVisible = true;
+      _chatController.clear();
+    });
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted || _messages.isNotEmpty) return;
+      setState(() {
+        _messages.add(_ChatMessage(
+          id: DateTime.now().millisecondsSinceEpoch,
+          text: "Hi! I'm AHVI, your personal AI stylist ✦\n\nI can see today's weather and your outfit options. What would you like help with — styling tips, what to wear, or outfit advice for any occasion?",
+          isUser: false,
+          createdAt: DateTime.now(),
+        ));
+      });
+    });
+  }
+
+  void _loadSession(_ChatSession session) {
+    _saveCurrentSession();
+    _chatScaffoldKey.currentState?.closeDrawer();
+    setState(() {
+      _currentSessionId = session.id;
+      _messages
+        ..clear()
+        ..addAll(session.messages);
+      _quickPromptsVisible = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Widget _historyDrawer() {
+    final t = context.themeTokens;
+    return Drawer(
+      backgroundColor: t.backgroundPrimary,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
+              child: Row(children: [
+                Text(
+                  'Chats',
+                  style: GoogleFonts.anton(
+                    fontSize: 20,
+                    color: t.textPrimary,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _startNewChat,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [t.accent.primary, t.accent.tertiary],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.add, color: Colors.white, size: 14),
+                      SizedBox(width: 4),
+                      Text('New', style: TextStyle(
+                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            Divider(color: t.cardBorder, height: 1),
+            Expanded(
+              child: _chatHistory.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No chats yet.\nStart a conversation!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: t.mutedText, fontSize: 13),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _chatHistory.length,
+                      separatorBuilder: (_, _) => Divider(
+                          color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
+                      itemBuilder: (_, i) {
+                        final session = _chatHistory[i];
+                        final isActive = session.id == _currentSessionId;
+                        return GestureDetector(
+                          onTap: () => _loadSession(session),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            color: isActive
+                                ? t.accent.primary.withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            child: Row(children: [
+                              Container(
+                                width: 32, height: 32,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? t.accent.primary.withValues(alpha: 0.15)
+                                      : t.panel,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isActive
+                                        ? t.accent.primary.withValues(alpha: 0.4)
+                                        : t.cardBorder,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text('✦', style: TextStyle(
+                                      fontSize: 13,
+                                      color: isActive ? t.accent.primary : t.mutedText)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      session.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                        color: isActive ? t.accent.primary : t.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text('${session.messages.length} messages',
+                                        style: TextStyle(fontSize: 10, color: t.mutedText)),
+                                  ],
+                                ),
+                              ),
+                              if (isActive)
+                                Container(
+                                  width: 6, height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: t.accent.primary,
+                                  ),
+                                ),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _stripMarkdown(String text) {
+    return text
+        .replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'$1')
+        .replaceAll(RegExp(r'\*(.*?)\*'), r'$1');
+  }
+
+  Map<String, dynamic> get _selectedTryOnOutfit {
+    final id = _tryOnOutfitId ?? _currentOutfit['id'];
+    return _allOutfits.firstWhere((outfit) => outfit['id'] == id);
+  }
+
+  Color _parseHexColor(String hex) {
+    final value = hex.replaceAll('#', '');
+    return Color(int.parse('FF$value', radix: 16));
+  }
+
+  String _formatCapturedDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
+        backgroundColor: bgColor,
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _BgGradientPainter(
+                  primary: accentColor,
+                  secondary: accent2Color,
+                  tertiary: accent3Color,
+                ),
+              ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    _buildHeader(),
+                    const SizedBox(height: 16),
+                    _buildWeatherBar(),
+                    if (_suggestionBanner != null) ...[
+                      const SizedBox(height: 14),
+                      _buildSuggestionBanner(),
+                    ],
+                    const SizedBox(height: 16),
+                    _buildCarousel(),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle(),
+                    const SizedBox(height: 14),
+                    _buildOptionCards(),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
+            ),
+            TickerMode(
+              enabled: !_chatOpen && !_tryOnOpen,
+              child: RepaintBoundary(child: _buildChatFab()),
+            ),
+            if (_tryOnOpen) _buildTryOnOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 380;
+        final backBtn = GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Icon(Icons.chevron_left_rounded, color: textColor, size: 22),
+          ),
+        );
+        final leftBlock = Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Daily Wear',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                    letterSpacing: -0.3,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'CURATED FOR YOU · TODAY',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    color: mutedColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  backBtn,
+                  const SizedBox(width: 12),
+                  leftBlock,
+                ],
+              ),
+              const SizedBox(height: 10),
+              _buildDatePill(),
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    backBtn,
+                    const SizedBox(width: 12),
+                    leftBlock,
+                  ],
+                ),
+                _buildDatePill(),
+              ],
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  Widget _buildDatePill() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+    decoration: BoxDecoration(
+      color: panel2Color,
+      borderRadius: BorderRadius.circular(30),
+      border: Border.all(color: cardBorderColor),
+      boxShadow: [
+        BoxShadow(
+          color: bgColor.withValues(alpha: 0.2),
+          blurRadius: 20,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          _liveDay,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+            letterSpacing: 1.2,
+          ),
+        ),
+        Text(
+          ' · ',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+            letterSpacing: 1.2,
+          ),
+        ),
+        Text(
+          _liveDate,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          _liveTime,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w500,
+            color: textColor.withValues(alpha: 0.7),
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildWeatherBar() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      constraints: const BoxConstraints(minHeight: 68),
+      decoration: BoxDecoration(
+        color: panel2Color,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: cardBorderColor),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: 0.25),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          final left = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_weatherIcon, style: const TextStyle(fontSize: 30)),
+              const SizedBox(width: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _weatherLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: mutedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _weatherDetail,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      color: mutedColor,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+          final temp = ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [accentColor, accent3Color],
+            ).createShader(bounds),
+            child: Text(
+              _weatherTemp,
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w300,
+                color: textColor,
+              ),
+            ),
+          );
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [left, const SizedBox(height: 8), temp],
+            );
+          }
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              left,
+              Flexible(child: temp),
+            ],
+          );
+        },
+      ),
+    ),
+  );
+
+  Widget _buildSuggestionBanner() {
+    final icon = _suggestionBanner!.split(' ').first;
+    final body = _suggestionBanner!.substring(icon.length).trim();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accentColor.withValues(alpha: 0.25)),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.10),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                body,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                  letterSpacing: 0.2,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarousel() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: SizedBox(
+      height: 340,
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: cardBorderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: bgColor.withValues(alpha: 0.45),
+                    blurRadius: 48,
+                    offset: const Offset(0, 16),
+                  ),
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.1),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _displayedOutfits.length,
+                onPageChanged: (i) => setState(() => _carouselIndex = i),
+                itemBuilder: (_, i) =>
+                    _buildCarouselSlide(_displayedOutfits[i], i),
+              ),
+            ),
+          ),
+          _buildCarouselArrow(left: true),
+          _buildCarouselArrow(left: false),
+          Positioned(
+            bottom: 82,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_displayedOutfits.length, (i) {
+                final isOn = i == _carouselIndex;
+                return GestureDetector(
+                  onTap: () => _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    width: isOn ? 22 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: isOn ? accentColor : mutedColor,
+                      borderRadius: BorderRadius.circular(isOn ? 3 : 50),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildCarouselArrow({required bool left}) {
+    final disabled = left
+        ? _carouselIndex == 0
+        : _carouselIndex == _displayedOutfits.length - 1;
+    return Positioned(
+      left: left ? 10 : null,
+      right: left ? null : 10,
+      top: 0,
+      bottom: 80,
+      child: Center(
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: disabled ? 0.3 : 1.0,
+          child: _PressScaleButton(
+            scaleDown: 0.92,
+            onTap: disabled
+                ? null
+                : () {
+                    if (left) {
+                      _pageController.previousPage(
+                        duration: const Duration(milliseconds: 450),
+                        curve: Curves.easeInOut,
+                      );
+                    } else {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 450),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: panelColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: cardBorderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: bgColor.withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  left ? '‹' : '›',
+                  style: TextStyle(color: textColor, fontSize: 20),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCarouselSlide(Map<String, dynamic> outfit, int index) {
+    final outfitId = outfit['id'] as String;
+    final saved = _savedCarouselById[outfitId] ?? false;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColorFiltered(
+          colorFilter: const ColorFilter.matrix([
+            0.72,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0.72,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0.72,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+          ]),
+          child: Image.network(
+            outfit['img'] as String,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
+            filterQuality: FilterQuality.low,
+            errorBuilder: (_, _, _) {
+              final localImg = outfit['localImg'] as String?;
+              if (localImg != null) {
+                return Image.asset(
+                  localImg,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                );
+              }
+              return Container(
+                color: panelColor,
+                child: Center(
+                  child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+                ),
+              );
+            },
+          ),
+        ),
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.22, 0.55, 0.78, 1.0],
+                colors: [
+                  bgColor.withValues(alpha: 0.02),
+                  bgColor.withValues(alpha: 0),
+                  bgColor.withValues(alpha: 0.35),
+                  bgColor.withValues(alpha: 0.75),
+                  bgColor.withValues(alpha: 0.95),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 18,
+          left: 18,
+          right: 18,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: panelColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cardBorderColor),
+                ),
+                child: Text(
+                  '✦ AHVI\'s pick',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: textColor,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  _circleAction(saved ? '❤️' : '🤍', () {
+                    setState(() => _savedCarouselById[outfitId] = !saved);
+                    if (!saved) _showToast('Saved to wardrobe ❤️');
+                  }),
+                  const SizedBox(width: 8),
+                  _circleShare('${outfit['name']} · ${outfit['desc']}'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 20,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          outfit['name'] as String,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                            letterSpacing: -0.3,
+                            height: 1.05,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          outfit['desc'] as String,
+                          style: TextStyle(fontSize: 11, color: mutedColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: panelColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: cardBorderColor),
+                    ),
+                    child: Text(
+                      '${index + 1} / ${_displayedOutfits.length}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: (outfit['tags'] as List<String>)
+                    .map(
+                      (t) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: panelColor,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: cardBorderColor),
+                        ),
+                        child: Text(
+                          t,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 14),
+              _PressScaleButton(
+                scaleDown: 0.98,
+                opacityDown: 0.85,
+                onTap: () => _openTryOn(outfitId),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [accentColor, accent3Color],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accentColor.withValues(alpha: 0.35),
+                        blurRadius: 24,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '✦  Virtual Try‑On',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: tileTextColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _circleAction(String icon, VoidCallback onTap) => _PressScaleButton(
+    scaleDown: 0.92,
+    onTap: onTap,
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: panelColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: Text(icon, style: TextStyle(fontSize: 15, color: textColor)),
+      ),
+    ),
+  );
+
+  Widget _circleShare(String text) => _PressScaleButton(
+    scaleDown: 0.92,
+    onTap: () {
+      Clipboard.setData(ClipboardData(text: text));
+      _showToast('🔗 Link copied!');
+    },
+    child: Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: panelColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: CustomPaint(
+          size: const Size(16, 16),
+          painter: _ShareIconPainter(color: textColor),
+        ),
+      ),
+    ),
+  );
+
+  Widget _buildSectionTitle() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    child: Text(
+      'Other good options',
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: textColor,
+        letterSpacing: 0.2,
+      ),
+    ),
+  );
+
+  Widget _buildOptionCards() {
+    final controllers = [
+      (_optCard0Slide, _optCard0Fade),
+      (_optCard1Slide, _optCard1Fade),
+      (_optCard2Slide, _optCard2Fade),
+    ];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          if (compact) {
+            return SizedBox(
+              height: 232,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: optionCards.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  return SizedBox(
+                    width: 180,
+                    child: FadeTransition(
+                      opacity: controllers[i].$2,
+                      child: SlideTransition(
+                        position: controllers[i].$1,
+                        child: _buildOptCard(optionCards[i]),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+          return Row(
+            children: [
+              for (var i = 0; i < optionCards.length; i++) ...[
+                Expanded(
+                  child: FadeTransition(
+                    opacity: controllers[i].$2,
+                    child: SlideTransition(
+                      position: controllers[i].$1,
+                      child: _buildOptCard(optionCards[i]),
+                    ),
+                  ),
+                ),
+                if (i < optionCards.length - 1) const SizedBox(width: 10),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOptCard(Map<String, dynamic> card) {
+    final outfitId = card['outfitId'] as String;
+    final isWorn = _wornOutfitId == outfitId;
+    final saved = _savedOptionById[outfitId] ?? false;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: const Alignment(-0.58, -0.58),
+          end: const Alignment(0.58, 0.58),
+          colors: (card['gradient'] as List).cast<Color>(),
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cardBorderColor),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(19),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 115,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    card['img'] as String,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    cacheWidth: _cacheWidth(context, 180),
+                    filterQuality: FilterQuality.low,
+                    errorBuilder: (_, _, _) {
+                      final outfitData = _allOutfits.firstWhere(
+                        (o) => o['id'] == card['outfitId'],
+                        orElse: () => {},
+                      );
+                      final localImg = outfitData['localImg'] as String?;
+                      if (localImg != null) {
+                        return Image.asset(
+                          localImg,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                        );
+                      }
+                      return Container(
+                        color: panelColor,
+                        child: Center(
+                          child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 32),
+                        ),
+                      );
+                    },
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0.28, 1.0],
+                          colors: [
+                            bgColor.withValues(alpha: 0),
+                            bgColor.withValues(alpha: 0.72),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(13, 10, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    card['name'] as String,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    card['sub'] as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: mutedColor,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Row(
+                    children: [
+                      _smallIcon(saved ? '❤️' : '🤍', () {
+                        setState(() => _savedOptionById[outfitId] = !saved);
+                        if (!saved) _showToast('Outfit saved!');
+                      }),
+                      const SizedBox(width: 5),
+                      _smallShare(card['name'] as String),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _smallButton(
+                          isWorn ? '✓ Wearing' : 'Wear',
+                          isWorn ? null : () => _wearOutfit(outfitId),
+                          primary: !isWorn,
+                          activeLabelColor: isWorn
+                              ? accent3Color
+                              : tileTextColor,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: _smallButton(
+                          'Try On',
+                          () => _openTryOn(outfitId),
+                          primary: false,
+                          activeLabelColor: accent5Color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _smallIcon(String icon, VoidCallback onTap) => _PressScaleButton(
+    scaleDown: 0.92,
+    onTap: onTap,
+    child: Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: Text(
+          icon,
+          style: TextStyle(
+            fontSize: 13,
+            color: icon == '❤️' ? accent4Color : mutedColor,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _smallShare(String text) => _PressScaleButton(
+    scaleDown: 0.92,
+    onTap: () {
+      Clipboard.setData(ClipboardData(text: text));
+      _showToast('🔗 Link copied!');
+    },
+    child: Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: CustomPaint(
+          size: const Size(13, 13),
+          painter: _ShareIconPainter(color: mutedColor),
+        ),
+      ),
+    ),
+  );
+
+  Widget _smallButton(
+    String label,
+    VoidCallback? onTap, {
+    required bool primary,
+    required Color activeLabelColor,
+  }) => _PressScaleButton(
+    scaleDown: 0.96,
+    opacityDown: 0.7,
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: 34,
+      decoration: BoxDecoration(
+        gradient: primary
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [accentColor, accent3Color],
+              )
+            : null,
+        color: primary ? null : panelColor,
+        borderRadius: BorderRadius.circular(10),
+        border: primary ? null : Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: activeLabelColor,
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _buildChatFab() => Positioned.fill(
+    child: IgnorePointer(
+      ignoring: false,
+      child: Align(
+        alignment: Alignment.bottomRight,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_fabEntryCtrl, _fabPulseCtrl]),
+          builder: (_, _) => Opacity(
+            opacity: _fabEntryOpacity.value,
+            child: Transform.scale(
+              scale: _fabEntryScale.value,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20, bottom: 30),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: _fabPulseOpacity.value,
+                        child: Transform.scale(
+                          scale: _fabPulseScale.value,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                color: accentColor.withValues(alpha: 0.35),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    _PressScaleButton(
+                      scaleDown: 0.95,
+                      onTap: _openChat,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+                        decoration: BoxDecoration(
+                          color: _t.accent.primary,
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _t.accent.primary.withValues(alpha: 0.40),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 11,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.18,
+                              ),
+                              child: Text(
+                                '✦',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Text(
+                              'Ask AHVI',
+                              style: GoogleFonts.anton(
+                                fontSize: 11,
+                                letterSpacing: 0.4,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  int _cacheWidth(BuildContext context, double logicalWidth) {
+    return (logicalWidth * MediaQuery.of(context).devicePixelRatio).round();
+  }
+
+  Widget _chatHeader() => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+    child: Row(
+      children: [
+        _PressScaleButton(
+          scaleDown: 0.90,
+          onTap: _closeChat,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: textColor,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'AHVI Stylist',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Your personal AI stylist',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: mutedColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _PressScaleButton(
+          scaleDown: 0.90,
+          onTap: () => _chatScaffoldKey.currentState?.openDrawer(),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: panelColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.history_rounded,
+                color: mutedColor,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _chatMessages() {
+    final showEmptyState = _messages.isEmpty;
+    final itemCount =
+        (showEmptyState ? 1 : _messages.length) + (_isTyping ? 1 : 0);
+    return ListView.builder(
+      controller: _chatScrollController,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      itemCount: itemCount,
+      itemBuilder: (context, i) {
+        if (showEmptyState) {
+          if (i == 0) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 34,
+                    backgroundColor: accentColor,
+                    child: Text(
+                      '*',
+                      style: TextStyle(fontSize: 28, color: tileTextColor),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Hello, I'm AHVI",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your personal AI stylist. Ask me about outfits, styling tips, what to wear today, or advice for any occasion.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: mutedColor,
+                      height: 1.6,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const _TypingBubble();
+        }
+
+        if (_isTyping && i == _messages.length) {
+          return const _TypingBubble();
+        }
+        final m = _messages[i];
+        return _ChatBubble(
+          message: m,
+          isSpeaking: _speakingMessageId == m.id,
+          onSpeak: m.isUser ? null : () => _speakMessage(m),
+        );
+      },
+    );
+  }
+
+  Widget _chatQuickPrompts() => SizedBox(
+    height: 52,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      itemCount: quickPrompts.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
+      itemBuilder: (_, i) => _PressScaleButton(
+        scaleDown: 0.94,
+        onTap: () => _sendMessage(quickPrompts[i]),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: panelColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cardBorderColor),
+          ),
+          child: Center(
+            child: Text(
+              quickPrompts[i],
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent5Color,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _chatBar() {
+    return Container(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: phoneShellInnerColor,
+        border: Border(top: BorderSide(color: cardBorderColor)),
+      ),
+      child: AhviChatPromptBar(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        controller: _chatController,
+        focusNode: _chatFocusNode,
+        hintText: 'Ask your stylist�',
+        hasTextListenable: _chatController,
+        surface: phoneShellInnerColor,
+        border: cardBorderColor,
+        accent: accentColor,
+        accentSecondary: accent2Color,
+        textHeading: textColor,
+        textMuted: mutedColor,
+        shadowMedium: bgColor.withValues(alpha: 0.20),
+        onAccent: tileTextColor,
+        onSubmitted: _sendMessage,
+        onSend: () => _sendMessage(_chatController.text),
+        onEmptySend: () {},
+        onAddTap: () => showAhviLensSheet(context, t: context.themeTokens),
+      ),
+    );
+  }
+
+  Widget _buildTryOnOverlay() => GestureDetector(
+    onTap: _closeTryOn,
+    child: Material(
+      color: bgColor.withValues(alpha: 0.65),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: GestureDetector(
+          onTap: () {},
+          child: SlideTransition(
+            position: _tryOnSlideAnim,
+            child: FadeTransition(
+              opacity: _tryOnFadeAnim,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.90,
+                decoration: BoxDecoration(
+                  color: bg2Color,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border.all(color: cardBorderColor),
+                ),
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    24,
+                    20,
+                    32 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: panel2Color,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: _PressScaleButton(
+                          scaleDown: 0.90,
+                          onTap: _closeTryOn,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: panelColor,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: cardBorderColor),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '✕',
+                                style: TextStyle(color: mutedColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Virtual Try‑On',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Fitting: ${_selectedTryOnOutfit['name']}',
+                        style: TextStyle(fontSize: 13, color: mutedColor),
+                      ),
+                      const SizedBox(height: 18),
+                      _tryOnBody(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  Widget _tryOnBody() {
+    final outfit = _selectedTryOnOutfit;
+    if (_tryOnStage == _TryOnStage.loading) {
+      return SizedBox(
+        height: 260,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: CircularProgressIndicator(
+                  color: accentColor,
+                  strokeWidth: 2,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                _tryOnLoadingMessage,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text('Preparing AR', style: TextStyle(color: mutedColor)),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_tryOnStage == _TryOnStage.camera) {
+      final colors = (outfit['colors'] as List).cast<String>();
+      final tags = (outfit['arTags'] as List).cast<Map<String, dynamic>>();
+      return Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: LayoutBuilder(
+                builder: (_, constraints) => Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.diagonal3Values(
+                          _frontCamera ? -1 : 1,
+                          1,
+                          1,
+                        ),
+                        child: Image.network(
+                          outfit['img'] as String,
+                          fit: BoxFit.cover,
+                          cacheWidth: _cacheWidth(
+                            context,
+                            constraints.maxWidth,
+                          ),
+                          filterQuality: FilterQuality.low,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      left: 14,
+                      child: Row(
+                        children: [
+                          const _LiveDot(),
+                          const SizedBox(width: 6),
+                          Text(
+                            'LIVE AR',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _frontCamera ? 'HD · FRONT' : 'HD · BACK',
+                            style: TextStyle(fontSize: 10, color: mutedColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Center(
+                      child: Container(
+                        width: constraints.maxWidth * 0.52,
+                        height: constraints.maxHeight * 0.80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(120),
+                          border: Border.all(
+                            color: accentColor.withValues(alpha: 0.4),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    TickerMode(
+                      enabled: _tryOnOpen && _tryOnStage == _TryOnStage.camera,
+                      child: AnimatedBuilder(
+                        animation: _scanCtrl,
+                        builder: (_, _) => Positioned(
+                          top: constraints.maxHeight * _scanLineY.value,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            height: 2,
+                            color: accentColor.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    ...List.generate(
+                      math.min(_visibleArTags, tags.length),
+                      (index) => Positioned(
+                        left:
+                            constraints.maxWidth *
+                            (tags[index]['left'] as double),
+                        top:
+                            constraints.maxHeight *
+                            (tags[index]['top'] as double),
+                        child: _ArTag(label: tags[index]['t'] as String),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 14,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: bgColor.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: cardBorderColor),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(colors.length, (i) {
+                              final selected = i == _selectedSwatchIndex;
+                              return GestureDetector(
+                                onTap: () =>
+                                    setState(() => _selectedSwatchIndex = i),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 26,
+                                  height: 26,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: _parseHexColor(colors[i]),
+                                    border: Border.all(
+                                      color: selected
+                                          ? accentColor
+                                          : cardBorderColor,
+                                      width: selected ? 2.5 : 2,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _actionBtn('📸 Capture', _captureTryOn, primary: true),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 56,
+                child: _actionBtn('🔄', _flipCamera, primary: false),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 56,
+                child: _actionBtn(
+                  '✕',
+                  () => setState(() => _tryOnStage = _TryOnStage.preview),
+                  primary: false,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+    if (_tryOnStage == _TryOnStage.captured) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: Image.network(
+                    outfit['img'] as String,
+                    fit: BoxFit.cover,
+                    cacheWidth: _cacheWidth(context, 320),
+                    filterQuality: FilterQuality.low,
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent3Color.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: accent3Color.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Text(
+                      '✓ CAPTURED',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: accent3Color,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    color: bgColor.withValues(alpha: 0.55),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '✦ ${outfit['name']} · AHVI',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                          ),
+                        ),
+                        Text(
+                          _formatCapturedDate(DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: textColor.withValues(alpha: 0.42),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _actionBtn(
+                  '💾  Save Look',
+                  _saveCapturedLook,
+                  primary: true,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _actionBtn(
+                  '🔄  Retake',
+                  _startTryOnCamera,
+                  primary: false,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: _actionBtn(
+              '✓  Wear Today',
+              () => _wearOutfit(outfit['id'] as String, closeModal: true),
+              primary: false,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Stack(
+            children: [
+              SizedBox(
+                height: 260,
+                width: double.infinity,
+                child: Image.network(
+                  outfit['img'] as String,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  cacheWidth: _cacheWidth(
+                    context,
+                    MediaQuery.of(context).size.width,
+                  ),
+                  filterQuality: FilterQuality.low,
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.4, 1.0],
+                      colors: [
+                        bgColor.withValues(alpha: 0),
+                        bgColor.withValues(alpha: 0.85),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: accentColor.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Text(
+                    'AR MODE',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: accentColor,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 18,
+                left: 18,
+                child: Text(
+                  outfit['name'] as String,
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              const Text('💡'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  outfit['tip'] as String,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: mutedColor,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _actionBtn(
+                '📷  Start Try‑On',
+                _startTryOnCamera,
+                primary: true,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _actionBtn(
+                '✓  Wear Today',
+                () => _wearOutfit(outfit['id'] as String, closeModal: true),
+                primary: false,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _actionBtn(
+    String label,
+    VoidCallback onTap, {
+    required bool primary,
+  }) => _PressScaleButton(
+    scaleDown: 0.97,
+    opacityDown: 0.78,
+    onTap: onTap,
+    child: Container(
+      height: 52,
+      decoration: BoxDecoration(
+        gradient: primary
+            ? LinearGradient(colors: [accentColor, accent3Color])
+            : null,
+        color: primary ? null : panel2Color,
+        borderRadius: BorderRadius.circular(16),
+        border: primary ? null : Border.all(color: cardBorderColor),
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: primary ? tileTextColor : accent5Color,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _PressScaleButton extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double scaleDown;
+  final double opacityDown;
+  const _PressScaleButton({
+    required this.child,
+    required this.onTap,
+    this.scaleDown = 0.94,
+    this.opacityDown = 1.0,
+  });
+  @override
+  State<_PressScaleButton> createState() => _PressScaleButtonState();
+}
+
+class _PressScaleButtonState extends State<_PressScaleButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+  late final Animation<double> _opacity;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scale = Tween<double>(
+      begin: 1,
+      end: widget.scaleDown,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _opacity = Tween<double>(
+      begin: 1,
+      end: widget.opacityDown,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTapDown: widget.onTap == null ? null : (_) => _ctrl.forward(),
+    onTapUp: widget.onTap == null
+        ? null
+        : (_) {
+            _ctrl.reverse();
+            widget.onTap?.call();
+          },
+    onTapCancel: () => _ctrl.reverse(),
+    child: AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, child) => Opacity(
+        opacity: _opacity.value,
+        child: Transform.scale(scale: _scale.value, child: child),
+      ),
+      child: widget.child,
+    ),
+  );
+}
+
+class _ChatMessage {
+  final int id;
+  final String text;
+  final bool isUser;
+  final DateTime createdAt;
+  _ChatMessage({
+    required this.id,
+    required this.text,
+    required this.isUser,
+    required this.createdAt,
+  });
+}
+
+class _ChatSession {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final List<_ChatMessage> messages;
+
+  _ChatSession({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.messages,
+  });
+}
+
+class _ChatBubble extends StatelessWidget {
+  final _ChatMessage message;
+  final bool isSpeaking;
+  final VoidCallback? onSpeak;
+  const _ChatBubble({
+    required this.message,
+    required this.isSpeaking,
+    required this.onSpeak,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final isUser = message.isUser;
+    final time =
+        '${message.createdAt.hour.toString().padLeft(2, '0')}:${message.createdAt.minute.toString().padLeft(2, '0')}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser)
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: t.accent.primary,
+              child: Text('✦', style: TextStyle(color: t.tileText)),
+            ),
+          if (!isUser) const SizedBox(width: 9),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Column(
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: isUser
+                      ? null
+                      : BoxDecoration(
+                          color: t.panel,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: const Radius.circular(4),
+                            bottomRight: const Radius.circular(20),
+                          ),
+                          border: Border.all(color: t.cardBorder),
+                        ),
+                  child: _RichChatText(
+                    text: message.text,
+                    color: t.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      time,
+                      style: TextStyle(fontSize: 10, color: t.mutedText),
+                    ),
+                    if (!isUser && onSpeak != null) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: onSpeak,
+                        child: Icon(
+                          Icons.volume_up_rounded,
+                          size: 14,
+                          color: isSpeaking ? t.accent.secondary : t.mutedText,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (isUser) const SizedBox(width: 9),
+          if (isUser)
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: t.panelBorder,
+              child: Text(
+                '👤',
+                style: TextStyle(fontSize: 12, color: t.mutedText),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: t.accent.primary,
+          child: Text('✦', style: TextStyle(color: t.tileText)),
+        ),
+        const SizedBox(width: 9),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: t.panel,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: t.cardBorder),
+          ),
+          child: Row(
+            children: List.generate(
+              3,
+              (i) => _BounceDot(controller: _ctrl, delay: i * 0.18),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BounceDot extends StatelessWidget {
+  final AnimationController controller;
+  final double delay;
+  const _BounceDot({required this.controller, required this.delay});
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final anim =
+        TweenSequence([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0, end: -6),
+            weight: 30,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: -6, end: 0),
+            weight: 30,
+          ),
+          TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(
+            parent: controller,
+            curve: Interval(
+              delay,
+              (delay + 0.5).clamp(0, 1.0),
+              curve: Curves.easeInOut,
+            ),
+          ),
+        );
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (_, _) => Transform.translate(
+        offset: Offset(0, anim.value),
+        child: Container(
+          width: 7,
+          height: 7,
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          decoration: BoxDecoration(
+            color: t.accent.primary.withValues(alpha: 0.55),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RichChatText extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _RichChatText({required this.text, required this.color});
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      style: TextStyle(fontSize: 13.5, height: 1.6, color: color),
+      children: _parse(text),
+    ),
+  );
+  List<InlineSpan> _parse(String raw) {
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'(\*\*.*?\*\*|\*.*?\*)');
+    var last = 0;
+    for (final match in regex.allMatches(raw)) {
+      if (match.start > last) {
+        spans.add(TextSpan(text: raw.substring(last, match.start)));
+      }
+      final token = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: token.startsWith('**')
+              ? token.substring(2, token.length - 2)
+              : token.substring(1, token.length - 1),
+          style: TextStyle(
+            fontWeight: token.startsWith('**')
+                ? FontWeight.w700
+                : FontWeight.w400,
+            fontStyle: token.startsWith('**')
+                ? FontStyle.normal
+                : FontStyle.italic,
+          ),
+        ),
+      );
+      last = match.end;
+    }
+    if (last < raw.length) spans.add(TextSpan(text: raw.substring(last)));
+    return spans;
+  }
+}
+
+class _LiveDot extends StatefulWidget {
+  const _LiveDot();
+  @override
+  State<_LiveDot> createState() => _LiveDotState();
+}
+
+class _LiveDotState extends State<_LiveDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.28, end: 1).animate(_ctrl),
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [t.accent.primary, t.accent.secondary],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArTag extends StatelessWidget {
+  final String label;
+  const _ArTag({required this.label});
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: t.backgroundPrimary.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: t.accent.tertiary,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: t.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToastWidget extends StatefulWidget {
+  final String message;
+  final bool green;
+  const _ToastWidget({required this.message, required this.green});
+  @override
+  State<_ToastWidget> createState() => _ToastWidgetState();
+}
+
+class _ToastWidgetState extends State<_ToastWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    )..forward();
+
+    _slide = Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _ctrl, curve: const Cubic(0.32, 0.72, 0, 1)),
+        );
+
+    _fade = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final accent3Color = t.accent.tertiary;
+    final phoneShellColor = t.phoneShell;
+    final cardBorderColor = t.cardBorder;
+    final textColor = t.textPrimary;
+    return Positioned(
+      bottom: MediaQuery.of(context).padding.bottom + 30,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(
+            position: _slide,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+              decoration: BoxDecoration(
+                color: widget.green
+                    ? accent3Color.withValues(alpha: 0.15)
+                    : phoneShellColor,
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: widget.green
+                      ? accent3Color.withValues(alpha: 0.35)
+                      : cardBorderColor,
+                ),
+              ),
+              child: Text(
+                widget.message,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: widget.green ? accent3Color : textColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShareIconPainter extends CustomPainter {
+  final Color color;
+  const _ShareIconPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = size.width * 0.092
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final double w = size.width;
+    final double h = size.height;
+    final double r = w * 0.125;
+
+    canvas.drawCircle(Offset(w * 0.75, h * 0.208), r, paint);
+    canvas.drawCircle(Offset(w * 0.25, h * 0.5), r, paint);
+    canvas.drawCircle(Offset(w * 0.75, h * 0.792), r, paint);
+    canvas.drawLine(
+      Offset(w * 0.358, h * 0.563),
+      Offset(w * 0.643, h * 0.271),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(w * 0.358, h * 0.437),
+      Offset(w * 0.643, h * 0.729),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ShareIconPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+class _BgGradientPainter extends CustomPainter {
+  final Color primary;
+  final Color secondary;
+  final Color tertiary;
+  const _BgGradientPainter({
+    required this.primary,
+    required this.secondary,
+    required this.tertiary,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    final gradients = [
+      RadialGradient(
+        center: const Alignment(-0.8, -0.84),
+        radius: 0.65,
+        colors: [
+          primary.withValues(alpha: 0.12),
+          primary.withValues(alpha: 0.0),
+        ],
+      ),
+      RadialGradient(
+        center: const Alignment(0.76, 0.64),
+        radius: 0.55,
+        colors: [
+          secondary.withValues(alpha: 0.10),
+          secondary.withValues(alpha: 0.0),
+        ],
+      ),
+      RadialGradient(
+        center: Alignment.center,
+        radius: 0.45,
+        colors: [
+          tertiary.withValues(alpha: 0.07),
+          tertiary.withValues(alpha: 0.0),
+        ],
+      ),
+    ];
+    for (final gradient in gradients) {
+      paint.shader = gradient.createShader(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+      );
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BgGradientPainter oldDelegate) =>
+      oldDelegate.primary != primary ||
+      oldDelegate.secondary != secondary ||
+      oldDelegate.tertiary != tertiary;
+}

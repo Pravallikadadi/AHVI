@@ -1,0 +1,44 @@
+name: myapp
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter  
+  google_fonts: ^6.2.1
+  http: ^1.5.0
+  image_picker: ^1.1.2
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+  intl: ^0.19.0
+  camera: ^0.10.5+9   # ✅ added
+  permission_handler: ^11.3.1  # ✅ added
+  speech_to_text: ^6.6.2
+  flutter_local_notifications: ^17.0.0
+
+  cupertino_icons: ^1.0.8
+  # Backend Integration
+  appwrite: any
+  flutter_dotenv: any
+  minio: ^3.5.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Environment Variables
+  assets:
+    - .env
+    - assets/body_shapes/
+    - assets/styles/
+    - assets/shop/
+    - assets/images/

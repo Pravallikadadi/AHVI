@@ -1,0 +1,1989 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'package:image_picker/image_picker.dart';
+import 'theme/theme_tokens.dart';
+// ─── DATA MODELS ──────────────────────────────────────────────────────────────
+class WorkoutCategory {
+  final String id;
+  final String label;
+  final String emoji;
+  final Color color;
+  final Color accent;
+  const WorkoutCategory({
+    required this.id,
+    required this.label,
+    required this.emoji,
+    required this.color,
+    this.accent = Colors.black,
+  });
+}
+class WorkoutOutfit {
+  final String id;
+  final String name;
+  final String catId;
+  final List<String> images;
+  final List<String> items;
+  final String notes;
+  const WorkoutOutfit({
+    required this.id,
+    required this.name,
+    required this.catId,
+    this.images = const [],
+    this.items = const [],
+    this.notes = '',
+  });
+  String? get mainImage => images.isNotEmpty ? images.first : null;
+}
+class ChatMessage {
+  final String text;
+  final bool isBot;
+  final DateTime time;
+  final WorkoutStyleboard? styleboard;
+  ChatMessage({
+    required this.text,
+    required this.isBot,
+    DateTime? time,
+    this.styleboard,
+  }) : time = time ?? DateTime.now();
+}
+class ChatSession {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final List<ChatMessage> messages;
+  ChatSession({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.messages,
+  });
+}
+class WorkoutStyleboard {
+  final String emoji;
+  final String title;
+  final String subtitle;
+  final List<Color> colors;
+  final List<Color> gradientColors;
+  const WorkoutStyleboard({
+    required this.emoji,
+    required this.title,
+    required this.subtitle,
+    required this.colors,
+    required this.gradientColors,
+  });
+}
+// ─── THEME COLORS (FIXED — dynamic via AppThemeTokens) ────────────────────────
+// kAccent & navy palette stay constant; surface/text/bg colors come from context
+const kAccent = Color(0xFF7B6EF6);
+const kGlassBg = Color(0x1AFFFFFF);
+const kGlassBgStrong = Color(0x30FFFFFF);
+const kGlassBorder = Color(0x30FFFFFF);
+
+// ─── THEME HELPERS ─────────────────────────────────────────────────────────────
+extension FitnessTheme on BuildContext {
+  AppThemeTokens get _t => Theme.of(this).extension<AppThemeTokens>()!;
+  Color get fText => _t.textPrimary;
+  Color get fTextSoft => _t.textPrimary.withOpacity(0.85);
+  Color get fMuted => _t.mutedText;
+  Color get fSurface => _t.backgroundSecondary;
+  Color get fCard => _t.card;
+  Color get fBg => _t.backgroundPrimary;
+  Color get fBorder => _t.cardBorder;
+  Color get fPanel => _t.panel;
+  Color get fPanelBorder => _t.panelBorder;
+  Color get fAccent => _t.accent.primary;
+  Color get fAccent2 => _t.accent.secondary;
+  Color get fSnackBg => _t.backgroundPrimary.computeLuminance() > 0.5
+      ? const Color(0xFF1C1C1E)
+      : const Color(0xFF2C2C2E);
+  bool get fIsDark => _t.backgroundPrimary.computeLuminance() < 0.5;
+  LinearGradient get fPageBgGrad => fIsDark
+      ? const LinearGradient(
+          colors: [Color(0xFF0F0F18), Color(0xFF141428), Color(0xFF0F0F1E), Color(0xFF12121F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        )
+      : const LinearGradient(
+          colors: [Color(0xFFEEF3FF), Color(0xFFF5F7FF), Color(0xFFEEF3FF), Color(0xFFFFFFFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+}
+
+// ─── NAVY BLUE PALETTE (OUTFIT CARD) ──────────────────────────────────────────
+const kNavyDeep    = Color(0xFF0A1628); // darkest navy
+const kNavyMid     = Color(0xFF1B3A6B); // mid navy blue
+const kNavyBright  = Color(0xFF2563EB); // vivid navy/royal blue
+const kNavyLight   = Color(0xFF3B82F6); // lighter accent blue
+const kNavySoft    = Color(0xFF93C5FD); // soft sky-navy highlight
+final kAccentGrad = const LinearGradient(
+  colors: [Color(0xFF7B6EF6), Color(0xFF9B8EFF)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+// ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
+class WorkoutStudioScreen extends StatefulWidget {
+  const WorkoutStudioScreen({super.key});
+  @override
+  State<WorkoutStudioScreen> createState() => _WorkoutStudioScreenState();
+}
+class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
+  String _activePage = 'home';
+  String _selectedTab = 'all';
+  
+  final List<WorkoutCategory> _categories = [
+    const WorkoutCategory(id: 'running', label: 'Running', emoji: '🏃', color: Color(0xD9F5C842), accent: Colors.black),
+    const WorkoutCategory(id: 'gym', label: 'Gym / Weights', emoji: '🏋️', color: Color(0xE6A8D4F0), accent: Colors.black),
+    const WorkoutCategory(id: 'yoga', label: 'Yoga', emoji: '🧘', color: Color(0xE6C8B0F5), accent: Colors.black),
+    const WorkoutCategory(id: 'hiit', label: 'HIIT / Cardio', emoji: '⚡', color: Color(0xE6F068B0), accent: Colors.white),
+  ];
+  void _addCategory(WorkoutCategory c) {
+    setState(() => _categories.add(c));
+  }
+  final List<WorkoutOutfit> _outfits = [];
+  void _addOutfit(WorkoutOutfit o) {
+    setState(() => _outfits.insert(0, o));
+  }
+  void _deleteOutfit(String id) {
+    setState(() => _outfits.removeWhere((o) => o.id == id));
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background Gradient — theme aware
+          Container(decoration: BoxDecoration(gradient: context.fPageBgGrad)),
+          
+          // Floating Orbs
+          const _BgOrbs(),
+          // Main View
+          SafeArea(
+            child: IndexedStack(
+              index: _activePage == 'home' ? 0 : 1,
+              children: [
+                _HomeView(
+                  categories: _categories,
+                  outfits: _outfits,
+                  selectedTab: _selectedTab,
+                  onTabSelected: (id) => setState(() => _selectedTab = id),
+                  onShowPage: (name) => setState(() => _activePage = name),
+                  onAddOutfit: _addOutfit,
+                  onDeleteOutfit: _deleteOutfit,
+                  onAddCategory: _addCategory,
+                ),
+                _ChatView(
+                  onBack: () => setState(() => _activePage = 'home'),
+                ),
+              ],
+            ),
+          ),
+          // FAB (only on home)
+          if (_activePage == 'home')
+            Positioned(
+              bottom: 28,
+              right: 28,
+              child: _AskAhviFab(onTap: () => setState(() => _activePage = 'chat')),
+            ),
+        ],
+      ),
+    );
+  }
+}
+// ─── BACKGROUND ORBS ─────────────────────────────────────────────────────────
+class _BgOrbs extends StatelessWidget {
+  const _BgOrbs();
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: -120,
+          left: -120,
+          child: Container(
+            width: 520,
+            height: 520,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [const Color(0xFFB4A0F0).withOpacity(0.35), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -100,
+          right: -100,
+          child: Container(
+            width: 420,
+            height: 420,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [const Color(0xFFC8AAFA).withOpacity(0.30), Colors.transparent],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+// ─── HOME VIEW ────────────────────────────────────────────────────────────────
+class _HomeView extends StatelessWidget {
+  final List<WorkoutCategory> categories;
+  final List<WorkoutOutfit> outfits;
+  final String selectedTab;
+  final Function(String) onTabSelected;
+  final Function(String) onShowPage;
+  final Function(WorkoutOutfit) onAddOutfit;
+  final Function(String) onDeleteOutfit;
+  final Function(WorkoutCategory) onAddCategory;
+  const _HomeView({
+    required this.categories,
+    required this.outfits,
+    required this.selectedTab,
+    required this.onTabSelected,
+    required this.onShowPage,
+    required this.onAddOutfit,
+    required this.onDeleteOutfit,
+    required this.onAddCategory,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final filtered = selectedTab == 'all' ? outfits : outfits.where((o) => o.catId == selectedTab).toList();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Bar
+          const SizedBox(height: 12),
+          // Hero Card: Dress well, train better
+          _HeroCard(),
+          const SizedBox(height: 24),
+          // Saved Label row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Your Outfits — ${outfits.length} saved',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 1.2, color: context.fMuted)),
+              ElevatedButton(
+                onPressed: () => _openAddOutfit(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: context.fAccent,
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                ),
+                child: const Text('+ Add Outfit'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Tabs Row
+          _CategoryTabs(
+            categories: categories,
+            selectedId: selectedTab,
+            onSelect: onTabSelected,
+            totalCount: outfits.length,
+            onAddType: onAddCategory,
+          ),
+          const SizedBox(height: 10),
+          // Grid
+          Expanded(
+            child: filtered.isEmpty
+                ? _EmptyGrid()
+                : GridView.builder(
+                    padding: const EdgeInsets.only(bottom: 100),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.85,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (ctx, i) => _OutfitCard(
+                      outfit: filtered[i],
+                      category: categories.firstWhere((c) => c.id == filtered[i].catId, orElse: () => categories[0]),
+                      onDelete: () => onDeleteOutfit(filtered[i].id),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+  void _openAddOutfit(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _AddOutfitSheet(
+        onSave: (o) {
+          onAddOutfit(o);
+          Navigator.pop(ctx);
+        },
+        categories: categories,
+      ),
+    );
+  }
+}
+// ─── HERO CARD: DRESS WELL, TRAIN BETTER ──────────────────────────────────────
+class _HeroCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 220,
+      decoration: BoxDecoration(
+        color: const Color(0xFF9B7FD4),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFC8B4F5).withOpacity(0.5)),
+        boxShadow: [BoxShadow(color: const Color(0xFF9B7FD4).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: 0,
+            bottom: 0,
+            width: MediaQuery.of(context).size.width * 0.5,
+            height: 260,
+            child: Opacity(
+              opacity: 0.9,
+              child: Image.asset(
+                'assets/images/hero_outfit.jpg', // assets/images/ లో add చేయండి
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomRight,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Icon(Icons.image_outlined, color: Colors.white24, size: 48),
+                  );
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(26),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white, height: 1.1, letterSpacing: -0.8),
+                    children: [
+                      TextSpan(text: 'Dress well,\n'),
+                      TextSpan(text: 'train better.', style: TextStyle(color: Colors.white70)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const SizedBox(
+                  width: 200,
+                  child: Text(
+                    'Organize your workout outfits. Chat with AHVI for AI-powered style advice.',
+                    style: TextStyle(fontSize: 12, color: Colors.white54, height: 1.5, fontWeight: FontWeight.w300),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+// ─── STUBS FOR COMPLETION IN NEXT TURN ────────────────────────────────────────
+class _AskAhviFab extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AskAhviFab({required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 10, 18, 10),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [context.fAccent2, context.fAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: context.fAccent.withOpacity(0.35)),
+          boxShadow: [
+            BoxShadow(color: context.fAccent2.withOpacity(0.45), blurRadius: 22, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 14,
+              backgroundColor: Colors.white.withOpacity(0.20),
+              child: const Text('✦', style: TextStyle(color: Colors.white, fontSize: 14)),
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              'Ask AHVI',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class _CategoryTabs extends StatelessWidget {
+  final List<WorkoutCategory> categories;
+  final String selectedId;
+  final Function(String) onSelect;
+  final int totalCount;
+  final Function(WorkoutCategory) onAddType;
+  const _CategoryTabs({
+    required this.categories,
+    required this.selectedId,
+    required this.onSelect,
+    required this.totalCount,
+    required this.onAddType,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _TabItem(
+            label: 'All',
+            n: totalCount,
+            selected: selectedId == 'all',
+            onTap: () => onSelect('all'),
+            color: context.fAccent,
+            emoji: '✦',
+          ),
+          ...categories.map((c) => _TabItem(
+            label: c.label,
+            n: 0,
+            selected: selectedId == c.id,
+            onTap: () => onSelect(c.id),
+            color: c.color,
+            emoji: c.emoji,
+          )),
+          const SizedBox(width: 8),
+          _AddTypeBtn(onAdd: onAddType),
+        ],
+      ),
+    );
+  }
+}
+class _TabItem extends StatelessWidget {
+  final String label;
+  final int n;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color color;
+  final String emoji;
+  const _TabItem({required this.label, required this.n, required this.selected, required this.onTap, required this.color, required this.emoji});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? color.withOpacity(0.22) : Colors.white12,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(
+            color: selected ? color.withOpacity(0.7) : Colors.white24,
+            width: selected ? 1.5 : 1,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 3))]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                color: selected ? Colors.white : context.fTextSoft,
+              ),
+            ),
+            if (n > 0) ...[
+              const SizedBox(width: 4),
+              Text('$n', style: TextStyle(fontSize: 11, color: selected ? Colors.white60 : context.fMuted)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+class _AddTypeBtn extends StatelessWidget {
+  final Function(WorkoutCategory) onAdd;
+  const _AddTypeBtn({required this.onAdd});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showAddTypeDialog(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(50),
+          border: Border.all(color: const Color(0xFF9B7FD4).withOpacity(0.38), style: BorderStyle.solid),
+        ),
+        child: const Text('+ Add type', style: TextStyle(fontSize: 13, color: Color(0xFF9B7FD4))),
+      ),
+    );
+  }
+
+  void _showAddTypeDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final emojiController = TextEditingController(text: '🏃');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.fSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Add Workout Type', style: TextStyle(color: ctx.fText, fontSize: 16, fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              style: TextStyle(color: ctx.fText),
+              decoration: InputDecoration(
+                hintText: 'e.g. Swimming',
+                hintStyle: TextStyle(color: ctx.fMuted),
+                filled: true,
+                fillColor: ctx.fCard,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                labelText: 'Type Name',
+                labelStyle: TextStyle(color: ctx.fMuted, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: emojiController,
+              style: TextStyle(color: ctx.fText, fontSize: 22),
+              decoration: InputDecoration(
+                hintText: '🏃',
+                filled: true,
+                fillColor: ctx.fCard,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                labelText: 'Emoji',
+                labelStyle: TextStyle(color: ctx.fMuted, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: ctx.fMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final colors = [
+                  const Color(0xE6A8D4F0), const Color(0xE6C8B0F5),
+                  const Color(0xD9F5C842), const Color(0xE6F068B0),
+                  const Color(0xE6A8F0C8), const Color(0xE6F0A8C8),
+                ];
+                final color = colors[name.hashCode.abs() % colors.length];
+                final newType = WorkoutCategory(
+                  id: name.toLowerCase().replaceAll(' ', '_'),
+                  label: name,
+                  emoji: emojiController.text.trim().isEmpty ? '🏋️' : emojiController.text.trim(),
+                  color: color,
+                  accent: Colors.black,
+                );
+                onAdd(newType);
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ctx.fAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+class _OutfitCard extends StatelessWidget {
+  final WorkoutOutfit outfit;
+  final WorkoutCategory category;
+  final VoidCallback onDelete;
+  const _OutfitCard({required this.outfit, required this.category, required this.onDelete});
+
+  // Navy blue color palette — outfit section card కోసం
+  List<Color> _palette() {
+    return const [
+      kNavyDeep,    // darkest navy
+      kNavyMid,     // mid navy blue
+      kNavyBright,  // vivid navy/royal blue
+      kNavyLight,   // lighter accent blue
+      kNavySoft,    // soft sky-navy highlight
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = _palette();
+    return Container(
+      decoration: BoxDecoration(
+        // Page bg (0xFF0F0F18) కి match అయ్యే deep navy gradient glass
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF0D1428).withOpacity(0.92), // deep navy — page bg shade
+            const Color(0xFF111830).withOpacity(0.95), // slightly lighter navy
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: kNavyBright.withOpacity(0.28),
+          width: 1.2,
+        ),
+        boxShadow: [
+          // Deep navy glow — page bg తో blend అవుతుంది
+          BoxShadow(
+            color: kNavyMid.withOpacity(0.45),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: const Color(0xFF0A1020).withOpacity(0.6),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Column(
+            children: [
+              // Image section
+              Expanded(
+                child: outfit.mainImage != null
+                    ? Image.network(outfit.mainImage!, fit: BoxFit.cover, width: double.infinity)
+                    : Container(
+                        decoration: BoxDecoration(
+                          // No image — navy gradient placeholder (page bg తో match)
+                          gradient: LinearGradient(
+                            colors: [
+                              kNavyMid.withOpacity(0.7),
+                              kNavyDeep.withOpacity(0.9),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(category.emoji, style: const TextStyle(fontSize: 28)),
+                              const SizedBox(height: 4),
+                              Container(
+                                width: 28,
+                                height: 2,
+                                decoration: BoxDecoration(
+                                  color: kNavyLight.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+              // Bottom info section — page bg dark navy
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(8, 7, 8, 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0A1020).withOpacity(0.97),
+                  border: Border(
+                    top: BorderSide(color: kNavyBright.withOpacity(0.22), width: 1),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Outfit name
+                    Text(
+                      outfit.name,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: context.fText,
+                        letterSpacing: 0.1,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    // Category emoji pill — navy tint
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: kNavyMid.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(color: kNavyLight.withOpacity(0.45), width: 1),
+                      ),
+                      child: Text(
+                        '${category.emoji} ${category.label}',
+                        style: const TextStyle(
+                          fontSize: 8,
+                          color: kNavySoft,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // Color Palette Strip
+                    Row(
+                      children: [
+                        Text(
+                          'PALETTE',
+                          style: TextStyle(
+                            fontSize: 7,
+                            color: kNavySoft.withOpacity(0.5),
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Row(
+                              children: palette.asMap().entries.map((e) {
+                                final isFirst = e.key == 0;
+                                final isLast = e.key == palette.length - 1;
+                                return Expanded(
+                                  child: Container(
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: e.value,
+                                      borderRadius: BorderRadius.horizontal(
+                                        left: isFirst ? const Radius.circular(4) : Radius.zero,
+                                        right: isLast ? const Radius.circular(4) : Radius.zero,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // Delete button
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: onDelete,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: kNavyDeep.withOpacity(0.85),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: kNavyLight.withOpacity(0.3), width: 1),
+                ),
+                child: const Icon(Icons.close, color: kNavySoft, size: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+class _EmptyGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('✦', style: TextStyle(fontSize: 40, color: context.fMuted.withOpacity(0.3))),
+          const SizedBox(height: 12),
+          Text('No workouts here yet', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.fText.withOpacity(0.7))),
+          Text('Add an outfit or ask AHVI for suggestions', style: TextStyle(fontSize: 13, color: context.fMuted)),
+        ],
+      ),
+    );
+  }
+}
+class _AddOutfitSheet extends StatefulWidget {
+  final Function(WorkoutOutfit) onSave;
+  final List<WorkoutCategory> categories;
+  const _AddOutfitSheet({required this.onSave, required this.categories});
+  @override
+  State<_AddOutfitSheet> createState() => _AddOutfitSheetState();
+}
+class _AddOutfitSheetState extends State<_AddOutfitSheet> {
+  final _nameController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _itemInpController = TextEditingController();
+  String _selectedCatId = '';
+  final List<String> _items = [];
+  final List<String> _images = [];
+  @override
+  void initState() {
+    super.initState();
+    _selectedCatId = widget.categories.first.id;
+  }
+  void _addItem() {
+    final val = _itemInpController.text.trim();
+    if (val.isNotEmpty) {
+      setState(() {
+        _items.add(val);
+        _itemInpController.clear();
+      });
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        // Page bg కి match — theme aware
+        gradient: context.fPageBgGrad,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Header ──────────────────────────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'New Outfit',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.fText),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 30, height: 30,
+                      decoration: BoxDecoration(
+                        color: context.fPanel,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.fBorder),
+                      ),
+                      child: Icon(Icons.close, color: context.fMuted, size: 16),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ── Outfit Name ─────────────────────────────────────────────────
+              _Label('Outfit Name'),
+              TextField(
+                controller: _nameController,
+                style: TextStyle(color: context.fText, fontSize: 14),
+                decoration: _fieldDeco('e.g. Sunday Morning Run'),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Workout Type ────────────────────────────────────────────────
+              _Label('Workout Type'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: widget.categories.map((c) => _CatPill(
+                  cat: c,
+                  selected: _selectedCatId == c.id,
+                  onTap: () => setState(() => _selectedCatId = c.id),
+                )).toList(),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Outfit Photos ───────────────────────────────────────────────
+              _Label('Outfit Photos (up to 6)'),
+              if (_images.isNotEmpty)
+                Container(
+                  height: 100,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _images.length,
+                    itemBuilder: (ctx, i) => _PhotoSlot(
+                      src: _images[i],
+                      isMain: i == 0,
+                      onDelete: () => setState(() => _images.removeAt(i)),
+                    ),
+                  ),
+                ),
+              Row(
+                children: [
+                  Expanded(child: _PhotoActionBtn(icon: Icons.camera_alt, label: 'Camera', onTap: _openCamera)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _PhotoActionBtn(icon: Icons.grid_view_rounded, label: 'Gallery', onTap: _openGallery)),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // ── Clothing Items ──────────────────────────────────────────────
+              _Label('Clothing Items'),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _itemInpController,
+                      style: TextStyle(color: context.fText, fontSize: 14),
+                      decoration: _fieldDeco('e.g. Lightweight tank top'),
+                      onSubmitted: (_) => _addItem(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _addItem,
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [context.fAccent2, context.fAccent],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: context.fAccent.withOpacity(0.4)),
+                      ),
+                      child: const Icon(Icons.add, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ],
+              ),
+              if (_items.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _items.asMap().entries.map((e) => Chip(
+                      label: Text(e.value, style: TextStyle(fontSize: 12, color: context.fText)),
+                      onDeleted: () => setState(() => _items.removeAt(e.key)),
+                      backgroundColor: context.fCard,
+                      deleteIconColor: context.fMuted,
+                      side: BorderSide(color: context.fBorder),
+                    )).toList(),
+                  ),
+                ),
+              const SizedBox(height: 20),
+
+              // ── Notes ───────────────────────────────────────────────────────
+              _Label('Notes'),
+              TextField(
+                controller: _notesController,
+                maxLines: 3,
+                style: TextStyle(color: context.fText, fontSize: 14),
+                decoration: _fieldDeco('e.g. Great for hot weather...'),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Save Button ─────────────────────────────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_nameController.text.isEmpty) return;
+                    widget.onSave(WorkoutOutfit(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: _nameController.text,
+                      catId: _selectedCatId,
+                      items: _items,
+                      notes: _notesController.text,
+                      images: _images,
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.fAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Save Outfit',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+      ),
+    );
+  }
+  InputDecoration _fieldDeco(String hint) => InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: context.fMuted.withOpacity(0.65), fontSize: 13),
+    filled: true,
+    fillColor: context.fCard,
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: context.fBorder, width: 1),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: context.fAccent, width: 1.5),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  );
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _openCamera() async {
+    if (_images.length >= 6) return;
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1080,
+      );
+      if (photo != null) {
+        setState(() => _images.add(photo.path));
+      }
+    } catch (e) {
+      debugPrint('Camera error: $e');
+    }
+  }
+
+  Future<void> _openGallery() async {
+    if (_images.length >= 6) return;
+    try {
+      final List<XFile> picked = await _picker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: 1080,
+      );
+      if (picked.isNotEmpty) {
+        setState(() {
+          final remaining = 6 - _images.length;
+          _images.addAll(
+            picked.take(remaining).map((f) => f.path),
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Gallery error: $e');
+    }
+  }
+}
+class _PhotoSlot extends StatelessWidget {
+  final String src;
+  final bool isMain;
+  final VoidCallback onDelete;
+  const _PhotoSlot({required this.src, required this.isMain, required this.onDelete});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 100,
+      margin: const EdgeInsets.only(right: 8),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Colors.white10),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          src.startsWith('http')
+              ? Image.network(src, fit: BoxFit.cover, width: 100, height: 100)
+              : Image.file(File(src), fit: BoxFit.cover, width: 100, height: 100),
+          Positioned(
+            top: 4, right: 4,
+            child: GestureDetector(
+              onTap: onDelete,
+              child: Container(padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.close, size: 12, color: Colors.white)),
+            ),
+          ),
+          if (isMain)
+            Positioned(
+              bottom: 4, left: 4,
+              child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)), child: const Text('MAIN', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold))),
+            ),
+        ],
+      ),
+    );
+  }
+}
+class _PhotoActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _PhotoActionBtn({required this.icon, required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: context.fPanel,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.fAccent.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: context.fAccent),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: context.fAccent)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 1.5, color: context.fAccent)),
+    );
+  }
+}
+class _CatPill extends StatelessWidget {
+  final WorkoutCategory cat;
+  final bool selected;
+  final VoidCallback onTap;
+  const _CatPill({required this.cat, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? context.fAccent.withOpacity(0.18) : context.fPanel,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? context.fAccent : context.fBorder,
+            width: selected ? 1.5 : 1,
+          ),
+
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(color: cat.color, borderRadius: BorderRadius.circular(10)),
+              child: Center(child: Text(cat.emoji, style: const TextStyle(fontSize: 18))),
+            ),
+            const SizedBox(height: 6),
+            Text(cat.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: selected ? context.fText : context.fMuted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class _ChatView extends StatefulWidget {
+  final VoidCallback onBack;
+  const _ChatView({required this.onBack});
+  @override
+  State<_ChatView> createState() => _ChatViewState();
+}
+class _FitnessSession {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final List<ChatMessage> messages;
+  _FitnessSession({required this.id, required this.title, required this.createdAt, required this.messages});
+}
+
+class _ChatViewState extends State<_ChatView> {
+  final _inputController = TextEditingController();
+  final _scrollController = ScrollController();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final List<ChatMessage> _messages = [
+    ChatMessage(
+      text: "Hi! I'm AHVI, your AI outfit stylist ✨\n\nTell me what workout you're doing, and I'll suggest the perfect outfit!",
+      isBot: true,
+    ),
+  ];
+  bool _isTyping = false;
+  bool _showVoiceOverlay = false;
+
+  // ── Chat History Sessions ─────────────────────────────────────────────────
+  final List<_FitnessSession> _sessions = [];
+  late String _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+
+  void _saveCurrentSession() {
+    if (_messages.length <= 1) return;
+    final userMsg = _messages.firstWhere((m) => !m.isBot, orElse: () => _messages.first);
+    final rawTitle = userMsg.text;
+    final title = rawTitle.length > 38 ? '${rawTitle.substring(0, 38)}…' : rawTitle;
+    final existing = _sessions.indexWhere((s) => s.id == _currentSessionId);
+    final session = _FitnessSession(id: _currentSessionId, title: title, createdAt: _messages.first.time, messages: List.from(_messages));
+    if (existing >= 0) { _sessions[existing] = session; } else { _sessions.insert(0, session); }
+  }
+
+  void _startNewChat() {
+    Navigator.of(context).pop();
+    setState(() {
+      _saveCurrentSession();
+      _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+      _messages..clear()..add(ChatMessage(text: "Hi! I'm AHVI, your AI outfit stylist ✨\n\nTell me what workout you're doing, and I'll suggest the perfect outfit!", isBot: true));
+    });
+    _scrollToBottom();
+  }
+
+  void _loadSession(_FitnessSession session) {
+    Navigator.of(context).pop();
+    setState(() { _currentSessionId = session.id; _messages..clear()..addAll(session.messages); });
+    _scrollToBottom();
+  }
+
+  void _deleteSession(String id) => setState(() => _sessions.removeWhere((s) => s.id == id));
+
+  String _formatDate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays == 0) return 'Today';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays} days ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  Widget _historyDrawer() => Drawer(
+    backgroundColor: context.fSurface,
+    child: SafeArea(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
+        child: Row(children: [
+          Text('Chats', style: TextStyle(color: context.fText, fontSize: 20, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          GestureDetector(
+            onTap: _startNewChat,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(gradient: kAccentGrad, borderRadius: BorderRadius.circular(20)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                Icon(Icons.add, color: Colors.white, size: 14), SizedBox(width: 4),
+                Text('New', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      Divider(color: kGlassBorder, height: 1),
+      Expanded(
+        child: _sessions.isEmpty
+            ? Center(child: Text('No past chats yet.\nStart a conversation!', textAlign: TextAlign.center, style: TextStyle(color: context.fMuted, fontSize: 13)))
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _sessions.length,
+                itemBuilder: (ctx, i) {
+                  final s = _sessions[i];
+                  final isActive = s.id == _currentSessionId;
+                  return Dismissible(
+                    key: ValueKey(s.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20),
+                      color: Colors.red.withOpacity(0.15),
+                      child: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                    ),
+                    onDismissed: (_) => _deleteSession(s.id),
+                    child: ListTile(
+                      selected: isActive,
+                      selectedTileColor: context.fAccent.withOpacity(0.1),
+                      onTap: () => _loadSession(s),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                      leading: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: isActive ? context.fAccent.withOpacity(0.15) : context.fPanel,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: context.fBorder),
+                        ),
+                        child: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: isActive ? kAccent : context.fMuted),
+                      ),
+                      title: Text(s.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: context.fText, fontSize: 13, fontWeight: isActive ? FontWeight.w700 : FontWeight.w500)),
+                      subtitle: Text(_formatDate(s.createdAt), style: TextStyle(color: context.fMuted, fontSize: 11)),
+                    ),
+                  );
+                },
+              ),
+      ),
+    ])),
+  );
+
+  void _sendMessage([String? text]) {
+    final msg = text ?? _inputController.text.trim();
+    if (msg.isEmpty) return;
+    setState(() {
+      _messages.add(ChatMessage(text: msg, isBot: false));
+      if (text == null) _inputController.clear();
+      _isTyping = true;
+    });
+    _scrollToBottom();
+    Future.delayed(const Duration(seconds: 1), () {
+      if (!mounted) return;
+      final key = _detectWorkoutKey(msg);
+      final wantsOutfit = _isOutfitRequest(msg);
+      setState(() {
+        _isTyping = false;
+        if (wantsOutfit) {
+          final label = key != null ? key[0].toUpperCase() + key.substring(1) : 'Training';
+          _messages.add(ChatMessage(
+            text: "Here's your $label style board! 🎽\nPicked the best colors & vibe for your session.",
+            isBot: true,
+            // styleboard: null — backend connect అయినప్పుడు real data pass చేయాలి
+          ));
+        } else {
+          _messages.add(ChatMessage(
+            text: _getGeneralReply(msg, key),
+            isBot: true,
+          ));
+        }
+      });
+      _saveCurrentSession();
+      _scrollToBottom();
+    });
+  }
+
+  bool _isOutfitRequest(String text) {
+    text = text.toLowerCase();
+    return text.contains('outfit') ||
+        text.contains('look') ||
+        text.contains('wear') ||
+        text.contains('style') ||
+        text.contains('dress') ||
+        text.contains('clothes') ||
+        text.contains('kit') ||
+        text.contains('suggest') ||
+        text.contains('recommend') ||
+        text.contains('what should') ||
+        text.contains('what to') ||
+        text.contains('help me pick') ||
+        text.contains('show me');
+  }
+
+  String _getGeneralReply(String text, String? workoutKey) {
+    text = text.toLowerCase();
+    if (text.contains('hello') || text.contains('hi') || text.contains('hey')) {
+      return "Hey! 👋 I'm AHVI, your AI outfit stylist.\nTell me what workout you're planning and I'll suggest the perfect look!";
+    }
+    if (text.contains('thank')) {
+      return "You're welcome! 💜 Let me know whenever you need a new outfit idea!";
+    }
+    if (workoutKey != null) {
+      return "Nice! A ${workoutKey[0].toUpperCase()}${workoutKey.substring(1)} session 🔥\nWant me to suggest an outfit or look for it?";
+    }
+    return "I'm here to help with workout outfit ideas! 👟\nTry asking: \"Suggest an outfit for yoga\" or \"What should I wear to the gym?\"";
+  }
+
+  String? _detectWorkoutKey(String text) {
+    text = text.toLowerCase();
+    if (text.contains('run') || text.contains('jog')) return 'running';
+    if (text.contains('gym') || text.contains('weight')) return 'gym';
+    if (text.contains('yoga') || text.contains('pilates')) return 'yoga';
+    if (text.contains('hiit') || text.contains('cardio')) return 'hiit';
+    if (text.contains('cycl') || text.contains('bike')) return 'cycling';
+    return null;
+  }
+  WorkoutStyleboard _getStyleboard(String? key) {
+    final data = {
+      'running': const WorkoutStyleboard(
+        emoji: '🏃',
+        title: 'Running Look',
+        subtitle: 'Performance kit',
+        colors: [Color(0xFFC9A89A), Color(0xFF8FA88B), Color(0xFFD4B896)],
+        gradientColors: [Color(0xFFFF6B35), Color(0xFFFF8E53), Color(0xFFFFB347)],
+      ),
+      'gym': const WorkoutStyleboard(
+        emoji: '🏋️',
+        title: 'Gym Look',
+        subtitle: 'Built for heavy lifting',
+        colors: [Color(0xFF2C2C2C), Color(0xFF5A5A6A), Color(0xFF9B9BAA)],
+        gradientColors: [Color(0xFF1A1A2E), Color(0xFF2563EB), Color(0xFF3B82F6)],
+      ),
+      'yoga': const WorkoutStyleboard(
+        emoji: '🧘',
+        title: 'Yoga Look',
+        subtitle: 'Flow-ready & minimal',
+        colors: [Color(0xFF8BA888), Color(0xFFE8E0D0), Color(0xFFC4907A)],
+        gradientColors: [Color(0xFF7BA88B), Color(0xFFA8C5A0), Color(0xFFD4E8C8)],
+      ),
+      'hiit': const WorkoutStyleboard(
+        emoji: '⚡',
+        title: 'HIIT Look',
+        subtitle: 'High-energy kit',
+        colors: [Color(0xFFFF4444), Color(0xFFFF8800), Color(0xFFFFCC00)],
+        gradientColors: [Color(0xFFFF2D55), Color(0xFFFF6B00), Color(0xFFFFCC02)],
+      ),
+      'cycling': const WorkoutStyleboard(
+        emoji: '🚴',
+        title: 'Cycling Look',
+        subtitle: 'Aero & padded',
+        colors: [Color(0xFF0055AA), Color(0xFF0088FF), Color(0xFF66BBFF)],
+        gradientColors: [Color(0xFF0A1628), Color(0xFF1B3A6B), Color(0xFF2563EB)],
+      ),
+    };
+    return data[key] ?? const WorkoutStyleboard(
+      emoji: '💪',
+      title: 'Training Look',
+      subtitle: 'Versatile kit',
+      colors: [Color(0xFFA89888), Color(0xFFD4B0A8), Color(0xFF7A8898)],
+      gradientColors: [Color(0xFF2D1B69), Color(0xFF7B6EF6), Color(0xFF9B8EFF)],
+    );
+  }
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(_scrollController.position.maxScrollExtent, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: Colors.transparent,
+      drawer: _historyDrawer(),
+      body: Stack(
+      children: [
+        Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+              child: Row(
+                children: [
+                  // Back button
+                  GestureDetector(
+                    onTap: widget.onBack,
+                    child: Container(
+                      width: 38, height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A1F5E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kAccent.withOpacity(0.35)),
+                      ),
+                      child: Icon(Icons.arrow_back_ios_new_rounded, color: context.fText, size: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // AHVI title — back button పక్కన
+                  Text(
+                    'AHVI',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: context.fText, letterSpacing: 1.5),
+                  ),
+                  const Spacer(),
+                  // History Button
+                  GestureDetector(
+                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                    child: Container(
+                      width: 38, height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2A1F5E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kAccent.withOpacity(0.35)),
+                      ),
+                      child: Icon(Icons.history_rounded, color: context.fText, size: 18),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Messages
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                itemCount: _messages.length + (_isTyping ? 1 : 0),
+                itemBuilder: (ctx, i) {
+                  if (i == _messages.length) return _TypingIndicator();
+                  return _ChatBubble(message: _messages[i]);
+                },
+              ),
+            ),
+
+            // Input
+            _ChatInput(
+              controller: _inputController,
+              onSend: _sendMessage,
+              onLensTap: _showLensSheet,
+              onMicTap: () => setState(() => _showVoiceOverlay = true),
+            ),
+          ],
+        ),
+        if (_showVoiceOverlay)
+          _VoiceOverlay(onClose: () => setState(() => _showVoiceOverlay = false)),
+      ],
+    ),
+    );
+  }
+
+  void _showLensSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _FitnessLensSheet(),
+    );
+  }
+}
+class _ChatBubble extends StatelessWidget {
+  final ChatMessage message;
+  const _ChatBubble({required this.message});
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: message.isBot ? Alignment.centerLeft : Alignment.centerRight,
+      child: Column(
+        crossAxisAlignment: message.isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+            decoration: BoxDecoration(
+              color: message.isBot ? context.fCard.withOpacity(0.62) : context.fCard,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(18),
+                topRight: const Radius.circular(18),
+                bottomLeft: Radius.circular(message.isBot ? 6 : 18),
+                bottomRight: Radius.circular(message.isBot ? 18 : 6),
+              ),
+              boxShadow: message.isBot ? null : [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 4))],
+            ),
+            child: Text(message.text, style: TextStyle(color: context.fText, fontSize: 14, height: 1.5)),
+          ),
+          if (message.styleboard != null) _StyleboardCard(sb: message.styleboard!),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+}
+class _StyleboardCard extends StatelessWidget {
+  final WorkoutStyleboard sb;
+  const _StyleboardCard({required this.sb});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDCD2F0).withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 32, offset: const Offset(0, 4))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 4/5,
+            child: Stack(
+              children: [
+                // Gradient placeholder
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: sb.gradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+                // Subtle pattern overlay
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.05), Colors.transparent, Colors.black.withOpacity(0.2)],
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                    ),
+                  ),
+                ),
+                // Center emoji
+                Center(
+                  child: Text(sb.emoji, style: const TextStyle(fontSize: 64)),
+                ),
+                // Bottom title overlay
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.transparent, Colors.black54],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(sb.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                      Text(sb.subtitle, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+            child: Row(children: [
+              ...sb.colors.map((c) => Container(
+                width: 16, height: 16,
+                margin: const EdgeInsets.only(right: 5),
+                decoration: BoxDecoration(
+                  color: c,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24, width: 1.5),
+                ),
+              )),
+              const Spacer(),
+              const Text('PALETTE', style: TextStyle(fontSize: 8, color: Colors.white24, fontWeight: FontWeight.w700, letterSpacing: 1)),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+class _VoiceOverlay extends StatefulWidget {
+  final VoidCallback onClose;
+  const _VoiceOverlay({required this.onClose});
+  @override
+  State<_VoiceOverlay> createState() => _VoiceOverlayState();
+}
+class _VoiceOverlayState extends State<_VoiceOverlay> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+  }
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(colors: [Color(0xFF6A4FAC), Color(0xFFA84878), Color(0xFFC86840)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _OrbWidget(animation: _controller),
+            const SizedBox(height: 60),
+            const Text('Tap to speak', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            const Text('Ask AHVI to style your workout outfit', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 40),
+            ElevatedButton(onPressed: widget.onClose, style: ElevatedButton.styleFrom(backgroundColor: Colors.white12, foregroundColor: Colors.white), child: const Text('Cancel')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class _OrbWidget extends AnimatedWidget {
+  const _OrbWidget({required Animation<double> animation}) : super(listenable: animation);
+  @override
+  Widget build(BuildContext context) {
+    final animation = listenable as Animation<double>;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        for (int i = 1; i <= 3; i++)
+          Container(
+            width: 130 + (i * 20 * animation.value),
+            height: 130 + (i * 20 * animation.value),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.25 - (i * 0.05)))),
+          ),
+        Container(
+          width: 130, height: 130,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.22),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withOpacity(0.55), width: 2),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 40)],
+          ),
+          child: const Center(child: Icon(Icons.mic, color: Colors.white, size: 44)),
+        ),
+      ],
+    );
+  }
+}
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+class _VoiceBtn extends StatelessWidget {
+  final VoidCallback onTap;
+  const _VoiceBtn({required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(50), border: Border.all(color: kGlassBorder)),
+        child: Row(children: const [Icon(Icons.phone, size: 14), SizedBox(width: 6), Text('Voice', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500))]),
+      ),
+    );
+  }
+}
+class _TypingIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(padding: EdgeInsets.all(8.0), child: Text('AHVI is typing...', style: TextStyle(color: context.fMuted, fontSize: 12)));
+  }
+}
+class _SuggestionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _SuggestionChip({required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(color: Colors.white38, borderRadius: BorderRadius.circular(50), border: Border.all(color: kGlassBorder)),
+        child: Text(label, style: const TextStyle(fontSize: 12)),
+      ),
+    );
+  }
+}
+class _ChatInput extends StatelessWidget {
+  final TextEditingController controller;
+  final Function(String) onSend;
+  final VoidCallback onLensTap;
+  final VoidCallback onMicTap;
+  const _ChatInput({
+    required this.controller,
+    required this.onSend,
+    required this.onLensTap,
+    required this.onMicTap,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 14),
+      decoration: BoxDecoration(
+        color: context.fSurface.withOpacity(0.85),
+        border: Border(top: BorderSide(color: kAccent.withOpacity(0.12), width: 1)),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.fCard,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: kAccent.withOpacity(0.30), width: 1.2),
+          boxShadow: [
+            BoxShadow(color: kAccent.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, 2)),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        child: Row(
+          children: [
+            // Lens Button
+            GestureDetector(
+              onTap: onLensTap,
+              child: Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: kAccent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: kAccent.withOpacity(0.25), width: 1),
+                ),
+                child: Center(
+                  child: Icon(Icons.search_rounded, color: kAccent, size: 16),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                style: TextStyle(color: context.fText, fontSize: 14),
+                decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                  hintText: 'Describe your workout or ask for a look...',
+                  hintStyle: TextStyle(color: context.fMuted, fontSize: 13),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            // Microphone Button
+            GestureDetector(
+              onTap: onMicTap,
+              child: Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  color: kAccent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: kAccent.withOpacity(0.25), width: 1),
+                ),
+                child: Center(
+                  child: Icon(Icons.mic_rounded, color: kAccent, size: 16),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            // Send Button
+            IconButton(
+              onPressed: () => onSend(controller.text),
+              icon: const Icon(Icons.arrow_forward_rounded),
+              style: IconButton.styleFrom(
+                backgroundColor: context.fAccent,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                minimumSize: const Size(38, 38),
+                maximumSize: const Size(38, 38),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Fitness Lens Bottom Sheet ───────────────────────────────────────────────
+class _FitnessLensSheet extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: context.fSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: kAccent.withOpacity(0.15)),
+        boxShadow: [BoxShadow(color: kAccent.withOpacity(0.15), blurRadius: 48, offset: const Offset(0, -12))],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 40, height: 4, margin: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(color: kAccent.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(color: kAccent.withOpacity(0.12), borderRadius: BorderRadius.circular(9), border: Border.all(color: kAccent.withOpacity(0.25))),
+                    child: Icon(Icons.search, color: kAccent, size: 17),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('AHVI Lens', style: TextStyle(color: context.fText, fontSize: 16, fontWeight: FontWeight.w700)),
+                ]),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: kAccent.withOpacity(0.08), border: Border.all(color: kAccent.withOpacity(0.20))),
+                    child: Icon(Icons.close, color: context.fMuted, size: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: kGlassBgStrong, border: Border.all(color: kAccent.withOpacity(0.15)), borderRadius: BorderRadius.circular(16)),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: kAccent.withOpacity(0.5), width: 2), color: kAccent.withOpacity(0.08)),
+                child: Icon(Icons.circle, color: kAccent, size: 12),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Visual Outfit Search', style: TextStyle(color: context.fText, fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text('Point at any outfit to find, save, or get styling advice.', style: TextStyle(color: context.fMuted, fontSize: 11.5, height: 1.5)),
+              ])),
+            ]),
+          ),
+          _FitnessLensTile(icon: Icons.search, name: 'Find Similar', desc: 'Discover similar outfits with shopping links', onTap: () => Navigator.pop(context)),
+          _FitnessLensTile(icon: Icons.add_photo_alternate_outlined, name: 'Add to Wardrobe', desc: 'Save to your outfit collection', onTap: () => Navigator.pop(context)),
+        ],
+      ),
+    );
+  }
+}
+
+class _FitnessLensTile extends StatelessWidget {
+  final IconData icon;
+  final String name;
+  final String desc;
+  final VoidCallback onTap;
+  const _FitnessLensTile({required this.icon, required this.name, required this.desc, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: kGlassBgStrong, borderRadius: BorderRadius.circular(16), border: Border.all(color: kAccent.withOpacity(0.12))),
+        child: Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(color: kAccent.withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: kAccent.withOpacity(0.25))),
+            child: Icon(icon, color: kAccent, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(name, style: TextStyle(color: context.fText, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(desc, style: TextStyle(color: context.fMuted, fontSize: 11)),
+          ])),
+          Icon(Icons.chevron_right_rounded, color: context.fMuted, size: 20),
+        ]),
+      ),
+    );
+  }
+}

@@ -1,0 +1,4726 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter/services.dart';
+import 'package:myapp/boards.dart';
+import 'package:myapp/profile.dart' as profile;
+import 'package:myapp/wardrobe.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/theme/theme_tokens.dart';
+import 'package:provider/provider.dart';
+import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/services/backend_service.dart';
+import 'package:myapp/chat.dart'; // 🚀 Added Chat Screen Integration
+
+// ─── Colors ──────────────────────────────────────────────
+
+const _homeNavItems = <({IconData icon, String label})>[
+  (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
+  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
+  (icon: Icons.search_rounded, label: 'Lens'),
+  (icon: Icons.grid_view_rounded, label: 'Planner'),
+  (icon: Icons.explore_outlined, label: 'Explore'),
+];
+
+Color _accent(AppThemeTokens t) => t.accent.primary;
+Color _accentSecondary(AppThemeTokens t) => t.accent.secondary;
+Color _accentTertiary(AppThemeTokens t) => t.accent.tertiary;
+
+const _aiSuggestions = [
+  "Your 2pm meeting is in 4 hrs — want to prep an outfit?",
+  "It's 14°C and partly cloudy — shall I suggest a layered look?",
+  "You haven't planned your week yet — want me to help?",
+  "Feeling indecisive? I can style you in seconds.",
+  "New drops match your saved style — want to see them?",
+  "Your Friday dinner is coming up — let's plan the look.",
+  "I noticed you love minimal styles — new picks are in.",
+];
+
+const _prepareChips = [
+  ('✈️ Carry-on', '✈️ Carry-on Packing'),
+  ('🎂 Birthday Party', '🎂 Birthday Party Planning'),
+  ('🏕️ Camping', '🏕️ Camping Trip'),
+  ('💍 Wedding', '💍 Wedding Planning'),
+  ('🏋️ Workout', '🏋️ Gym Workout Routine'),
+  ('🍳 Meal Prep', '🍳 Weekly Meal Prep'),
+  ('💻 Dev Project', '💻 New Coding Project Setup'),
+  ('🏠 Moving House', '🏠 House Moving Checklist'),
+  ('🎓 Study Plan', '🎓 Exam Study Plan'),
+  ('🌿 Gardening', '🌿 Garden Planting'),
+];
+
+typedef _SuggestionState = ({int index, double opacity});
+typedef _ClockState = ({String greeting, String date});
+
+class Screen4 extends StatefulWidget {
+  const Screen4({super.key, this.onShellNavTap});
+
+  final ValueChanged<int>? onShellNavTap;
+
+  @override
+  State<Screen4> createState() => _Screen4State();
+}
+
+class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
+  AppThemeTokens get _t => context.themeTokens;
+  Color get _bgPrimary => _t.backgroundPrimary;
+  Color get _bgSecondary => _t.backgroundSecondary;
+  Color get _surface => _t.phoneShellInner;
+  Color get _textHeading => _t.textPrimary;
+  Color get _textSub => _t.mutedText;
+  Color get _textMuted => _t.mutedText;
+  Color get _accent => _t.accent.primary;
+  Color get _accentSecondary => _t.accent.secondary;
+  Color get _accentTertiary => _t.accent.tertiary;
+  Color get _panel => _t.panel;
+  Color get _card => _t.card;
+  Color get _phoneShell => _t.phoneShell;
+  Color get _tileText => _t.tileText;
+  Color get _shadowStrong => _bgPrimary.withValues(alpha: 0.35);
+  Color get _shadowMedium => _bgPrimary.withValues(alpha: 0.20);
+  Color get _shadowLight => _bgPrimary.withValues(alpha: 0.12);
+  Color get _transparent => _bgPrimary.withValues(alpha: 0.0);
+  Color get _onAccent => Theme.of(context).colorScheme.onPrimary;
+  Color get _border => _t.cardBorder;
+  LinearGradient get _accentGradient => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [_accent, _accentTertiary],
+  );
+  LinearGradient get _accentGradient2 => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [_accent, _accentSecondary],
+  );
+
+  late AnimationController _aurora1Ctrl;
+  late AnimationController _aurora2Ctrl;
+  late AnimationController _aurora3Ctrl;
+  late AnimationController _shimmerCtrl;
+  late AnimationController _pulseCtrl;
+  int _activeNavIdx = 0;
+
+  late AnimationController _floatBadgeCtrl;
+  late AnimationController _breatheCtrl;
+  late List<AnimationController> _heartPopCtrls;
+  final List<bool> _likedState = [false, false, true, false];
+
+  final ValueNotifier<_SuggestionState> _suggestionState =
+      ValueNotifier<_SuggestionState>((index: 0, opacity: 1.0));
+  Timer? _suggestionTimer;
+
+  bool _lensSheetOpen = false;
+  late AnimationController _lensSheetCtrl;
+
+  bool _toastVisible = false;
+  Timer? _toastTimer;
+
+  bool _seeAllOpen = false;
+  late AnimationController _seeAllCtrl;
+
+  late List<AnimationController> _navRiseCtrls;
+
+  final ValueNotifier<_ClockState> _clockState = ValueNotifier<_ClockState>((
+    greeting: 'Morning',
+    date: '',
+  ));
+  Timer? _clockTimer;
+  final TextEditingController _chatController = TextEditingController();
+  final FocusNode _chatFocusNode = FocusNode();
+
+  // ── Voice ──────────────────────────────────────────────────────────────────
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  bool _speechAvailable = false;
+  final Map<String, List<List<bool>>> _prepareExactChecksByTitle = {};
+  final Map<String, List<List<String>>> _prepareExactItemsByTitle = {};
+  final Map<String, List<TextEditingController>>
+  _prepareExactAddControllersByTitle = {};
+  final Map<String, bool> _prepareExactSavedByTitle = {};
+  final Map<String, List<bool>> _prepareExactOutfitSavedByTitle = {};
+  final Map<String, String> _boardIdByLabel = const {
+    '🎉 Party Looks': 'party_looks',
+    '💍 Occasion': 'occasion',
+    '💼 Office Fit': 'office_fit',
+    '✈️ Vacation': 'vacation',
+    '✨ Everything Else': 'everything_else',
+  };
+
+  _OverlayState _overlayState = _OverlayState.idle;
+  String? _activeIntent;
+  String _chatPlaceholder = 'Ask AHVI anything…';
+  bool _homeCollapsed = false;
+  late AnimationController _homeCollapseCtrl;
+  late AnimationController _overlayFadeCtrl;
+  late AnimationController _thinkingCtrl;
+  late AnimationController _tagsRevealCtrl;
+  List<String> _overlaySuggestions = [];
+  String _overlayBrandSub = '';
+
+  // 🚀 STATE FIX: We now use a list to stack messages + tracking variables
+  final List<_ResponseData> _responses = [];
+  final List<Map<String, String>> _chatHistory = [];
+  String _runningMemory = "";
+  final ScrollController _overlayScrollCtrl = ScrollController();
+
+  List<String> _responseTags = [];
+  bool _tagsRevealed = false;
+
+  String _userName = '...';
+  Uint8List? _avatarBytes;
+
+  Future<void> _savePrepareExactToBoard({
+    required String boardId,
+    required String title,
+    required List<
+      ({String name, String emoji, Color color, List<String> items})
+    >
+    sections,
+    required List<List<String>> itemsState,
+    required List<List<bool>> checksState,
+    required List<bool> outfitSaved,
+  }) async {
+    final sectionPayload = <Map<String, dynamic>>[];
+    for (var i = 0; i < sections.length; i++) {
+      sectionPayload.add({
+        'name': sections[i].name,
+        'emoji': sections[i].emoji,
+        'color': sections[i].color.value,
+        'items': List<String>.from(itemsState[i]),
+        'checked': List<bool>.from(checksState[i]),
+      });
+    }
+
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+
+    _aurora1Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat(reverse: true);
+    _aurora2Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 18),
+    )..repeat(reverse: true);
+    _aurora3Ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 22),
+    )..repeat(reverse: true);
+    _shimmerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2800),
+    )..repeat(reverse: true);
+
+    _floatBadgeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat(reverse: true);
+
+    _breatheCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat(reverse: true);
+
+    _heartPopCtrls = List.generate(
+      4,
+      (_) => AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 380),
+      ),
+    );
+
+    _seeAllCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+
+    _lensSheetCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+
+    _navRiseCtrls = List.generate(
+      5,
+      (i) => AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 280),
+        value: i == 0 ? 1.0 : 0.0,
+      ),
+    );
+
+    _suggestionTimer = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _rotateSuggestion(),
+    );
+
+    _homeCollapseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _overlayFadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _thinkingCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _tagsRevealCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+
+    _updateClock();
+    _clockTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _updateClock(),
+    );
+
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    final appwrite = Provider.of<AppwriteService>(context, listen: false);
+    final user = await appwrite.getCurrentUser();
+
+    if (user != null && mounted) {
+      final firstName = user.name.isNotEmpty
+          ? user.name.split(' ').first
+          : 'Stylist';
+      final avatar = await appwrite.getUserAvatar(user.name);
+
+      setState(() {
+        _userName = firstName;
+        _avatarBytes = avatar;
+      });
+    }
+  }
+
+  void _updateClock() {
+    if (!mounted) return;
+    final now = DateTime.now();
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    String greeting;
+    if (now.hour >= 5 && now.hour < 12) {
+      greeting = 'Morning';
+    } else if (now.hour >= 12 && now.hour < 17) {
+      greeting = 'Afternoon';
+    } else if (now.hour >= 17 && now.hour < 21) {
+      greeting = 'Evening';
+    } else {
+      greeting = 'Night';
+    }
+    _clockState.value = (
+      greeting: greeting,
+      date: '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]}',
+    );
+  }
+
+  void _rotateSuggestion() {
+    final current = _suggestionState.value;
+    _suggestionState.value = (index: current.index, opacity: 0.0);
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _suggestionState.value = (
+        index: (current.index + 1) % _aiSuggestions.length,
+        opacity: 1.0,
+      );
+    });
+  }
+
+  void _startThinkingAnimation() {
+    if (!_thinkingCtrl.isAnimating) {
+      _thinkingCtrl.repeat();
+    }
+  }
+
+  void _stopThinkingAnimation() {
+    if (_thinkingCtrl.isAnimating) {
+      _thinkingCtrl
+        ..stop()
+        ..value = 0.0;
+    }
+  }
+
+  // ── Voice methods ──────────────────────────────────────────────────────────
+  Future<void> _initSpeech() async {
+    _speechAvailable = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+      onError: (_) {
+        if (mounted) setState(() => _isListening = false);
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleListening() async {
+    if (!_speechAvailable) return;
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+    } else {
+      setState(() => _isListening = true);
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _chatController.text = result.recognizedWords;
+            _chatController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _chatController.text.length),
+            );
+          });
+          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
+            _speech.stop();
+            setState(() => _isListening = false);
+          }
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 4),
+        localeId: 'en_IN',
+        cancelOnError: true,
+        partialResults: true,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _speech.stop();
+    _aurora1Ctrl.dispose();
+    _aurora2Ctrl.dispose();
+    _aurora3Ctrl.dispose();
+    _shimmerCtrl.dispose();
+    _pulseCtrl.dispose();
+    _floatBadgeCtrl.dispose();
+    _breatheCtrl.dispose();
+    for (final c in _heartPopCtrls) {
+      c.dispose();
+    }
+    _seeAllCtrl.dispose();
+    _lensSheetCtrl.dispose();
+    for (final c in _navRiseCtrls) {
+      c.dispose();
+    }
+    _homeCollapseCtrl.dispose();
+    _overlayFadeCtrl.dispose();
+    _thinkingCtrl.dispose();
+    _tagsRevealCtrl.dispose();
+    _suggestionTimer?.cancel();
+    _toastTimer?.cancel();
+    _clockTimer?.cancel();
+    _suggestionState.dispose();
+    _clockState.dispose();
+    _chatController.dispose();
+    _chatFocusNode.dispose();
+    for (final ctrls in _prepareExactAddControllersByTitle.values) {
+      for (final c in ctrls) {
+        c.dispose();
+      }
+    }
+    _overlayScrollCtrl.dispose();
+    super.dispose();
+  }
+
+  void _showComingSoon() {
+    setState(() => _toastVisible = true);
+    _toastTimer?.cancel();
+    _toastTimer = Timer(const Duration(milliseconds: 2200), () {
+      if (mounted) setState(() => _toastVisible = false);
+    });
+  }
+
+  // 🚀 FIXED: Chat Navigation logic for the Bottom Nav Bar
+  void _handleNavTap(int idx) {
+    if (idx == 0) {
+      _openNavScreen(const ChatScreen());
+      return;
+    }
+    if (idx == 1) {
+      if (widget.onShellNavTap != null) {
+        widget.onShellNavTap!(1);
+        return;
+      }
+      _openNavScreen(const WardrobeScreen());
+      return;
+    }
+    if (idx == 2) {
+      _openLensSheet();
+      return;
+    }
+    if (idx == 3) {
+      if (widget.onShellNavTap != null) {
+        widget.onShellNavTap!(3);
+        return;
+      }
+      _openNavScreen(const BoardsScreen());
+      return;
+    }
+    if (idx == 4) {
+      _showComingSoon();
+      return;
+    }
+    if (idx == _activeNavIdx) return;
+
+    _navRiseCtrls[_activeNavIdx].animateTo(
+      0.0,
+      curve: const Cubic(0.4, 0.0, 0.2, 1.0),
+    );
+    _navRiseCtrls[idx].animateTo(
+      1.0,
+      curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+    );
+
+    setState(() => _activeNavIdx = idx);
+  }
+
+  void _openLensSheet() {
+    setState(() => _lensSheetOpen = true);
+    _lensSheetCtrl.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 420),
+      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    );
+  }
+
+  void _closeLensSheet() {
+    _lensSheetCtrl.reverse().then((_) {
+      if (mounted) setState(() => _lensSheetOpen = false);
+    });
+  }
+
+  void _openNavScreen(Widget page) {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 350),
+        reverseTransitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (context, animation, secondary) => page,
+        transitionsBuilder: (context, animation, secondary, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.04, 0),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _openModuleChat(String moduleKey) {
+    final normalized = moduleKey == 'prepare' ? 'plan' : moduleKey;
+    _openNavScreen(ChatScreen(moduleContext: normalized));
+  }
+
+  void _openChatWithPrompt(String prompt) {
+    final text = prompt.trim();
+    final module = (_activeIntent ?? 'style').trim();
+    if (text.isEmpty) {
+      _openNavScreen(ChatScreen(moduleContext: module));
+      return;
+    }
+    _openNavScreen(ChatScreen(moduleContext: module, initialPrompt: text));
+  }
+
+  void _openPickSheet(String name, String tag) {
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: _bgPrimary.withValues(alpha: 0.30),
+      builder: (sheetContext) => _buildPickSheet(
+        name: name,
+        tag: tag,
+        onClose: () => Navigator.of(sheetContext).pop(),
+      ),
+    );
+  }
+
+  void _openSeeAll() {
+    setState(() => _seeAllOpen = true);
+    _seeAllCtrl.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 400),
+      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    );
+  }
+
+  void _closeSeeAll() {
+    _seeAllCtrl
+        .animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: const Cubic(0.4, 0.0, 1.0, 1.0),
+        )
+        .then((_) {
+          if (mounted) setState(() => _seeAllOpen = false);
+        });
+  }
+
+  void _toggleLike(int cardIdx) {
+    setState(() => _likedState[cardIdx] = !_likedState[cardIdx]);
+    _heartPopCtrls[cardIdx]
+      ..reset()
+      ..forward();
+  }
+
+  void _triggerIntent(String intent) {
+    if (_overlayState != _OverlayState.idle) return;
+    _activeIntent = intent;
+    final cfg = _intentConfig[intent]!;
+    _setPlaceholder(intent);
+    setState(() {
+      _homeCollapsed = true;
+      _overlayBrandSub = cfg.brandSub;
+    });
+    _homeCollapseCtrl.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 600),
+      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    );
+    Future.delayed(const Duration(milliseconds: 420), () {
+      if (!mounted) return;
+      setState(() {
+        _stopThinkingAnimation();
+        _overlayState = _OverlayState.suggestions;
+        _overlaySuggestions = cfg.suggestions;
+        _responses.clear();
+        _tagsRevealed = false;
+      });
+      _overlayFadeCtrl.animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 380),
+        curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+      );
+    });
+  }
+
+  void _submitQuery(String query) {
+    if (query.isEmpty && _overlayState == _OverlayState.idle) {
+      _triggerIntent('chat');
+      return;
+    }
+
+    if (_overlayState == _OverlayState.idle) {
+      _activeIntent = 'chat';
+      final cfg = _intentConfig['chat']!;
+      _setPlaceholder('chat');
+
+      setState(() {
+        _homeCollapsed = true;
+        _overlayBrandSub = cfg.brandSub;
+      });
+
+      _homeCollapseCtrl.animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 600),
+        curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+      );
+
+      Future.delayed(const Duration(milliseconds: 420), () {
+        if (!mounted) return;
+
+        if (query.isNotEmpty) {
+          _overlayFadeCtrl.animateTo(
+            1.0,
+            duration: const Duration(milliseconds: 380),
+            curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+          );
+
+          _handleQuery(query, 'chat');
+        } else {
+          setState(() {
+            _stopThinkingAnimation();
+            _overlayState = _OverlayState.suggestions;
+            _overlaySuggestions = cfg.suggestions;
+            _responses.clear();
+            _tagsRevealed = false;
+          });
+          _overlayFadeCtrl.animateTo(
+            1.0,
+            duration: const Duration(milliseconds: 380),
+            curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+          );
+        }
+      });
+    } else if (_overlayState == _OverlayState.suggestions ||
+        _overlayState == _OverlayState.response) {
+      _handleQuery(query, _activeIntent ?? 'chat');
+    }
+  }
+
+  // 🚀 FIXED FUNCTION: REAL API CALL WITH HISTORY & MEMORY
+  Future<void> _handleQuery(String question, String intent) async {
+    if (_overlayState == _OverlayState.thinking) return;
+
+    final cfg = _intentConfig[intent] ?? _intentConfig['chat']!;
+
+    setState(() {
+      _startThinkingAnimation();
+      _overlayState = _OverlayState.thinking;
+      _overlaySuggestions = [];
+      _responseTags = cfg.responseTags;
+      _tagsRevealed = false;
+      // We DO NOT clear _responses here so the old messages stay on screen!
+    });
+
+    _ResponseData? resp;
+
+    final isPrepareQuickChip =
+        intent == 'prepare' && _prepareChips.any((chip) => chip.$2 == question);
+    if (isPrepareQuickChip) {
+      resp = _buildPrepareChipResponse(question);
+    } else {
+      try {
+        final backend = Provider.of<BackendService>(context, listen: false);
+
+        // Grab the history payload we've been secretly storing
+        final historyPayload = List<Map<String, String>>.from(_chatHistory);
+
+        final apiResult = await backend.sendChatQuery(
+          question,
+          'user_$_userName',
+          historyPayload,
+          _runningMemory,
+        );
+
+        // Store user's question into history
+        _chatHistory.add({"role": "user", "content": question});
+
+        if (apiResult['updated_memory'] != null) {
+          _runningMemory = apiResult['updated_memory'];
+        }
+
+        String aiText = "Could not parse response.";
+
+        if (apiResult.containsKey('message') && apiResult['message'] != null) {
+          aiText = apiResult['message']['content']?.toString() ?? "No content";
+        } else if (apiResult.containsKey('error')) {
+          aiText = apiResult['error']?.toString() ?? "Unknown error occurred";
+        }
+
+        // Store AHVI's response into history
+        _chatHistory.add({"role": "assistant", "content": aiText});
+
+        // Cleanup tags perfectly
+        aiText = aiText.replaceAll(
+          RegExp(r'\[CHIPS:.*?\]', caseSensitive: false, dotAll: true),
+          '',
+        );
+        aiText = aiText.replaceAll(
+          RegExp(r'\[STYLE_BOARD:.*?\]', caseSensitive: false, dotAll: true),
+          '',
+        );
+        aiText = aiText.replaceAll(
+          RegExp(r'\[PACK_LIST:.*?\]', caseSensitive: false, dotAll: true),
+          '',
+        );
+        aiText = aiText.trim();
+
+        if (aiText.length > 1500) {
+          aiText =
+              '${aiText.substring(0, 1500)}... \n\n[Text truncated to prevent UI crash]';
+        }
+
+        if (apiResult.containsKey('chips') &&
+            apiResult['chips'] != null &&
+            apiResult['chips'] is List) {
+          final List<dynamic> rawChips = apiResult['chips'];
+          if (rawChips.isNotEmpty) {
+            _responseTags = rawChips.map((e) => e.toString()).toList();
+          }
+        }
+
+        resp = _ResponseData(type: 'text', question: question, intro: aiText);
+      } catch (e) {
+        String errorMsg = e.toString();
+        if (errorMsg.length > 150) {
+          errorMsg = '${errorMsg.substring(0, 150)}... [Error Truncated]';
+        }
+
+        resp = _ResponseData(
+          type: 'text',
+          question: question,
+          intro: "Backend Connection Failed.\n\n$errorMsg",
+        );
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _stopThinkingAnimation();
+      _overlayState = _OverlayState.response;
+      _responses.add(resp!); // 🚀 Add the new message to the list!
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_overlayScrollCtrl.hasClients) {
+        _overlayScrollCtrl.animateTo(
+          _overlayScrollCtrl.position.maxScrollExtent + 200,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+
+    final tagDelay = 150;
+
+    Future.delayed(Duration(milliseconds: tagDelay), () {
+      if (!mounted) return;
+      setState(() => _tagsRevealed = true);
+      _tagsRevealCtrl.animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+      );
+    });
+  }
+
+  void _dismissOverlay() {
+    _overlayFadeCtrl.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 300),
+      curve: const Cubic(0.4, 0.0, 1.0, 1.0),
+    );
+    _homeCollapseCtrl.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 500),
+      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    );
+    setState(() {
+      _stopThinkingAnimation();
+      _overlayState = _OverlayState.idle;
+      _activeIntent = null;
+      _homeCollapsed = false;
+      _overlaySuggestions = [];
+      _responses.clear();
+      _tagsRevealed = false;
+      _chatPlaceholder = 'Ask AHVI anything…';
+    });
+  }
+
+  void _setPlaceholder(String intent) {
+    setState(
+      () =>
+          _chatPlaceholder = _intentPlaceholder[intent] ?? 'Ask AHVI anything…',
+    );
+  }
+
+  void _handlePrepareChipSend(String query) {
+    if (_activeIntent == 'prepare' &&
+        (_overlayState == _OverlayState.suggestions ||
+            _overlayState == _OverlayState.response)) {
+      _handleQuery(query, 'prepare');
+      return;
+    }
+    if (_overlayState == _OverlayState.idle) {
+      _triggerIntent('prepare');
+      Future.delayed(const Duration(milliseconds: 420), () {
+        if (!mounted) return;
+        if (_overlayState == _OverlayState.suggestions &&
+            (_activeIntent ?? 'prepare') == 'prepare') {
+          _handleQuery(query, 'prepare');
+        }
+      });
+    }
+  }
+
+  _ResponseData _buildPrepareChipResponse(String question) {
+    return _ResponseData(type: 'prepare_exact', question: question, intro: '');
+  }
+
+  bool get _hasTransientUi =>
+      _lensSheetOpen || _seeAllOpen || _overlayState != _OverlayState.idle;
+
+  void _handleBackNavigation() {
+    if (_lensSheetOpen) {
+      _closeLensSheet();
+      return;
+    }
+    if (_seeAllOpen) {
+      _closeSeeAll();
+      return;
+    }
+    if (_overlayState != _OverlayState.idle) {
+      _dismissOverlay();
+      return;
+    }
+    Navigator.of(context).maybePop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_hasTransientUi,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleBackNavigation();
+        }
+      },
+      child: Scaffold(backgroundColor: _bgPrimary, resizeToAvoidBottomInset: false, body: _buildPhoneScreen()),
+    );
+  }
+
+  Widget _buildPhoneScreen() {
+    return Container(
+      decoration: BoxDecoration(color: _bgPrimary),
+      child: Stack(
+        children: [
+          _buildAuroraLayer(),
+
+          AnimatedBuilder(
+            animation: _homeCollapseCtrl,
+            builder: (context, child) {
+              final curve = CurvedAnimation(
+                parent: _homeCollapseCtrl,
+                curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+                reverseCurve: const Cubic(0.4, 0.0, 1.0, 1.0),
+              );
+              final t = curve.value;
+              return Transform.translate(
+                offset: Offset(0, -48 * t),
+                child: Transform.scale(
+                  scale: 1.0 - 0.02 * t,
+                  child: Opacity(
+                    opacity: (1.0 - t).clamp(0.0, 1.0),
+                    child: IgnorePointer(
+                      ignoring: _homeCollapsed,
+                      child: child,
+                    ),
+                  ),
+                ),
+              );
+            },
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenH = MediaQuery.of(context).size.height;
+                  // Continuously scale: SE(667)→148, regular(844)→190, ProMax(932)→210
+                  final heroH = (screenH * 0.225).clamp(148.0, 212.0);
+                  final heroGap = (screenH * 0.012).clamp(6.0, 14.0);
+
+                  return SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTopBar(),
+                          _buildGreetingBlock(),
+                          SizedBox(
+                            height: heroH,
+                            child: _buildHeroCard(),
+                          ),
+                          SizedBox(height: heroGap),
+                          _buildSecondaryRow(),
+                          // Nav bar + safe area bottom padding
+                          const SizedBox(height: 160),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+
+          if (_overlayState != _OverlayState.idle) _buildAiOverlay(),
+
+          Builder(
+            builder: (context) {
+              final keyboardH = MediaQuery.of(context).viewInsets.bottom;
+              final navBarH = widget.onShellNavTap == null ? 80.0 : 80.0;
+              final chatBottom = keyboardH > 0
+                  ? keyboardH + 8
+                  : navBarH + 8;
+              return Positioned(
+                left: 0,
+                right: 0,
+                bottom: chatBottom,
+                child: _buildChatWrap(),
+              );
+            },
+          ),
+
+          if (_activeIntent == 'prepare' &&
+              (_overlayState == _OverlayState.suggestions ||
+                  _overlayState == _OverlayState.response))
+            Builder(
+              builder: (context) {
+                final keyboardH = MediaQuery.of(context).viewInsets.bottom;
+                final chipsBottom = keyboardH > 0 ? keyboardH + 72 : 196.0;
+                return Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: chipsBottom,
+                  child: _buildPrepareBottomQuickChips(),
+                );
+              },
+            ),
+
+          // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
+          if (widget.onShellNavTap == null)
+            Positioned(left: 16, right: 16, bottom: 16, child: _buildBottomNav()),
+
+          if (_seeAllOpen) _buildSeeAllPanel(),
+          if (_lensSheetOpen) _buildLensSheet(),
+          _buildComingSoonToast(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuroraLayer() {
+    return Positioned.fill(
+      child: RepaintBoundary(
+        child: ClipRect(
+          child: AnimatedBuilder(
+            animation: Listenable.merge([
+              _aurora1Ctrl,
+              _aurora2Ctrl,
+              _aurora3Ctrl,
+            ]),
+            builder: (context, _) {
+              final t1 = _aurora1Ctrl.value;
+              final t2 = _aurora2Ctrl.value;
+              final t3 = _aurora3Ctrl.value;
+              return Stack(
+                children: [
+                  Positioned(
+                    top: -100 + (t1 * 90),
+                    left: -80 + (t1 * 60),
+                    child: _auroraOrb(
+                      340,
+                      340,
+                      _accent.withValues(alpha: 0.30),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -60 + (t2 * 60),
+                    right: -60 + (t2 * 30),
+                    child: _auroraOrb(
+                      300,
+                      300,
+                      _accentSecondary.withValues(alpha: 0.34),
+                    ),
+                  ),
+                  Positioned(
+                    top: 300 + (t3 * -60),
+                    left: -40 + (t3 * 100),
+                    child: _auroraOrb(
+                      220,
+                      220,
+                      _accentTertiary.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  Positioned(
+                    top: 140 + (t1 * 80),
+                    right: -30,
+                    child: _auroraOrb(
+                      180,
+                      180,
+                      _accent.withValues(alpha: 0.18),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _auroraOrb(double w, double h, Color color) {
+    return Container(
+      width: w,
+      height: h,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color, color.withValues(alpha: 0)],
+          stops: const [0.0, 0.7],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBar() {
+    final screenH = MediaQuery.of(context).size.height;
+    final topPad = (screenH * 0.012).clamp(6.0, 12.0);
+    final botPad = (screenH * 0.007).clamp(2.0, 8.0);
+    return Padding(
+      padding: EdgeInsets.only(top: topPad, bottom: botPad),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          AhviHomeText(
+            color: _textHeading,
+            fontSize: 36,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
+          ),
+          _buildProfileAvatar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar() {
+    final t = context.themeTokens;
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(
+          PageRouteBuilder<void>(
+            transitionDuration: const Duration(milliseconds: 350),
+            reverseTransitionDuration: const Duration(milliseconds: 350),
+            pageBuilder: (context, animation, secondary) =>
+                const profile.ProfileScreen(),
+            transitionsBuilder: (context, animation, secondary, child) {
+              final curved = CurvedAnimation(
+                parent: animation,
+                curve: const Cubic(0.22, 1.0, 0.36, 1.0),
+              );
+              return FadeTransition(
+                opacity: curved,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.04, 0),
+                    end: Offset.zero,
+                  ).animate(curved),
+                  child: child,
+                ),
+              );
+            },
+          ),
+        );
+      },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _panel,
+          border: Border.all(color: _accent.withValues(alpha: 0.25), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _shadowMedium,
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: _avatarBytes == null
+            ? Container(color: t.panel)
+            : Image.memory(_avatarBytes!, fit: BoxFit.cover),
+      ),
+    );
+  }
+
+  Widget _buildGreetingBlock() {
+    final screenH = MediaQuery.of(context).size.height;
+    // Font scales: SE(667)→22, regular(844)→25, ProMax(932)→28
+    final greetFontSize = (screenH * 0.030).clamp(20.0, 28.0);
+    final botPad = (screenH * 0.007).clamp(4.0, 8.0);
+    return Padding(
+      padding: EdgeInsets.only(bottom: botPad),
+      child: ValueListenableBuilder<_ClockState>(
+        valueListenable: _clockState,
+        builder: (context, clock, _) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                clock.date.isEmpty ? 'Fri, 6 Mar' : clock.date,
+                style: TextStyle(
+                  color: _textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.1,
+                ),
+              ),
+              SizedBox(height: (screenH * 0.004).clamp(2.0, 4.0)),
+              RichText(
+                text: TextSpan(
+                  style: TextStyle(
+                    fontSize: greetFontSize,
+                    fontWeight: FontWeight.w400,
+                    color: _textHeading,
+                    letterSpacing: -0.56,
+                    height: 1.1,
+                  ),
+                  children: [
+                    TextSpan(text: '${clock.greeting}, '),
+                    WidgetSpan(
+                      child: _GradientText(
+                        '$_userName.',
+                        fontSize: greetFontSize,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: (screenH * 0.007).clamp(4.0, 8.0)),
+              ValueListenableBuilder<_SuggestionState>(
+                valueListenable: _suggestionState,
+                builder: (context, suggestion, _) {
+                  return _AnimatedPressable(
+                    liftY: -1.5,
+                    scalePressed: 0.98,
+                    onTap: () =>
+                        _openChatWithPrompt(_aiSuggestions[suggestion.index]),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _surface.withValues(alpha: 0.80),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: _border),
+                        boxShadow: [
+                          BoxShadow(color: _shadowMedium, blurRadius: 10),
+                        ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  _accent.withValues(alpha: 0.15),
+                                  _accentTertiary.withValues(alpha: 0.15),
+                                ],
+                              ),
+                              border: Border.all(
+                                color: _accent.withValues(alpha: 0.25),
+                                width: 1,
+                              ),
+                            ),
+                            child: Center(
+                              child: ShaderMask(
+                                shaderCallback: (b) =>
+                                    _accentGradient.createShader(b),
+                                child: Icon(
+                                  Icons.auto_awesome,
+                                  color: _textHeading,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AnimatedOpacity(
+                              opacity: suggestion.opacity,
+                              duration: const Duration(milliseconds: 350),
+                              child: Text(
+                                _aiSuggestions[suggestion.index],
+                                style: TextStyle(
+                                  color: _textSub,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: _accent.withValues(alpha: 0.65),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPromptChipsRow() {
+    final chips = [
+      ('✦', 'Outfit idea', 'Suggest an outfit for today'),
+      ('◎', 'Daily plan', 'Plan my day'),
+      ('⊹', 'Workout', 'What workout should I do today?'),
+      ('◈', 'Meal plan', 'Suggest a meal plan for this week'),
+      ('◷', 'Schedule', "What's on my schedule today?"),
+    ];
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: chips.length,
+        separatorBuilder: (_, i2) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          return _AnimatedPressable(
+            liftY: -2.0,
+            scalePressed: 0.95,
+            onTap: () => _openChatWithPrompt(chips[i].$3),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _panel,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: _border),
+                boxShadow: [
+                  BoxShadow(color: _shadowMedium, blurRadius: 8),
+                  BoxShadow(
+                    color: _accent.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (b) => _accentGradient.createShader(b),
+                    child: Text(
+                      chips[i].$1,
+                      style: TextStyle(color: _textHeading, fontSize: 10),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    chips[i].$2,
+                    style: TextStyle(
+                      color: _textSub,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.01,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPrepareBottomQuickChips() {
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+        itemCount: _prepareChips.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        itemBuilder: (_, i) {
+          return _PrepareQuickChip(
+            label: _prepareChips[i].$1,
+            onSend: () => _handlePrepareChipSend(_prepareChips[i].$2),
+            accent: _accent,
+            accentSecondary: _accentSecondary,
+            panel: _panel,
+            border: _border,
+            activeText: _textHeading,
+            textMuted: _textMuted,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHeroCard() {
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          _shimmerCtrl,
+          _breatheCtrl,
+          _floatBadgeCtrl,
+        ]),
+        builder: (context, _) {
+          final breatheOpacity = 0.14 + 0.12 * _breatheCtrl.value;
+          final badgeOffset = -2.5 * math.sin(_floatBadgeCtrl.value * math.pi);
+
+          return _CardPressable(
+            onTap: () => _openModuleChat('style'),
+            builder: (_) => Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(26),
+                color: _surface,
+                border: Border.all(
+                  color: _accent.withValues(alpha: 0.20),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _shadowStrong,
+                    blurRadius: 56,
+                    offset: Offset(0, 16),
+                  ),
+                  BoxShadow(
+                    color: _shadowMedium,
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: _accent.withValues(alpha: 0.12),
+                    blurRadius: 30,
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(0.8, 0.1),
+                          radius: 1.2,
+                          colors: [
+                            _accentSecondary.withValues(alpha: 0.20),
+                            _transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(
+                            color: _accent.withValues(alpha: breatheOpacity),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 1,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _transparent,
+                            _accent.withValues(
+                              alpha:
+                                  0.6 *
+                                  (0.5 +
+                                      0.5 *
+                                          math.sin(
+                                            _shimmerCtrl.value * math.pi * 2,
+                                          )),
+                            ),
+                            _accentTertiary.withValues(alpha: 0.55),
+                            _transparent,
+                          ],
+                          stops: const [0.0, 0.28, 0.60, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 188,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.network(
+                            'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=420&h=450&fit=crop&crop=top&auto=format',
+                            fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
+                            cacheWidth:
+                                (224 * MediaQuery.of(context).devicePixelRatio)
+                                    .round(),
+                            filterQuality: FilterQuality.low,
+                            errorBuilder: (_, _, _) => Container(
+                              color: _accent.withValues(alpha: 0.1),
+                              child: Icon(Icons.image, color: _textMuted),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 56,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [_surface, _transparent],
+                                stops: const [0.75, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    top: 18 + badgeOffset,
+                    right: 18,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _accentTertiary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: _accentTertiary.withValues(alpha: 0.35),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _accentTertiary.withValues(alpha: 0.20),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'New Drops',
+                        style: TextStyle(
+                          color: _accentTertiary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: 220,
+                    child: LayoutBuilder(
+                      builder: (context, heroConstraints) {
+                        final heroH = heroConstraints.maxHeight;
+                        // All values scale proportionally to available height
+                        // heroH is typically 113–160px depending on device
+                        final pad = (heroH * 0.13).clamp(10.0, 20.0);
+                        final titleFontSize = (heroH * 0.26).clamp(24.0, 40.0);
+                        final subtitleFontSize = (heroH * 0.075).clamp(9.5, 12.0);
+                        final gap1 = (heroH * 0.018).clamp(1.5, 4.0);
+                        final gap2 = (heroH * 0.030).clamp(3.0, 7.0);
+                        final btnPadH = (heroH * 0.11).clamp(10.0, 17.0);
+                        final btnPadV = (heroH * 0.040).clamp(5.0, 9.0);
+                        return ClipRect(
+                          child: Padding(
+                          padding: EdgeInsets.fromLTRB(pad, pad, pad * 0.7, pad * 0.7),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'AI Stylist',
+                                      style: TextStyle(
+                                        color: _accent.withValues(alpha: 0.85),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 1.4,
+                                      ),
+                                    ),
+                                    SizedBox(height: gap1),
+                                    ShaderMask(
+                                      shaderCallback: (b) =>
+                                          _accentGradient.createShader(b),
+                                      child: Text(
+                                        'Style',
+                                        style: TextStyle(
+                                          color: _textHeading,
+                                          fontSize: titleFontSize,
+                                          fontWeight: FontWeight.w300,
+                                          letterSpacing: -1.05,
+                                          height: 0.93,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: gap2),
+                                    Text(
+                                      'Create outfits that feel like you.',
+                                      style: TextStyle(
+                                        color: _textSub.withValues(alpha: 0.80),
+                                        fontSize: subtitleFontSize,
+                                        fontWeight: FontWeight.w300,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _AnimatedPressable(
+                                liftY: -2.0,
+                                scalePressed: 0.95,
+                                onTap: () => _openModuleChat('style'),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: _accentGradient,
+                                    borderRadius: BorderRadius.circular(100),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _accent.withValues(alpha: 0.40),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                      BoxShadow(
+                                        color: _accentTertiary.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: btnPadH,
+                                    vertical: btnPadV,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Start styling',
+                                        style: TextStyle(
+                                          color: _onAccent,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.36,
+                                        ),
+                                      ),
+                                      SizedBox(width: 5),
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        color: _onAccent,
+                                        size: 11,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSecondaryRow() {
+    final screenH = MediaQuery.of(context).size.height;
+    final botPad = (screenH * 0.018).clamp(8.0, 22.0);
+    return Padding(
+      padding: EdgeInsets.only(bottom: botPad),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildSecCard(
+              icon: Icons.grid_view_rounded,
+              title: 'Organize',
+              subtitle: 'Everything you already own',
+              accentColor: _accent,
+              intent: 'organize',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildSecCard(
+              icon: Icons.calendar_month_outlined,
+              title: 'Plan',
+              subtitle: 'Trips, events, daily plans',
+              accentColor: _accentSecondary,
+              intent: 'plan',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color accentColor,
+    required String intent,
+  }) {
+    final screenH = MediaQuery.of(context).size.height;
+    final cardMinH = (screenH * 0.085).clamp(58.0, 82.0);
+    return _CardPressable(
+      onTap: () => _openModuleChat(intent),
+      builder: (isHovered) {
+        return Container(
+          constraints: BoxConstraints(minHeight: cardMinH),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [_surface, _bgSecondary],
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _border, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: _shadowMedium,
+                blurRadius: isHovered ? 52 : 28,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: _accent.withValues(alpha: isHovered ? 0.15 : 0.05),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          padding: EdgeInsets.fromLTRB(14, (screenH * 0.016).clamp(10.0, 16.0), 14, (screenH * 0.014).clamp(8.0, 14.0)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(
+                        alpha: isHovered ? 0.16 : 0.08,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: isHovered ? _accent : _textMuted,
+                      size: 15,
+                    ),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _accent.withValues(alpha: isHovered ? 0.18 : 0.06),
+                      border: Border.all(
+                        color: _accent.withValues(alpha: isHovered ? 0.30 : 0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Transform.translate(
+                      offset: Offset(isHovered ? 2.0 : 0.0, 0),
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: isHovered ? _accent : _textMuted,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: _textHeading,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.15,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: _textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w300,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHead() {
+    final screenH = MediaQuery.of(context).size.height;
+    final topPad = (screenH * 0.020).clamp(12.0, 26.0);
+    final botPad = (screenH * 0.012).clamp(8.0, 14.0);
+    return Padding(
+      padding: EdgeInsets.only(top: topPad, bottom: botPad),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(
+                "Today's Picks",
+                style: TextStyle(
+                  color: _textHeading,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.15,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _accent.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: _accent.withValues(alpha: 0.18),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  'AI Curated',
+                  style: TextStyle(
+                    color: _accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: _openSeeAll,
+            child: Text(
+              'See all',
+              style: TextStyle(
+                color: _textMuted,
+                fontSize: 12,
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPicksStrip() {
+    final picks = [
+      (
+        'Minimal Chic',
+        'Casual · Today',
+        'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=220&h=260&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Street Edit',
+        'Urban · Weekend',
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=220&h=260&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Office Look',
+        'Smart · Monday',
+        'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=220&h=260&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Evening',
+        'Party · Dinner',
+        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=220&h=260&fit=crop&crop=top&auto=format',
+      ),
+    ];
+    return SizedBox(
+      height: (MediaQuery.of(context).size.height * 0.22).clamp(150.0, 190.0),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
+        itemCount: picks.length,
+        separatorBuilder: (_, i2) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          return _buildPickCard(
+            cardIdx: i,
+            name: picks[i].$1,
+            tag: picks[i].$2,
+            imageUrl: picks[i].$3,
+            liked: _likedState[i],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPickCard({
+    required int cardIdx,
+    required String name,
+    required String tag,
+    required String imageUrl,
+    required bool liked,
+  }) {
+    // Responsive card width: ~28% of screen width, clamped between 95 and 130
+    final cardW = (MediaQuery.of(context).size.width * 0.28).clamp(95.0, 130.0);
+    return _AnimatedPressable(
+      liftY: -4.0,
+      scaleHover: 1.03,
+      scalePressed: 0.97,
+      onTap: () => _openPickSheet(name, tag),
+      child: Container(
+        width: cardW,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [_surface, _bgSecondary],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: _shadowMedium,
+              blurRadius: 20,
+              offset: Offset(0, 6),
+            ),
+            BoxShadow(color: _shadowLight, blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      cacheWidth:
+                          (112 * MediaQuery.of(context).devicePixelRatio)
+                              .round(),
+                      filterQuality: FilterQuality.low,
+                      errorBuilder: (_, _, _) => Container(
+                        color: _accent.withValues(alpha: 0.1),
+                        child: Icon(Icons.image, color: _textMuted),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: _buildLikeButton(cardIdx, liked),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: _textHeading,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tag,
+                    style: TextStyle(
+                      color: _textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLikeButton(int cardIdx, bool liked) {
+    return AnimatedBuilder(
+      animation: _heartPopCtrls[cardIdx],
+      builder: (context, _) {
+        final t = _heartPopCtrls[cardIdx].value;
+        double scale = 1.0;
+        if (t < 0.40) {
+          scale = 1.0 + (0.38 * (t / 0.40));
+        } else if (t < 0.70) {
+          scale = 1.38 - (0.50 * ((t - 0.40) / 0.30));
+        } else {
+          scale = 0.88 + (0.12 * ((t - 0.70) / 0.30));
+        }
+        return GestureDetector(
+          onTap: () => _toggleLike(cardIdx),
+          child: Transform.scale(
+            scale: scale,
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: liked ? _accent.withValues(alpha: 0.20) : _shadowStrong,
+                border: liked
+                    ? Border.all(
+                        color: _accent.withValues(alpha: 0.50),
+                        width: 1,
+                      )
+                    : null,
+              ),
+              child: Icon(
+                liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: liked
+                    ? _accentSecondary
+                    : _textHeading.withValues(alpha: 0.7),
+                size: 12,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 🚀 FIXED: Reroutes perfectly to the dedicated Chat Screen
+  Widget _buildChatWrap() {
+    return AhviChatPromptBar(
+      controller: _chatController,
+      focusNode: _chatFocusNode,
+      hintText: _chatPlaceholder,
+      hasTextListenable: _chatController,
+      surface: _surface,
+      border: _border,
+      accent: _accent,
+      accentSecondary: _accentSecondary,
+      textHeading: _textHeading,
+      textMuted: _textMuted,
+      shadowMedium: _shadowMedium,
+      onAccent: _onAccent,
+      onVoiceTap: _toggleListening,
+      isListening: _isListening,
+      onSubmitted: (value) {
+        if (value.trim().isNotEmpty) {
+          _openChatWithPrompt(value.trim());
+          _chatController.clear();
+        }
+      },
+      onSend: () {
+        final text = _chatController.text.trim();
+        if (text.isNotEmpty) {
+          _openChatWithPrompt(text);
+          _chatController.clear();
+        }
+      },
+      onEmptySend: () => _submitQuery(''),
+      onAddTap: _openLensSheet,
+    );
+  }
+
+  Widget _buildBottomNav() {
+    final items = _homeNavItems;
+    const pillH = 64.0;
+    const maxBulge = 18.0;
+    const totalH = pillH + maxBulge + 6.0;
+
+    return SizedBox(
+      height: totalH,
+      child: AnimatedBuilder(
+        animation: Listenable.merge(_navRiseCtrls),
+        builder: (context, _) {
+          final activeIdx = _activeNavIdx;
+          final bulgeT = _navRiseCtrls[activeIdx].value;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: totalH,
+                child: CustomPaint(
+                  painter: _NavPillPainter(
+                    activeIdx: activeIdx,
+                    itemCount: items.length,
+                    bulgeT: bulgeT,
+                    pillH: pillH,
+                    maxBulge: maxBulge,
+                    fillColor: _surface,
+                    borderColor: _border,
+                    glowColor: _accent,
+                    shadowColor: _shadowMedium,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: pillH,
+                child: Row(
+                  children: List.generate(items.length, (i) {
+                    final active = activeIdx == i;
+                    final rise = -10.0 * _navRiseCtrls[i].value;
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => _handleNavTap(i),
+                        behavior: HitTestBehavior.opaque,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Transform.translate(
+                              offset: Offset(0, rise),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOut,
+                                width: 44,
+                                height: 44,
+                                decoration: active
+                                    ? BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: _accentGradient2,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: _accent.withValues(
+                                              alpha: 0.45,
+                                            ),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                          BoxShadow(
+                                            color: _accent.withValues(
+                                              alpha: 0.25,
+                                            ),
+                                            blurRadius: 28,
+                                          ),
+                                        ],
+                                      )
+                                    : null,
+                                child: Icon(
+                                  items[i].icon,
+                                  color: active ? _onAccent : _textMuted,
+                                  size: active ? 21 : 20,
+                                ),
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(0, rise),
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 220),
+                                style: TextStyle(
+                                  color: active ? _textHeading : _textMuted,
+                                  fontSize: 10,
+                                  fontWeight: active
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
+                                  letterSpacing: -0.01,
+                                ),
+                                child: Text(items[i].label),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAiOverlay() {
+    const bottomClearance = 170.0;
+
+    return Positioned.fill(
+      child: AnimatedBuilder(
+        animation: _overlayFadeCtrl,
+        builder: (context, _) => Opacity(
+          opacity: _overlayFadeCtrl.value,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _dismissOverlay,
+                  child: Container(color: _bgPrimary.withValues(alpha: 0.92)),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: bottomClearance,
+                child: IgnorePointer(child: const SizedBox.expand()),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 60,
+                bottom: bottomClearance,
+                child: Column(
+                  children: [
+                    Column(
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) =>
+                              _accentGradient.createShader(b),
+                          child: Text(
+                            'AHVI',
+                            style: TextStyle(
+                              color: _textHeading,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _overlayBrandSub,
+                          style: TextStyle(
+                            color: _textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _overlayScrollCtrl,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _EntryFadeSlide(
+                          key: ValueKey(
+                            '${_overlayState}_${_activeIntent ?? ''}',
+                          ),
+                          child: _buildOverlayContent(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverlayContent() {
+    switch (_overlayState) {
+      case _OverlayState.suggestions:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Suggested for you',
+              style: TextStyle(
+                color: _textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.08,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ..._overlaySuggestions.map(
+              (q) => _AnimatedPressable(
+                scalePressed: 0.97,
+                onTap: () => _handleQuery(q, _activeIntent ?? 'chat'),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 13,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _surface.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: _border),
+                    boxShadow: [BoxShadow(color: _shadowMedium, blurRadius: 8)],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _accent.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          q,
+                          style: TextStyle(
+                            color: _textSub,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+
+      case _OverlayState.thinking:
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      _accent.withValues(alpha: 0.18),
+                      _accentSecondary.withValues(alpha: 0.28),
+                    ],
+                  ),
+                  border: Border.all(color: _accent.withValues(alpha: 0.30)),
+                ),
+                child: Center(
+                  child: ShaderMask(
+                    shaderCallback: (b) => _accentGradient.createShader(b),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: _textHeading,
+                      size: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              AnimatedBuilder(
+                animation: _thinkingCtrl,
+                builder: (_, _) {
+                  Widget dot(int i) {
+                    const period = 1.0;
+                    const phaseShift = 0.125;
+                    final t = (_thinkingCtrl.value + i * phaseShift) % period;
+                    final sine = math.sin(t * math.pi * 2);
+                    final lift = sine > 0 ? sine : 0.0;
+                    final dy = -5.0 * lift;
+                    final opacity = 0.3 + 0.7 * lift;
+                    return Padding(
+                      padding: EdgeInsets.only(right: i < 2 ? 5.0 : 0),
+                      child: Transform.translate(
+                        offset: Offset(0, dy),
+                        child: Opacity(
+                          opacity: opacity.clamp(0.3, 1.0),
+                          child: Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: _accentGradient,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _surface.withValues(alpha: 0.90),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: _accent.withValues(alpha: 0.20),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _accent.withValues(alpha: 0.10),
+                          blurRadius: 18,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [dot(0), dot(1), dot(2)],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+
+      case _OverlayState.response:
+        if (_responses.isEmpty) return const SizedBox();
+        return Column(
+          children: _responses.map((resp) {
+            final isLast = resp == _responses.last;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: _buildResponseContent(
+                resp,
+                showTags: isLast && _tagsRevealed,
+              ),
+            );
+          }).toList(),
+        );
+
+      default:
+        return const SizedBox();
+    }
+  }
+
+  Widget _buildResponseContent(_ResponseData resp, {bool showTags = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 260),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            decoration: BoxDecoration(
+              color: _phoneShell,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomLeft: Radius.circular(18),
+                bottomRight: Radius.circular(4),
+              ),
+              border: Border.all(color: _accent.withValues(alpha: 0.15)),
+            ),
+            child: Text(
+              resp.question,
+              style: TextStyle(
+                color: _textHeading,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w400,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    _accent.withValues(alpha: 0.18),
+                    _accentSecondary.withValues(alpha: 0.28),
+                  ],
+                ),
+                border: Border.all(color: _accent.withValues(alpha: 0.30)),
+              ),
+              child: Center(
+                child: ShaderMask(
+                  shaderCallback: (b) => _accentGradient.createShader(b),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    color: _textHeading,
+                    size: 10,
+                  ),
+                ),
+              ),
+            ),
+            Text(
+              'AHVI',
+              style: TextStyle(
+                color: _textHeading,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        if (resp.intro.isNotEmpty) ...[
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width - 40,
+            ),
+            child: Text(
+              resp.intro,
+              style: TextStyle(
+                color: _textSub,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+        _buildResponseBody(resp),
+
+        if (showTags) ...[
+          const SizedBox(height: 14),
+          AnimatedBuilder(
+            animation: _tagsRevealCtrl,
+            builder: (_, _) => Opacity(
+              opacity: _tagsRevealCtrl.value,
+              child: Transform.translate(
+                offset: Offset(0, 7 * (1 - _tagsRevealCtrl.value)),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _responseTags
+                      .map(
+                        (tag) => _AnimatedPressable(
+                          scalePressed: 0.96,
+                          liftY: -1.5,
+                          onTap: () => _submitQuery(tag),
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(context).size.width - 60,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _accent.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(
+                                color: _accent.withValues(alpha: 0.20),
+                              ),
+                            ),
+                            child: Text(
+                              tag,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _accent,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildResponseBody(_ResponseData resp) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    switch (resp.type) {
+      case 'outfits':
+        return SizedBox(
+          height: 155,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: resp.outfits.length,
+            separatorBuilder: (_, i2) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final o = resp.outfits[i];
+              return Container(
+                width: 86,
+                decoration: BoxDecoration(
+                  color: _card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _border),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 96,
+                      child: Image.network(
+                        o.imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        cacheWidth:
+                            (86 * MediaQuery.of(context).devicePixelRatio)
+                                .round(),
+                        cacheHeight:
+                            (96 * MediaQuery.of(context).devicePixelRatio)
+                                .round(),
+                        filterQuality: FilterQuality.low,
+                        errorBuilder: (_, _, _) =>
+                            Container(color: _accent.withValues(alpha: 0.1)),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            o.name,
+                            style: TextStyle(
+                              color: isDark ? _textHeading : _tileText,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Wrap(
+                            spacing: 3,
+                            children: o.tags
+                                .map(
+                                  (t) => Container(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 70,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _accent.withValues(alpha: 0.10),
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                    child: Text(
+                                      t,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: _textMuted,
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+
+      case 'tasks':
+        return Column(
+          children: resp.tasks.map((t) {
+            final dotColor = t.priority == 'high'
+                ? _accent
+                : t.priority == 'mid'
+                ? _accentSecondary
+                : _accentTertiary.withValues(alpha: 0.5);
+            return Opacity(
+              opacity: t.done ? 0.45 : 1.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: _border.withValues(alpha: 0.35)),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      margin: const EdgeInsets.only(top: 1),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: t.done
+                              ? _accentTertiary.withValues(alpha: 0.5)
+                              : _accent.withValues(alpha: 0.3),
+                        ),
+                        color: t.done
+                            ? _accentTertiary.withValues(alpha: 0.15)
+                            : _transparent,
+                      ),
+                      child: t.done
+                          ? Icon(Icons.check, color: _accentTertiary, size: 10)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.label,
+                            style: TextStyle(
+                              color: t.done ? _textMuted : _textHeading,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              decoration: t.done
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            t.due,
+                            style: TextStyle(
+                              color: t.priority == 'high'
+                                  ? _accentTertiary
+                                  : _textMuted,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.only(top: 5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: dotColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        );
+
+      case 'week':
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final itemCount = resp.weekDays.length;
+            final rows = ((itemCount / 7).ceil()).clamp(1, 6);
+            const spacing = 4.0;
+            final cellWidth = (constraints.maxWidth - (6 * spacing)) / 7;
+            final cellHeight = cellWidth / 0.52;
+            final gridHeight = (rows * cellHeight) + ((rows - 1) * spacing);
+            return SizedBox(
+              height: gridHeight,
+              child: GridView.builder(
+                itemCount: itemCount,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                  childAspectRatio: 0.52,
+                ),
+                itemBuilder: (_, index) {
+                  final d = resp.weekDays[index];
+                  return Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: d.isToday
+                          ? _accent.withValues(alpha: 0.10)
+                          : _bgPrimary.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: d.isToday
+                            ? _accent.withValues(alpha: 0.25)
+                            : _border.withValues(alpha: 0.35),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          d.day,
+                          style: TextStyle(
+                            fontSize: 7.5,
+                            fontWeight: FontWeight.w700,
+                            color: d.isToday ? _accent : _textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          d.label.split(' ').last,
+                          style: TextStyle(fontSize: 6.5, color: _textMuted),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 3),
+                        ...d.items
+                            .take(2)
+                            .map(
+                              (it) => Container(
+                                margin: const EdgeInsets.only(bottom: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _accent.withValues(alpha: 0.07),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  it,
+                                  style: TextStyle(
+                                    fontSize: 5.5,
+                                    color: _textSub,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+
+      case 'plan':
+        return Column(
+          children: resp.planSections.map((s) {
+            final c = s.color(context.themeTokens);
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.only(left: 12),
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: c, width: 2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.title,
+                    style: TextStyle(
+                      color: c,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...s.items.map(
+                    (it) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        it,
+                        style: TextStyle(
+                          color: _textSub,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+
+      case 'prepare_exact':
+        return _buildPrepareExactChecklistCard(resp.question);
+
+      case 'text':
+      default:
+        return const SizedBox();
+    }
+  }
+
+  Widget _buildPrepareExactChecklistCard(String title) {
+    const sections = [
+      (
+        name: 'Documents',
+        emoji: '📄',
+        color: Color(0xFF04D7C8),
+        items: [
+          'Passport / ID',
+          'Boarding pass',
+          'Travel insurance',
+          'Hotel confirmation',
+          'Visa (if required)',
+        ],
+      ),
+      (
+        name: 'Tech & Power',
+        emoji: '🔌',
+        color: Color(0xFF8D7DFF),
+        items: [
+          'Phone + charger',
+          'Power bank',
+          'Headphones',
+          'Laptop or tablet',
+          'Universal adapter',
+        ],
+      ),
+      (
+        name: 'Comfort',
+        emoji: '😴',
+        color: Color(0xFF6B91FF),
+        items: [
+          'Neck pillow',
+          'Eye mask',
+          'Earplugs',
+          'Light jacket',
+          'Compression socks',
+        ],
+      ),
+    ];
+    const sectionImages = [
+      [
+        'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1522199755839-a2bacb67c546?w=400&h=260&fit=crop&auto=format',
+      ],
+      [
+        'https://images.unsplash.com/photo-1517336714739-489689fd1ca8?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1593344484962-796055d4a3a4?w=400&h=260&fit=crop&auto=format',
+      ],
+      [
+        'https://images.unsplash.com/photo-1520006403909-838d6b92c22e?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1506485338023-6ce5f36692df?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=400&h=260&fit=crop&auto=format',
+        'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400&h=260&fit=crop&auto=format',
+      ],
+    ];
+
+    final itemsState = _prepareExactItemsByTitle.putIfAbsent(
+      title,
+      () => sections.map((s) => List<String>.from(s.items)).toList(),
+    );
+    final addCtrls = _prepareExactAddControllersByTitle.putIfAbsent(
+      title,
+      () => List.generate(sections.length, (_) => TextEditingController()),
+    );
+    final checksState = _prepareExactChecksByTitle.putIfAbsent(
+      title,
+      () => itemsState
+          .map(
+            (items) => List<bool>.filled(items.length, false, growable: true),
+          )
+          .toList(),
+    );
+    final outfitSaved = _prepareExactOutfitSavedByTitle.putIfAbsent(
+      title,
+      () => List<bool>.filled(3, false, growable: true),
+    );
+    final isListSaved = _prepareExactSavedByTitle[title] ?? false;
+
+    for (var i = 0; i < itemsState.length; i++) {
+      final targetLen = itemsState[i].length;
+      if (checksState[i].length < targetLen) {
+        checksState[i].addAll(
+          List<bool>.filled(
+            targetLen - checksState[i].length,
+            false,
+            growable: true,
+          ),
+        );
+      } else if (checksState[i].length > targetLen) {
+        checksState[i] = checksState[i].sublist(0, targetLen);
+      }
+    }
+
+    return StatefulBuilder(
+      builder: (context, checklistSetState) {
+        final totalItems = itemsState.fold<int>(
+          0,
+          (sum, items) => sum + items.length,
+        );
+        final totalChecked = checksState.fold<int>(
+          0,
+          (sum, items) => sum + items.where((v) => v).length,
+        );
+        final progress = totalItems == 0 ? 0.0 : totalChecked / totalItems;
+
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: _bgSecondary,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _border, width: 1),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                color: _phoneShell,
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: _textHeading,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Generated for: $title',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '$totalChecked of $totalItems items',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: _textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: _border.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: AnimatedFractionallySizedBox(
+                          duration: const Duration(milliseconds: 400),
+                          alignment: Alignment.centerLeft,
+                          widthFactor: progress,
+                          child: Container(color: const Color(0xFF04D7C8)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: _border, width: 1)),
+                  color: _panel,
+                ),
+                child: Column(
+                  children: List.generate(sections.length, (sIdx) {
+                    final s = sections[sIdx];
+                    final doneCount = checksState[sIdx].where((v) => v).length;
+                    return Container(
+                      color: _phoneShell,
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                      margin: const EdgeInsets.only(bottom: 1),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                s.emoji,
+                                style: const TextStyle(fontSize: 15, height: 1),
+                              ),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  s.name,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: _textHeading,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x1F04D7C8),
+                                  borderRadius: BorderRadius.circular(99),
+                                ),
+                                child: Text(
+                                  '$doneCount/${itemsState[sIdx].length}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF04D7C8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            height: 64,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: sectionImages[sIdx].length,
+                              itemExtent: 88,
+                              itemBuilder: (_, imgIdx) {
+                                final img = sectionImages[sIdx][imgIdx];
+                                return Padding(
+                                  padding: EdgeInsets.only(
+                                    right:
+                                        imgIdx == sectionImages[sIdx].length - 1
+                                        ? 0
+                                        : 8,
+                                  ),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: _border),
+                                    ),
+                                    clipBehavior: Clip.hardEdge,
+                                    child: Image.network(
+                                      img,
+                                      fit: BoxFit.cover,
+                                      cacheWidth: 264,
+                                      cacheHeight: 192,
+                                      errorBuilder: (_, _, _) => Container(
+                                        color: _panel,
+                                        alignment: Alignment.center,
+                                        child: Icon(
+                                          Icons.image_outlined,
+                                          size: 16,
+                                          color: _textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...List.generate(itemsState[sIdx].length, (i) {
+                            final done = checksState[sIdx][i];
+                            return GestureDetector(
+                              onTap: () => checklistSetState(
+                                () => checksState[sIdx][i] = !done,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: i < itemsState[sIdx].length - 1
+                                      ? Border(
+                                          bottom: BorderSide(
+                                            color: _border.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                child: Row(
+                                  children: [
+                                    AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      width: 18,
+                                      height: 18,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(5),
+                                        border: Border.all(
+                                          color: done ? s.color : _border,
+                                          width: 1.5,
+                                        ),
+                                        color: done ? s.color : _panel,
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: done
+                                          ? const Icon(
+                                              Icons.check,
+                                              size: 11,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        itemsState[sIdx][i],
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: done
+                                              ? _textMuted
+                                              : _textHeading,
+                                          decoration: done
+                                              ? TextDecoration.lineThrough
+                                              : TextDecoration.none,
+                                        ),
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        checklistSetState(() {
+                                          itemsState[sIdx].removeAt(i);
+                                          checksState[sIdx].removeAt(i);
+                                        });
+                                      },
+                                      child: SizedBox(
+                                        width: 28,
+                                        height: 28,
+                                        child: Center(
+                                          child: Text(
+                                            '×',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: _textMuted,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _bgSecondary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: addCtrls[sIdx],
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: _textHeading,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: '+ Add item…',
+                                      hintStyle: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: _textMuted,
+                                      ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      border: InputBorder.none,
+                                    ),
+                                    onSubmitted: (_) {
+                                      final val = addCtrls[sIdx].text.trim();
+                                      if (val.isEmpty) return;
+                                      checklistSetState(() {
+                                        itemsState[sIdx].add(val);
+                                        checksState[sIdx].add(false);
+                                        addCtrls[sIdx].clear();
+                                      });
+                                    },
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    final val = addCtrls[sIdx].text.trim();
+                                    if (val.isEmpty) return;
+                                    checklistSetState(() {
+                                      itemsState[sIdx].add(val);
+                                      checksState[sIdx].add(false);
+                                      addCtrls[sIdx].clear();
+                                    });
+                                  },
+                                  child: Container(
+                                    width: 26,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      color: s.color,
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      '+',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF10131B),
+                                        height: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              Container(
+                color: _phoneShell,
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                child: IgnorePointer(
+                  ignoring: isListSaved,
+                  child: GestureDetector(
+                    onTap: () {
+                      const boards = [
+                        '🎉 Party Looks',
+                        '💍 Occasion',
+                        '💼 Office Fit',
+                        '✈️ Vacation',
+                        '✨ Everything Else',
+                      ];
+                      showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (_) => Container(
+                          decoration: BoxDecoration(
+                            color: _bgSecondary,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(24),
+                              topRight: Radius.circular(24),
+                            ),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: _border,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Save to a Style Board',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: _textHeading,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Choose where this checklist lives',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: _textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              ...boards.map(
+                                (label) => GestureDetector(
+                                  onTap: () async {
+                                    final boardId = _boardIdByLabel[label];
+                                    if (boardId == null) {
+                                      Navigator.pop(context);
+                                      return;
+                                    }
+                                    Navigator.pop(context);
+                                    await _savePrepareExactToBoard(
+                                      boardId: boardId,
+                                      title: title,
+                                      sections: sections,
+                                      itemsState: itemsState,
+                                      checksState: checksState,
+                                      outfitSaved: outfitSaved,
+                                    );
+                                    if (!mounted) return;
+                                    checklistSetState(
+                                      () => _prepareExactSavedByTitle[title] =
+                                          true,
+                                    );
+                                  },
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _panel,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: _border,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: _textHeading,
+                                            ),
+                                          ),
+                                        ),
+                                        if (label.contains('Vacation'))
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF8D7DFF),
+                                              borderRadius:
+                                                  BorderRadius.circular(99),
+                                            ),
+                                            child: const Text(
+                                              'SUGGESTED',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        gradient: isListSaved
+                            ? const LinearGradient(
+                                colors: [Color(0xFF04D7C8), Color(0xFF04D7C8)],
+                              )
+                            : const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF04D7C8), Color(0xFF6B91FF)],
+                              ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isListSaved ? '✅' : '📌',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            isListSaved ? 'List Saved!' : 'Save to Style Board',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFFF5F7FF),
+                              letterSpacing: 0.14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPickSheet({
+    required String name,
+    required String tag,
+    required VoidCallback onClose,
+  }) {
+    return GestureDetector(
+      onTap: onClose,
+      child: Container(
+        color: Colors.transparent,
+        child: GestureDetector(
+          onTap: () {},
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [_surface, _bgSecondary],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+              border: Border.all(
+                color: _accent.withValues(alpha: 0.12),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: _accent.withValues(alpha: 0.15),
+                  blurRadius: 40,
+                  offset: const Offset(0, -8),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              12,
+              24,
+              40 + MediaQuery.of(context).padding.bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: _accent.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text(
+                  name,
+                  style: TextStyle(
+                    color: _textHeading,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w300,
+                    letterSpacing: -0.01,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  tag,
+                  style: TextStyle(
+                    color: _textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _AnimatedPressable(
+                        scalePressed: 0.97,
+                        onTap: onClose,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _accent.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                              color: _accent.withValues(alpha: 0.20),
+                              width: 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Save to Board',
+                              style: TextStyle(
+                                color: _accent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _AnimatedPressable(
+                        scalePressed: 0.97,
+                        onTap: () {},
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: _accentGradient2,
+                            borderRadius: BorderRadius.circular(15),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _accent.withValues(alpha: 0.35),
+                                blurRadius: 18,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Style This ?',
+                              style: TextStyle(
+                                color: _onAccent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeeAllPanel() {
+    final seeAllPicks = [
+      (
+        'Minimal Chic',
+        'Casual · Today',
+        'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Street Edit',
+        'Urban · Weekend',
+        'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Office Look',
+        'Smart · Monday',
+        'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Evening',
+        'Party · Dinner',
+        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Athleisure',
+        'Sport · Morning',
+        'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+      (
+        'Resort Wear',
+        'Vacation · Breezy',
+        'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=300&h=280&fit=crop&crop=top&auto=format',
+      ),
+    ];
+    return AnimatedBuilder(
+      animation: _seeAllCtrl,
+      builder: (context, _) {
+        final slideOffset = (1.0 - _seeAllCtrl.value);
+        return Transform.translate(
+          offset: Offset(MediaQuery.of(context).size.width * slideOffset, 0),
+          child: Container(
+            color: _bgPrimary,
+            child: Column(
+              children: [
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: _closeSeeAll,
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: _panel,
+                              border: Border.all(
+                                color: _accent.withValues(alpha: 0.20),
+                                width: 1,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: _textMuted,
+                              size: 15,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          "Today's Picks",
+                          style: TextStyle(
+                            color: _textHeading,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w300,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.75,
+                        ),
+                    itemCount: seeAllPicks.length,
+                    itemBuilder: (context, i) {
+                      return RepaintBoundary(
+                        child: _AnimatedPressable(
+                          scalePressed: 0.97,
+                          onTap: () {
+                            _closeSeeAll();
+                            Future.delayed(
+                              const Duration(milliseconds: 380),
+                              () {
+                                if (mounted) {
+                                  _openPickSheet(
+                                    seeAllPicks[i].$1,
+                                    seeAllPicks[i].$2,
+                                  );
+                                }
+                              },
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              color: _surface,
+                              border: Border.all(color: _border, width: 1),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Image.network(
+                                    seeAllPicks[i].$3,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    cacheWidth:
+                                        (240 *
+                                                MediaQuery.of(
+                                                  context,
+                                                ).devicePixelRatio)
+                                            .round(),
+                                    filterQuality: FilterQuality.low,
+                                    errorBuilder: (_, _, _) => Container(
+                                      color: _accent.withValues(alpha: 0.1),
+                                      child: Icon(
+                                        Icons.image,
+                                        color: _textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    8,
+                                    12,
+                                    12,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        seeAllPicks[i].$1,
+                                        style: TextStyle(
+                                          color: _textHeading,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        seeAllPicks[i].$2,
+                                        style: TextStyle(
+                                          color: _textMuted,
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w300,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLensSheet() {
+    return GestureDetector(
+      onTap: _closeLensSheet,
+      child: AnimatedBuilder(
+        animation: _lensSheetCtrl,
+        builder: (context, _) {
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  color: _accent.withValues(alpha: 0.15 * _lensSheetCtrl.value),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - _lensSheetCtrl.value) * 400),
+                  child: GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [_surface, _bgSecondary],
+                        ),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                        border: Border.all(
+                          color: _accent.withValues(alpha: 0.15),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _accent.withValues(alpha: 0.15),
+                            blurRadius: 48,
+                            offset: const Offset(0, -12),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _accent.withValues(alpha: 0.30),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: _accent.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(9),
+                                        border: Border.all(
+                                          color: _accent.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.search,
+                                        color: _accent,
+                                        size: 17,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'AHVI Lens',
+                                      style: TextStyle(
+                                        color: _textHeading,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                GestureDetector(
+                                  onTap: _closeLensSheet,
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _accent.withValues(alpha: 0.08),
+                                      border: Border.all(
+                                        color: _accent.withValues(alpha: 0.20),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: _textMuted,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: _panel,
+                              border: Border.all(
+                                color: _accent.withValues(alpha: 0.15),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                AnimatedBuilder(
+                                  animation: _aurora1Ctrl,
+                                  builder: (context, _) {
+                                    return Transform.rotate(
+                                      angle: _aurora1Ctrl.value * math.pi * 2,
+                                      child: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: _accent.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            width: 2,
+                                          ),
+                                          color: _accent.withValues(
+                                            alpha: 0.08,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.circle,
+                                          color: _accent,
+                                          size: 12,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Visual AI Search',
+                                        style: TextStyle(
+                                          color: _textHeading,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Point at any item to find, save, or get styling advice.',
+                                        style: TextStyle(
+                                          color: _textMuted,
+                                          fontSize: 11.5,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...[
+                            (
+                              Icons.search,
+                              'Find Similar',
+                              'Discover similar items with shopping links',
+                              _accent,
+                              'find',
+                            ),
+                            (
+                              Icons.add_photo_alternate_outlined,
+                              'Add to Wardrobe',
+                              'Save to your collection',
+                              _accentSecondary,
+                              'add',
+                            ),
+                          ].map(
+                            (opt) => _buildLensOption(
+                              opt.$1,
+                              opt.$2,
+                              opt.$3,
+                              opt.$4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLensOption(
+    IconData icon,
+    String name,
+    String desc,
+    Color color,
+  ) {
+    return _AnimatedPressable(
+      scalePressed: 0.98,
+      onTap: () {},
+      builder: (isHovered, isPressed) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isHovered ? color.withValues(alpha: 0.08) : _panel,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHovered
+                  ? color.withValues(alpha: 0.30)
+                  : _accent.withValues(alpha: 0.12),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: _textHeading,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      desc,
+                      style: TextStyle(color: _textMuted, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                transform: Matrix4.translationValues(
+                  isHovered ? 3.0 : 0.0,
+                  0,
+                  0,
+                ),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  color: isHovered ? color : _textMuted,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildComingSoonToast() {
+    return Positioned(
+      bottom: 110,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: AnimatedOpacity(
+          opacity: _toastVisible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 280),
+          child: AnimatedSlide(
+            offset: _toastVisible ? Offset.zero : const Offset(0, 0.3),
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutBack,
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: _bgSecondary.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [BoxShadow(color: _shadowMedium, blurRadius: 28)],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.access_time_rounded, color: _accent, size: 15),
+                    SizedBox(width: 7),
+                    Text(
+                      'Coming Soon',
+                      style: TextStyle(
+                        color: _textHeading,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavPillPainter extends CustomPainter {
+  final int activeIdx;
+  final int itemCount;
+  final double bulgeT;
+  final double pillH;
+  final double maxBulge;
+  final Color fillColor;
+  final Color borderColor;
+  final Color glowColor;
+  final Color shadowColor;
+
+  const _NavPillPainter({
+    required this.activeIdx,
+    required this.itemCount,
+    required this.bulgeT,
+    required this.pillH,
+    required this.maxBulge,
+    required this.fillColor,
+    required this.borderColor,
+    required this.glowColor,
+    required this.shadowColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final pillTop = h - pillH;
+    final r = pillH / 2;
+
+    final itemW = w / itemCount;
+    final cx = itemW * activeIdx + itemW / 2;
+
+    final bulgeH = maxBulge * bulgeT;
+    final peakY = pillTop - bulgeH;
+
+    final pillRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, pillTop, w, pillH),
+      Radius.circular(r),
+    );
+    final pillPath = Path()..addRRect(pillRect);
+
+    final hw = itemW * 0.38;
+    final tang = hw * 0.55;
+    final lx = cx - hw;
+    final rx = cx + hw;
+
+    final bp = Path();
+    bp.moveTo(lx, pillTop);
+    bp.cubicTo(lx + tang, pillTop, cx - tang, peakY, cx, peakY);
+    bp.cubicTo(cx + tang, peakY, rx - tang, pillTop, rx, pillTop);
+    bp.close();
+
+    final combined = Path.combine(PathOperation.union, pillPath, bp);
+
+    canvas.drawPath(
+      combined.shift(const Offset(0, 8)),
+      Paint()
+        ..color = shadowColor
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
+    );
+
+    if (bulgeH > 1) {
+      canvas.drawPath(
+        combined,
+        Paint()
+          ..color = glowColor.withValues(alpha: 0.12 * bulgeT)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+      );
+    }
+
+    canvas.drawPath(combined, Paint()..color = fillColor);
+
+    canvas.drawPath(
+      combined,
+      Paint()
+        ..color = borderColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NavPillPainter old) =>
+      old.activeIdx != activeIdx ||
+      old.bulgeT != bulgeT ||
+      old.fillColor != fillColor ||
+      old.shadowColor != shadowColor;
+}
+
+enum _OverlayState { idle, suggestions, thinking, response }
+
+class _IntentConfig {
+  final List<String> suggestions;
+  final String brandSub;
+  final List<String> responseTags;
+  const _IntentConfig({
+    required this.suggestions,
+    required this.brandSub,
+    required this.responseTags,
+  });
+}
+
+class _ResponseData {
+  final String type, question, intro;
+  final List<_Outfit> outfits;
+  final List<_Task> tasks;
+  final List<_WeekDay> weekDays;
+  final List<_PlanSection> planSections;
+  const _ResponseData({
+    required this.type,
+    required this.question,
+    this.intro = '',
+  });
+}
+
+class _Outfit {
+  final String name, imageUrl;
+  final List<String> tags;
+  const _Outfit(this.name, this.tags, this.imageUrl);
+}
+
+class _Task {
+  final String label, due, priority;
+  final bool done;
+  const _Task(this.label, this.due, this.priority, this.done);
+}
+
+class _WeekDay {
+  final String day, label;
+  final List<String> items;
+  final bool done, isToday;
+  const _WeekDay(
+    this.day,
+    this.label,
+    this.items, {
+    this.isToday = false,
+  });
+}
+
+class _PlanSection {
+  final String title;
+  final Color Function(AppThemeTokens) color;
+  final List<String> items;
+  const _PlanSection(this.title, this.color, this.items);
+}
+
+const _intentConfig = {
+  'style': _IntentConfig(
+    suggestions: [
+      'What should I wear today?',
+      'Build a rooftop party outfit',
+      'Show trending casual looks',
+    ],
+    brandSub: 'Your AI Stylist',
+    responseTags: ['Outfit Builder', 'Style Tips', 'Trending Now'],
+  ),
+  'organize': _IntentConfig(
+    suggestions: [
+      "Today's meals",
+      'My medicines',
+      'Pending bills',
+      "Today's workout",
+      'Upcoming events',
+      "Today's events",
+      'Morning skincare',
+      'My life goals',
+    ],
+    brandSub: 'Your AI Organiser',
+    responseTags: [],
+  ),
+  'prepare': _IntentConfig(
+    suggestions: [
+      'Plan a 3-day Goa trip',
+      'Pack for business travel',
+      'Create a wedding checklist',
+    ],
+    brandSub: 'Your AI Planner',
+    responseTags: ['Trip Plans', 'Checklists', 'Pack Lists'],
+  ),
+  'chat': _IntentConfig(
+    suggestions: [
+      'Help me plan my day',
+      'Suggest something for tonight',
+      'What should I focus on?',
+    ],
+    brandSub: 'Always here for you',
+    responseTags: ['Daily Plan', 'Tonight', 'Focus Mode'],
+  ),
+};
+
+const _intentPlaceholder = {
+  'chat': 'Ask AHVI anything…',
+  'style': 'Describe your vibe or occasion…',
+  'organize': 'What would you like to organize?',
+  'prepare': 'What are you planning for?',
+};
+
+class _GradientText extends StatelessWidget {
+  final String text;
+  final double fontSize;
+  final FontWeight fontWeight;
+
+  const _GradientText(
+    this.text, {
+    required this.fontSize,
+    required this.fontWeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return ShaderMask(
+      shaderCallback: (bounds) => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [t.accent.primary, t.accent.tertiary],
+      ).createShader(bounds),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: t.textPrimary,
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          letterSpacing: -0.56,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+}
+
+class _EntryFadeSlide extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  final Curve curve;
+  final double dy;
+  final Duration delay;
+
+  const _EntryFadeSlide({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  State<_EntryFadeSlide> createState() => _EntryFadeSlideState();
+}
+
+class _EntryFadeSlideState extends State<_EntryFadeSlide> {
+  bool _show = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(widget.delay, () {
+      if (mounted) setState(() => _show = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double h = constraints.biggest.height;
+        if (h == 0 || h == double.infinity) {
+          h = MediaQuery.of(context).size.height;
+        }
+
+        final frac = widget.dy / h;
+        return AnimatedOpacity(
+          opacity: _show ? 1.0 : 0.0,
+          duration: widget.duration,
+          curve: widget.curve,
+          child: AnimatedSlide(
+            offset: _show ? Offset.zero : Offset(0, frac),
+            duration: widget.duration,
+            curve: widget.curve,
+            child: widget.child,
+          ),
+        );
+      },
+    );
+  }
+}
+
+const _cardTapDuration = Duration(milliseconds: 200);
+const _cardTapCurve = Cubic(0.34, 1.56, 0.64, 1.0);
+
+class _CardPressable extends StatefulWidget {
+  final Widget Function(bool isHovered) builder;
+  final VoidCallback? onTap;
+  final double pressedScale;
+  final Offset pressedOffset;
+
+  const _CardPressable({
+    required this.builder,
+    this.onTap,
+  });
+
+  @override
+  State<_CardPressable> createState() => _CardPressableState();
+}
+
+class _CardPressableState extends State<_CardPressable> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() {
+        _hovered = false;
+        _pressed = false;
+      }),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedSlide(
+          offset: _pressed ? widget.pressedOffset : Offset.zero,
+          duration: _cardTapDuration,
+          curve: _cardTapCurve,
+          child: AnimatedScale(
+            scale: _pressed ? widget.pressedScale : 1.0,
+            duration: _cardTapDuration,
+            curve: _cardTapCurve,
+            child: widget.builder(_hovered),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrepareQuickChip extends StatefulWidget {
+  final String label;
+  final VoidCallback onSend;
+  final Color accent;
+  final Color accentSecondary;
+  final Color panel;
+  final Color border;
+  final Color activeText;
+  final Color textMuted;
+
+  const _PrepareQuickChip({
+    required this.label,
+    required this.onSend,
+    required this.accent,
+    required this.accentSecondary,
+    required this.panel,
+    required this.border,
+    required this.activeText,
+    required this.textMuted,
+  });
+
+  @override
+  State<_PrepareQuickChip> createState() => _PrepareQuickChipState();
+}
+
+class _PrepareQuickChipState extends State<_PrepareQuickChip> {
+  bool _active = false;
+  bool _hovered = false;
+
+  void _activateAndSend() {
+    setState(() => _active = true);
+    widget.onSend();
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        setState(() => _active = false);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hovered = _hovered && !_active;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: _activateAndSend,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: _active
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [widget.accent, widget.accentSecondary],
+                  )
+                : null,
+            color: _active
+                ? null
+                : hovered
+                ? widget.accent.withValues(alpha: 0.15)
+                : widget.panel,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: _active
+                  ? Colors.transparent
+                  : hovered
+                  ? widget.accent.withValues(alpha: 0.5)
+                  : widget.border,
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            widget.label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: _active
+                  ? widget.activeText
+                  : hovered
+                  ? widget.accent
+                  : widget.textMuted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AnimatedPressable extends StatefulWidget {
+  final Widget? child;
+  final Widget Function(bool isHovered, bool isPressed)? builder;
+  final VoidCallback? onTap;
+  final double liftY;
+  final double scaleHover;
+  final double scalePressed;
+
+  const _AnimatedPressable({
+    this.child,
+    this.builder,
+    this.onTap,
+    this.liftY = 0.0,
+    this.scaleHover = 1.0,
+    this.scalePressed = 0.97,
+  }) : assert(child != null || builder != null);
+
+  @override
+  State<_AnimatedPressable> createState() => _AnimatedPressableState();
+}
+
+class _AnimatedPressableState extends State<_AnimatedPressable> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    double scale = 1.0;
+    double dy = 0.0;
+    if (_isPressed) {
+      scale = widget.scalePressed;
+    } else if (_isHovered) {
+      scale = widget.scaleHover;
+      dy = -widget.liftY;
+    }
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() {
+        _isHovered = false;
+        _isPressed = false;
+      }),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: _isPressed
+              ? const Duration(milliseconds: 80)
+              : const Duration(milliseconds: 340),
+          curve: _isPressed
+              ? const Cubic(0.4, 0.0, 1.0, 1.0)
+              : const Cubic(0.34, 1.40, 0.64, 1.0),
+          transform: Matrix4.translationValues(0.0, _isPressed ? 0.0 : dy, 0.0)
+            ..multiply(Matrix4.diagonal3Values(scale, scale, 1.0)),
+          transformAlignment: Alignment.center,
+          child: widget.builder != null
+              ? widget.builder!(_isHovered, _isPressed)
+              : widget.child!,
+        ),
+      ),
+    );
+  }
+}
