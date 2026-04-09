@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/diet_page.dart' as diet;
@@ -147,7 +148,7 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: 'Diet & ',
+                  text: '${AppLocalizations.t(context, 'diet_and')} ',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 17,
@@ -157,7 +158,7 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
                   ),
                 ),
                 TextSpan(
-                  text: 'Fitness',
+                  text: AppLocalizations.t(context, 'fitness'),
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 17,
@@ -214,9 +215,9 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
           fontWeight: FontWeight.w500,
           fontSize: 13,
         ),
-        tabs: const [
-          Tab(text: 'Diet'),
-          Tab(text: 'Fitness'),
+        tabs: [
+          Tab(text: AppLocalizations.t(context, 'diet')),
+          Tab(text: AppLocalizations.t(context, 'fitness')),
         ],
       ),
     );

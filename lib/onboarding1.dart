@@ -12,6 +12,24 @@ void main() {
   ));
 }
 
+// ── Body shape image constants ──────────────────────────────────────────────
+const Map<String, List<Map<String, String>>> kBodyShapes = {
+  'women': [
+    {'name': 'Hourglass',  'img': 'assets/body_shapes/women_hourglass.jpeg'},
+    {'name': 'Pear',       'img': 'assets/body_shapes/women_pear.jpeg'},
+    {'name': 'Apple',      'img': 'assets/body_shapes/women_apple.jpeg'},
+    {'name': 'Rectangle',  'img': 'assets/body_shapes/women_rectangle.jpeg'},
+    {'name': 'Inverted',   'img': 'assets/body_shapes/women_inverted.jpeg'},
+  ],
+  'men': [
+    {'name': 'Rectangle',  'img': 'assets/body_shapes/men_rectangle.jpeg'},
+    {'name': 'Triangle',   'img': 'assets/body_shapes/men_traingle.jpeg'},
+    {'name': 'Trapezoid',  'img': 'assets/body_shapes/men_trapezoid.jpeg'},
+    {'name': 'Oval',       'img': 'assets/body_shapes/men_oval.jpeg'},
+    {'name': 'Inverted',   'img': 'assets/body_shapes/men_inverted.jpeg'},
+  ],
+};
+
 class Screen1 extends StatefulWidget {
   const Screen1({super.key});
 
@@ -22,7 +40,7 @@ class Screen1 extends StatefulWidget {
 // [ADDED B01, B02, B05] TickerProviderStateMixin supports multiple AnimationControllers
 class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   int _selectedTab = 0;
-  int _selectedGender = 1;
+  int _selectedGender = -1; // no default — user must select
 
   // ── [ADDED B06] Press states for pills and button ──
   final List<bool> _pillPressed = [false, false, false];
@@ -158,7 +176,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   // ── [ADDED B05] Gender pill spring bounce AnimationController ──
   late AnimationController _pillBounceController;
   late Animation<double> _pillBounceScale;
-  int _lastTappedGender = 1; // tracks which pill to animate
+  int _lastTappedGender = -1;
 
   static const Color bg = Color(0xFF08111F);
 
@@ -308,7 +326,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       return;
     }
     final genders = ['Male', 'Female', 'Others'];
-    final gender = genders[_selectedGender.clamp(0, genders.length - 1)];
+    final gender = _selectedGender >= 0 ? genders[_selectedGender.clamp(0, genders.length - 1)] : '';
     final dob = '${_selectedDay!} ${_selectedMonth!} ${_selectedYear!}';
     context.read<ProfileController>().updateBasics(
       name: _nameCtrl.text.trim(),
@@ -1229,11 +1247,16 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                   } else {
                     _shopPrefs.add(label);
                   }
-                  // Auto-switch body gender
-                  if (label == 'Women' && !isActive) {
+                  // Determine body gender based on current selection
+                  final hasWomen = _shopPrefs.contains('Women');
+                  final hasMen = _shopPrefs.contains('Men');
+                  if (hasWomen && hasMen) {
+                    _bodyGender = 'both';
+                    _selectedBodyShape = kBodyShapes['women']!.first['name']!;
+                  } else if (hasWomen) {
                     _bodyGender = 'women';
                     _selectedBodyShape = kBodyShapes['women']!.first['name']!;
-                  } else if (label == 'Men' && !isActive) {
+                  } else if (hasMen) {
                     _bodyGender = 'men';
                     _selectedBodyShape = kBodyShapes['men']!.first['name']!;
                   }
@@ -1310,6 +1333,69 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
 
   // ── Body Shape Field ──
   Widget _buildBodyShapeField() {
+    if (_bodyGender == 'both') {
+      // Show women shapes section + men shapes section
+      final womenShapes = kBodyShapes['women']!;
+      final menShapes = kBodyShapes['men']!;
+      return Padding(
+        padding: const EdgeInsets.only(top: 20, bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'BODY SHAPE',
+              style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w600,
+                color: muted, letterSpacing: 0.07 * 11, fontFamily: 'DM Sans',
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Women section label
+            const Text(
+              'Women',
+              style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600,
+                color: accent, letterSpacing: 0.04 * 12, fontFamily: 'DM Sans',
+              ),
+            ),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10, mainAxisSpacing: 10,
+              childAspectRatio: 0.65,
+              children: womenShapes.map((shape) {
+                final isActive = _selectedBodyShape == shape['name'];
+                return _buildBodyShapeCard(shape, isActive);
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            // Men section label
+            const Text(
+              'Men',
+              style: TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w600,
+                color: accent2, letterSpacing: 0.04 * 12, fontFamily: 'DM Sans',
+              ),
+            ),
+            const SizedBox(height: 8),
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10, mainAxisSpacing: 10,
+              childAspectRatio: 0.65,
+              children: menShapes.map((shape) {
+                final isActive = _selectedBodyShape == shape['name'];
+                return _buildBodyShapeCard(shape, isActive);
+              }).toList(),
+            ),
+          ],
+        ),
+      );
+    }
+
     final shapes = kBodyShapes[_bodyGender] ?? kBodyShapes['women']!;
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 8),
@@ -1332,56 +1418,56 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             childAspectRatio: 0.65,
             children: shapes.map((shape) {
               final isActive = _selectedBodyShape == shape['name'];
-              return GestureDetector(
-                onTap: () => setState(() => _selectedBodyShape = shape['name']!),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isActive ? accent : cardBorder,
-                      width: isActive ? 2 : 1,
-                    ),
-                    color: isActive
-                        ? const Color(0x226B91FF)
-                        : panel,
-                  ),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(13)),
-                          child: Image.asset(
-                            shape['img']!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (_, _, _) =>
-                                const Icon(Icons.person, color: muted, size: 36),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Text(
-                          shape['name']!,
-                          style: TextStyle(
-                            color: isActive ? accent : muted,
-                            fontSize: 11,
-                            fontWeight: isActive
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            fontFamily: 'DM Sans',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return _buildBodyShapeCard(shape, isActive);
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBodyShapeCard(Map<String, String> shape, bool isActive) {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedBodyShape = shape['name']!),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive ? accent : cardBorder,
+            width: isActive ? 2 : 1,
+          ),
+          color: isActive ? const Color(0x226B91FF) : panel,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(13)),
+                child: Image.asset(
+                  shape['img']!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (_, _, _) =>
+                      const Icon(Icons.person, color: muted, size: 36),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                shape['name']!,
+                style: TextStyle(
+                  color: isActive ? accent : muted,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  fontFamily: 'DM Sans',
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

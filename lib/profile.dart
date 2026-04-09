@@ -3,12 +3,15 @@
 // Imported by: main.dart, home.dart, onboarding1.dart, onboarding2.dart, onboarding3.dart
 
 import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/theme/profile_theme.dart';
+import 'package:geolocator/geolocator.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THEME CONFIG
@@ -65,6 +68,7 @@ class ProfileState {
   AppTheme theme;
   String lang;
   String? avatarPath;
+  String locationLabel;
 
   ProfileState({
     this.name = 'New User',
@@ -81,6 +85,7 @@ class ProfileState {
     this.theme = AppTheme.coolBlue,
     this.lang = 'English',
     this.avatarPath,
+    this.locationLabel = 'Not set',
   }) : styles = styles ?? {'Casual', 'Minimalist'},
        shopPrefs = shopPrefs ?? {};
 
@@ -100,6 +105,7 @@ class ProfileState {
     String? lang,
     String? avatarPath,
     bool clearAvatar = false,
+    String? locationLabel,
   }) {
     return ProfileState(
       name: name ?? this.name,
@@ -116,6 +122,7 @@ class ProfileState {
       theme: theme ?? this.theme,
       lang: lang ?? this.lang,
       avatarPath: clearAvatar ? null : (avatarPath ?? this.avatarPath),
+      locationLabel: locationLabel ?? this.locationLabel,
     );
   }
 }
@@ -125,9 +132,13 @@ class ProfileState {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const List<String> kLanguages = [
-  'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'French', 'Spanish',
-  'German', 'Arabic', 'Japanese',
+  'English',   // en.json ✅
+  'Telugu',    // te.json ✅
+  'Tamil',     // ta.json ✅
+  'Kannada',   // kn.json ✅
+  'Malayalam', // ml.json ✅
+  'Bengali',   // bn.json ✅
+  'Marathi',   // mr.json ✅
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -759,6 +770,16 @@ class ProfileController extends ChangeNotifier {
 
   ProfileState get state => _state;
 
+  void update(ProfileState newState) {
+    _state = newState;
+    notifyListeners();
+  }
+
+  void setLanguage(String newLang) {
+    _state = _state.copyWith(lang: newLang);
+    notifyListeners();
+  }
+
   /// Called by onboarding1.dart
   void updateBasics({
     String? name,
@@ -888,8 +909,8 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStateMixin {
   bool _showEdit = false;
 
-  ProfileState get s => widget.state;
-  ThemeColors get c => widget.colors;
+  ProfileState get s => context.read<ProfileController>().state;
+  ThemeColors get c => themeMap[s.theme]!;
 
   Color get _bg => s.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8);
   Color get _bg2 => s.isDark ? const Color(0xFF13141C) : const Color(0xFFECECF4);
@@ -915,7 +936,10 @@ class _ProfilePageState extends State<ProfilePage> with SingleTickerProviderStat
     );
   }
 
-  void _update(ProfileState newState) => widget.onStateChange(newState);
+  void _update(ProfileState newState) {
+    widget.onStateChange(newState);
+    setState(() {}); // force rebuild so language/theme changes reflect immediately
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1073,7 +1097,7 @@ class _ProfileView extends StatelessWidget {
                     ),
                     _ListItem(
                       icon: '📍', iconAccent: true, label: t.location,
-                      meta: 'Mumbai, IN', colors: colors, card: card,
+                      meta: state.locationLabel, colors: colors, card: card,
                       cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
                       onTap: () => _showLocationModal(context, t),
                     ),
@@ -1197,7 +1221,7 @@ class _ProfileView extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _LanguageSheet(
+      builder: (modalContext) => _LanguageSheet(
         current: state.lang,
         bg2: bg2,
         cardBorder: cardBorder,
@@ -1207,9 +1231,10 @@ class _ProfileView extends StatelessWidget {
         selectLanguageLabel: t.selectLanguage,
         cancelLabel: t.cancel,
         onSelect: (lang) {
-          Navigator.pop(context);
-          onStateChange(state.copyWith(lang: lang));
-          onToast('${t.languageSetTo} $lang');
+          Navigator.pop(modalContext);
+          final newState = state.copyWith(lang: lang);
+          onStateChange(newState);
+          onToast('${AppStrings.of(lang).languageSetTo} $lang');
         },
       ),
     );
@@ -1256,13 +1281,85 @@ class _ProfileView extends StatelessWidget {
         cancelLabel: t.notNow,
         bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
         panel: panel, danger: danger, accentColor: colors.accent1,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(context);
-          onToast(t.locationEnabled);
+          await _fetchAndUpdateLocation(context, t);
         },
         onCancel: () => Navigator.pop(context),
       ),
     );
+  }
+
+  Future<void> _fetchAndUpdateLocation(BuildContext context, AppStrings t) async {
+    try {
+      // Permission check
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          onToast('Location permission denied');
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        onToast('Location permission permanently denied. Enable in settings.');
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      // Get current position
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+
+      // Reverse geocode using Nominatim (OpenStreetMap) — no package needed
+      String label = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+      try {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse'
+          '?lat=${position.latitude}&lon=${position.longitude}'
+          '&format=json&addressdetails=1',
+        );
+        final response = await http.get(uri, headers: {
+          'User-Agent': 'AhviApp/1.0',
+          'Accept-Language': 'en',
+        }).timeout(const Duration(seconds: 8));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final address = data['address'] as Map<String, dynamic>? ?? {};
+
+          // Pick best available name, most specific first
+          final city     = (address['city']         ?? '').toString().trim();
+          final town     = (address['town']          ?? '').toString().trim();
+          final village  = (address['village']       ?? '').toString().trim();
+          final suburb   = (address['suburb']        ?? '').toString().trim();
+          final district = (address['district']      ?? '').toString().trim();
+          final county   = (address['county']        ?? '').toString().trim();
+          final state    = (address['state']         ?? '').toString().trim();
+          final country  = (address['country_code']  ?? '').toString().toUpperCase().trim();
+
+          final place = city.isNotEmpty    ? city
+              : town.isNotEmpty            ? town
+              : village.isNotEmpty         ? village
+              : suburb.isNotEmpty          ? suburb
+              : district.isNotEmpty        ? district
+              : county.isNotEmpty          ? county
+              : state;
+
+          if (place.isNotEmpty) {
+            label = country.isNotEmpty ? '$place, $country' : place;
+          }
+        }
+      } catch (geocodeError) {
+        debugPrint('Geocoding error: $geocodeError');
+      }
+
+      onStateChange(state.copyWith(locationLabel: label));
+      onToast(t.locationEnabled);
+    } catch (e) {
+      onToast('Could not get location: ${e.toString()}');
+    }
   }
 
   void _showDeleteAccountModal(BuildContext context, AppStrings t) {
@@ -1333,7 +1430,7 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   String _bodyGender = 'women'; // tracks which gender tab is selected in Body Shape
 
   ThemeColors get c => widget.colors;
-  AppStrings get _t => AppStrings.of(widget.state.lang);
+  AppStrings get _t => AppStrings.of(_draft.lang);
   Color get _bg => widget.bg;
   Color get _panel => widget.panel;
   Color get _card => widget.card;

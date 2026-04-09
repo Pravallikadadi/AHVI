@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
 // ── Convenience function ───────────────────────────────────────────────────
@@ -113,7 +114,7 @@ class AhviLensSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'AHVI Lens',
+                      AppLocalizations.t(context, 'lens_title'),
                       style: TextStyle(
                         color: textHeading,
                         fontSize: 16,
@@ -179,7 +180,7 @@ class AhviLensSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Visual AI Search',
+                          AppLocalizations.t(context, 'lens_visual_ai_search'),
                           style: TextStyle(
                             color: textHeading,
                             fontSize: 14,
@@ -188,7 +189,7 @@ class AhviLensSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Point at any item to find, save, or get styling advice.',
+                          AppLocalizations.t(context, 'lens_visual_ai_desc'),
                           style: TextStyle(
                             color: textMuted,
                             fontSize: 11.5,
@@ -205,8 +206,8 @@ class AhviLensSheet extends StatelessWidget {
           // Find Similar
           AhviLensOptionTile(
             icon: Icons.search,
-            name: 'Find Similar',
-            desc: 'Discover similar items with shopping links',
+            name: AppLocalizations.t(context, 'lens_find_similar'),
+            desc: AppLocalizations.t(context, 'lens_find_similar_desc'),
             color: accent,
             textHeading: textHeading,
             textMuted: textMuted,
@@ -220,8 +221,8 @@ class AhviLensSheet extends StatelessWidget {
           // Add to Wardrobe
           AhviLensOptionTile(
             icon: Icons.add_photo_alternate_outlined,
-            name: 'Add to Wardrobe',
-            desc: 'Save to your collection',
+            name: AppLocalizations.t(context, 'lens_add_wardrobe'),
+            desc: AppLocalizations.t(context, 'lens_add_wardrobe_desc'),
             color: accentSecondary,
             textHeading: textHeading,
             textMuted: textMuted,

@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
 void main() {
@@ -11,10 +11,10 @@ class ScheduleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Schedule / Calendar',
+    return MaterialApp(
+      title: AppLocalizations.t(context, 'boards_schedule_calendar'),
       debugShowCheckedModeBanner: false,
-      home: CalendarShell(),
+      home: const CalendarShell(),
     );
   }
 }
@@ -148,7 +148,7 @@ class _CalendarShellState extends State<CalendarShell> {
                               outfit: outfit,
                               colorTheme: ['orange', 'blue', 'pink'][DateTime.now().millisecond % 3], // Random theme
                             ));
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Plan saved to calendar!', style: TextStyle(color: context.themeTokens.textPrimary, fontWeight: FontWeight.w600)), backgroundColor: context.themeTokens.backgroundSecondary, duration: const Duration(seconds: 2)));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.t(context, 'calendar_plan_saved'), style: TextStyle(color: context.themeTokens.textPrimary, fontWeight: FontWeight.w600)), backgroundColor: context.themeTokens.backgroundSecondary, duration: const Duration(seconds: 2)));
                           },
                         )
                       : MainCalendarView(
@@ -235,17 +235,17 @@ class _BackgroundSceneState extends State<BackgroundScene> with SingleTickerProv
             Positioned(
               top: -100 + (_ctrl.value * 40),
               left: -140 + (_ctrl.value * 60),
-              child: _buildOrb(480, theme.accent.primary.withOpacity(0.15)),
+              child: _buildOrb(480, theme.accent.primary.withValues(alpha: 0.15)),
             ),
             Positioned(
               top: 260 + (_ctrl.value * -30),
               right: -100 + (_ctrl.value * 40),
-              child: _buildOrb(360, theme.accent.secondary.withOpacity(0.15)),
+              child: _buildOrb(360, theme.accent.secondary.withValues(alpha: 0.15)),
             ),
             Positioned(
               bottom: 60 + (_ctrl.value * 50),
               left: 10 + (_ctrl.value * -30),
-              child: _buildOrb(300, theme.accent.tertiary.withOpacity(0.15)),
+              child: _buildOrb(300, theme.accent.tertiary.withValues(alpha: 0.15)),
             ),
             Positioned.fill(
               child: BackdropFilter(
@@ -260,16 +260,6 @@ class _BackgroundSceneState extends State<BackgroundScene> with SingleTickerProv
     );
   }
 
-  Widget _buildOrb(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
-    );
-  }
 }
 
 // ==========================================
@@ -329,7 +319,7 @@ class MainCalendarView extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: theme.card,
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: theme.accent.primary.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 2))],
+                  boxShadow: [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.12), blurRadius: 10, offset: const Offset(0, 2))],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 6.0),
@@ -341,16 +331,16 @@ class MainCalendarView extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Schedule / Calendar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+                  Text(AppLocalizations.t(context, 'boards_schedule_calendar'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
                   const SizedBox(height: 3),
                   Row(
                     children: [
                       Container(
                         width: 8, height: 8,
-                        decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: theme.accent.tertiary.withOpacity(0.75), blurRadius: 7)]),
+                        decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: theme.accent.tertiary.withValues(alpha: 0.75), blurRadius: 7)]),
                       ),
                       const SizedBox(width: 6),
-                      Text('${getAllPlansCount()} outfit plans', style: TextStyle(fontSize: 12, color: theme.mutedText)),
+                      Text('${getAllPlansCount()} ${AppLocalizations.t(context, 'calendar_outfit_plans')}', style: TextStyle(fontSize: 12, color: theme.mutedText)),
                     ],
                   ),
                 ],
@@ -365,7 +355,7 @@ class MainCalendarView extends StatelessWidget {
           decoration: BoxDecoration(
             color: theme.card,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: theme.textPrimary.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.08), blurRadius: 24, offset: const Offset(0, 4))],
           ),
           child: Column(
             children: [
@@ -419,9 +409,9 @@ class MainCalendarView extends StatelessWidget {
                             width: 52,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
-                              color: isPast && !isSelected ? theme.card.withOpacity(0.55) : theme.card,
+                              color: isPast && !isSelected ? theme.card.withValues(alpha: 0.55) : theme.card,
                               border: Border.all(color: isSelected ? theme.accent.primary : Colors.transparent, width: isSelected ? 1.5 : 1),
-                              boxShadow: isSelected ? [BoxShadow(color: theme.accent.primary.withOpacity(0.6), blurRadius: 16, spreadRadius: 2)] : [],
+                              boxShadow: isSelected ? [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.6), blurRadius: 16, spreadRadius: 2)] : [],
                             ),
                             child: Stack(
                               alignment: Alignment.center,
@@ -433,9 +423,9 @@ class MainCalendarView extends StatelessWidget {
                                 Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(_weekdays[date.weekday % 7], style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isSelected ? theme.accent.primary : (isPast ? theme.mutedText.withOpacity(0.5) : theme.mutedText))),
+                                    Text(_weekdays[date.weekday % 7], style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isSelected ? theme.accent.primary : (isPast ? theme.mutedText.withValues(alpha: 0.5) : theme.mutedText))),
                                     const SizedBox(height: 2),
-                                    Text('$day', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: isPast && !isSelected ? theme.textPrimary.withOpacity(0.35) : theme.textPrimary)),
+                                    Text('$day', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: isPast && !isSelected ? theme.textPrimary.withValues(alpha: 0.35) : theme.textPrimary)),
                                   ],
                                 ),
                               ],
@@ -448,7 +438,7 @@ class MainCalendarView extends StatelessWidget {
                 },
               ),
 
-              Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 14), color: theme.textPrimary.withOpacity(0.06)),
+              Container(height: 1, margin: const EdgeInsets.symmetric(horizontal: 14), color: theme.textPrimary.withValues(alpha: 0.06)),
 
               // Plans Section
               Padding(
@@ -456,26 +446,26 @@ class MainCalendarView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(selectedDateKey == todayKey ? "Today's Plans" : "${_months[selectedDate.month - 1]} ${selectedDate.day} Plans", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.mutedText, letterSpacing: 1.2)),
+                    Text(selectedDateKey == todayKey ? AppLocalizations.t(context, 'calendar_todays_plans') : "${_months[selectedDate.month - 1]} ${selectedDate.day} ${AppLocalizations.t(context, 'calendar_plans')}", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.mutedText, letterSpacing: 1.2)),
                     const SizedBox(height: 10),
                     
                     if (plans.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text("Nothing planned 🌿\nTap 'Add a Plan' below", textAlign: TextAlign.center, style: TextStyle(color: theme.mutedText, fontSize: 13, height: 1.5)),
+                        child: Text(AppLocalizations.t(context, 'calendar_no_plans'), textAlign: TextAlign.center, style: TextStyle(color: theme.mutedText, fontSize: 13, height: 1.5)),
                       )
                     else 
                       ...List.generate(plans.length, (idx) {
                         final plan = plans[idx];
                         Color sideColor = theme.accent.primary;
-                        List<Color> bgGrad = [theme.accent.primary.withOpacity(0.13), theme.accent.primary.withOpacity(0.07)];
+                        List<Color> bgGrad = [theme.accent.primary.withValues(alpha: 0.13), theme.accent.primary.withValues(alpha: 0.07)];
                         
                         if(plan.colorTheme == 'blue') {
                           sideColor = theme.accent.secondary;
-                          bgGrad = [theme.accent.secondary.withOpacity(0.12), theme.accent.secondary.withOpacity(0.06)];
+                          bgGrad = [theme.accent.secondary.withValues(alpha: 0.12), theme.accent.secondary.withValues(alpha: 0.06)];
                         } else if (plan.colorTheme == 'pink') {
                           sideColor = theme.accent.tertiary;
-                          bgGrad = [theme.accent.tertiary.withOpacity(0.12), theme.accent.tertiary.withOpacity(0.06)];
+                          bgGrad = [theme.accent.tertiary.withValues(alpha: 0.12), theme.accent.tertiary.withValues(alpha: 0.06)];
                         }
 
                         return Container(
@@ -484,7 +474,7 @@ class MainCalendarView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                             gradient: LinearGradient(colors: bgGrad, begin: Alignment.topLeft, end: Alignment.bottomRight),
                             border: Border(left: BorderSide(color: sideColor, width: 4)),
-                            boxShadow: [BoxShadow(color: sideColor.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))],
+                            boxShadow: [BoxShadow(color: sideColor.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2))],
                           ),
                           child: Stack(
                             children: [
@@ -497,10 +487,10 @@ class MainCalendarView extends StatelessWidget {
                                     const SizedBox(height: 2),
                                     Text(plan.occasion, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.textPrimary)),
                                     const SizedBox(height: 2),
-                                    Text(plan.time.isEmpty ? 'Planned' : plan.time, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.mutedText)),
+                                    Text(plan.time.isEmpty ? AppLocalizations.t(context, 'calendar_planned') : plan.time, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.mutedText)),
                                     if (plan.outfit.isNotEmpty) ...[
                                       const SizedBox(height: 2),
-                                      Text(plan.outfit, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: theme.textPrimary.withOpacity(0.8))),
+                                      Text(plan.outfit, style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: theme.textPrimary.withValues(alpha: 0.8))),
                                     ]
                                   ],
                                 ),
@@ -536,14 +526,14 @@ class MainCalendarView extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(colors: [theme.accent.primary, theme.accent.secondary], begin: Alignment.topLeft, end: Alignment.bottomRight),
                           borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(color: theme.accent.primary.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 4))],
+                          boxShadow: [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.35), blurRadius: 16, offset: const Offset(0, 4))],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_circle_outline, size: 16, color: Colors.white),
-                            SizedBox(width: 8),
-                            Text('Add a Plan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                            const Icon(Icons.add_circle_outline, size: 16, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(AppLocalizations.t(context, 'calendar_add_plan'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
                           ],
                         ),
                       ),
@@ -601,30 +591,17 @@ class AddPlanModal extends StatefulWidget {
 
 class _AddPlanModalState extends State<AddPlanModal> {
   final List<Map<String, dynamic>> _buttons = [
-    {'name': 'Gym', 'icon': Icons.fitness_center},
-    {'name': 'Office', 'icon': Icons.work_outline},
-    {'name': 'Party', 'icon': Icons.celebration},
-    {'name': 'Shopping', 'icon': Icons.shopping_bag_outlined},
-    {'name': 'Study', 'icon': Icons.menu_book},
-    {'name': 'Travel', 'icon': Icons.flight_takeoff},
-    {'name': 'Event', 'icon': Icons.event},
-    {'name': 'Date Night', 'icon': Icons.favorite_border},
+    {'name': 'Gym', 'icon': Icons.fitness_center, 'key': 'calendar_occasion_gym'},
+    {'name': 'Office', 'icon': Icons.work_outline, 'key': 'calendar_occasion_office'},
+    {'name': 'Party', 'icon': Icons.celebration, 'key': 'calendar_occasion_party'},
+    {'name': 'Shopping', 'icon': Icons.shopping_bag_outlined, 'key': 'calendar_occasion_shopping'},
+    {'name': 'Study', 'icon': Icons.menu_book, 'key': 'calendar_occasion_study'},
+    {'name': 'Travel', 'icon': Icons.flight_takeoff, 'key': 'calendar_occasion_travel'},
+    {'name': 'Event', 'icon': Icons.event, 'key': 'calendar_occasion_event'},
+    {'name': 'Date Night', 'icon': Icons.favorite_border, 'key': 'calendar_occasion_date_night'},
   ];
 
   final String _selectedOccasion = 'Gym';
-  final int _pickedOutfitIdx = -1;
-
-  final Map<String, List<OutfitIdea>> _outfits = {
-    'Gym': [
-      OutfitIdea(vibe: 'Cardio Day', desc: 'Leggings, Sports tank, Running shoes', tip: 'Go breathable — skip cotton.', summary: 'Leggings, sports tank & running shoes'),
-      OutfitIdea(vibe: 'Weight Training', desc: 'Gym shorts, Loose tee, Cross-trainers', tip: 'Flat soles = better grip.', summary: 'Gym shorts, loose tee & cross-trainers'),
-    ],
-    'Office': [
-      OutfitIdea(vibe: 'Formal Meeting', desc: 'Dress shirt, Dark trousers, Leather shoes', tip: 'Iron your collar the night before.', summary: 'Dress shirt, dark trousers & leather shoes'),
-      OutfitIdea(vibe: 'Regular Workday', desc: 'Chinos, Polo or blouse, Loafers', tip: 'Stick to 2–3 neutral colors.', summary: 'Chinos, polo or blouse & loafers'),
-    ]
-    // ... we can add more mock data here
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -633,7 +610,7 @@ class _AddPlanModalState extends State<AddPlanModal> {
       decoration: BoxDecoration(
         color: theme.backgroundSecondary,
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(28), topRight: Radius.circular(28)),
-        boxShadow: [BoxShadow(color: theme.textPrimary.withOpacity(0.08), blurRadius: 32, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: theme.textPrimary.withValues(alpha: 0.08), blurRadius: 32, offset: const Offset(0, -4))],
       ),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       child: Column(
@@ -648,7 +625,7 @@ class _AddPlanModalState extends State<AddPlanModal> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('New Plan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+              Text(AppLocalizations.t(context, 'calendar_new_plan'), style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: theme.textPrimary)),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
@@ -658,7 +635,7 @@ class _AddPlanModalState extends State<AddPlanModal> {
                     children: [
                       Icon(Icons.close, size: 14, color: theme.mutedText),
                       SizedBox(width: 4),
-                      Text('Close', style: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(AppLocalizations.t(context, 'calendar_close'), style: TextStyle(color: theme.mutedText, fontSize: 13, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
@@ -668,7 +645,7 @@ class _AddPlanModalState extends State<AddPlanModal> {
           const SizedBox(height: 16),
 
           // Occasions grid
-          Text('CHOOSE OCCASION', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: theme.mutedText)),
+          Text(AppLocalizations.t(context, 'calendar_choose_occasion'), style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 1.2, color: theme.mutedText)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8, runSpacing: 8,
@@ -682,16 +659,16 @@ class _AddPlanModalState extends State<AddPlanModal> {
                   width: (MediaQuery.of(context).size.width - 40 - 24) / 4,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: isSel ? theme.accent.primary.withOpacity(0.2) : theme.card,
+                    color: isSel ? theme.accent.primary.withValues(alpha: 0.2) : theme.card,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: isSel ? theme.accent.primary : theme.cardBorder),
-                    boxShadow: isSel ? [BoxShadow(color: theme.accent.primary.withOpacity(0.4), blurRadius: 12)] : [],
+                    boxShadow: isSel ? [BoxShadow(color: theme.accent.primary.withValues(alpha: 0.4), blurRadius: 12)] : [],
                   ),
                   child: Column(
                     children: [
                       Icon(b['icon'] as IconData, size: 24, color: theme.textPrimary),
                       const SizedBox(height: 4),
-                      Text(b['name']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSel ? theme.accent.primary : theme.mutedText)),
+                      Text(AppLocalizations.t(context, b['key'] as String), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSel ? theme.accent.primary : theme.mutedText)),
                     ],
                   ),
                 ),
@@ -732,10 +709,24 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
   final List<ChatMessage> _msgs = [];
   bool _isListening = false;
 
+  bool _greetingAdded = false;
+
   @override
   void initState() {
     super.initState();
-    _msgs.add(ChatMessage("Hi! I'm your style assistant for ${widget.occasion}. Ask me what to wear!", isUser: false, time: 'Now'));
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_greetingAdded) {
+      _greetingAdded = true;
+      _msgs.add(ChatMessage(
+        AppLocalizations.t(context, 'calendar_chat_greeting').replaceAll('{occasion}', widget.occasion),
+        isUser: false,
+        time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+      ));
+    }
   }
 
   // Helper to extract time
@@ -754,7 +745,7 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
     final mockOutfit = "Styling layer with ${widget.occasion} vibes.";
 
     setState(() {
-      _msgs.add(ChatMessage(userText, isUser: true, time: 'Now'));
+      _msgs.add(ChatMessage(userText, isUser: true, time: AppLocalizations.t(context, 'calendar_chat_time_now')));
       _textCtrl.clear();
       
       // Mock AI response
@@ -766,15 +757,31 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
              if (lower.contains('yes') || lower.contains('save') || lower.contains('add')) {
                 if (extractedTime.isNotEmpty) {
                   widget.onSavePlan(extractedTime, mockOutfit);
-                  _msgs.add(ChatMessage("Perfect! I've saved the ${widget.occasion} plan with a reminder at $extractedTime to your calendar.", isUser: false, time: 'Now'));
+                  _msgs.add(ChatMessage(
+                    AppLocalizations.t(context, 'calendar_chat_saved_with_time').replaceAll('{occasion}', widget.occasion).replaceAll('{time}', extractedTime),
+                    isUser: false,
+                    time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+                  ));
                 } else {
-                  _msgs.add(ChatMessage("Got it! What time should I set the reminder for?", isUser: false, time: 'Now'));
+                  _msgs.add(ChatMessage(
+                    AppLocalizations.t(context, 'calendar_chat_ask_time'),
+                    isUser: false,
+                    time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+                  ));
                 }
              } else if (extractedTime.isNotEmpty) {
                 widget.onSavePlan(extractedTime, mockOutfit);
-                _msgs.add(ChatMessage("Awesome! I've set a reminder at $extractedTime and saved the plan to your calendar.", isUser: false, time: 'Now'));
+                _msgs.add(ChatMessage(
+                  AppLocalizations.t(context, 'calendar_chat_set_reminder').replaceAll('{time}', extractedTime),
+                  isUser: false,
+                  time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+                ));
              } else {
-                _msgs.add(ChatMessage("That sounds great! Would you like me to save this outfit plan and set a reminder? What time?", isUser: false, time: 'Now'));
+                _msgs.add(ChatMessage(
+                  AppLocalizations.t(context, 'calendar_chat_suggest_save'),
+                  isUser: false,
+                  time: AppLocalizations.t(context, 'calendar_chat_time_now'),
+                ));
              }
            });
         }
@@ -785,10 +792,10 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = context.themeTokens;
-    return WillPopScope(
-      onWillPop: () async {
-        widget.onBack();
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) widget.onBack();
       },
       child: Container(
         color: theme.backgroundSecondary,
@@ -822,13 +829,13 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                       Text('${widget.occasion} Chat', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.textPrimary)),
+                       Text('${widget.occasion} ${AppLocalizations.t(context, 'calendar_chat')}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: theme.textPrimary)),
                        Container(margin: const EdgeInsets.only(top: 5, bottom: 4), width: 36, height: 2.5, decoration: BoxDecoration(color: theme.accent.primary, borderRadius: BorderRadius.circular(2))),
                        Row(
                          children: [
                            Container(width: 6, height: 6, decoration: BoxDecoration(color: theme.accent.tertiary, shape: BoxShape.circle, boxShadow: [BoxShadow(color: theme.accent.tertiary, blurRadius: 6)])),
                            const SizedBox(width: 6),
-                           Text('Ask anything about your outfit.', style: TextStyle(fontSize: 13, color: theme.mutedText))
+                           Text(AppLocalizations.t(context, 'calendar_chat_subtitle'), style: TextStyle(fontSize: 13, color: theme.mutedText))
                          ],
                        )
                     ],
@@ -901,9 +908,9 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                    scrollDirection: Axis.horizontal,
                    child: Row(
                      children: [
-                       _chip('What should I wear?', theme),
-                       _chip('Casual look', theme),
-                       _chip('Work outfit', theme),
+                       _chip(AppLocalizations.t(context, 'calendar_chip_wear'), theme),
+                       _chip(AppLocalizations.t(context, 'calendar_chip_casual'), theme),
+                       _chip(AppLocalizations.t(context, 'calendar_chip_work'), theme),
                      ],
                    ),
                  ),
@@ -922,7 +929,7 @@ class _StyleChatScreenState extends State<StyleChatScreen> {
                        Expanded(
                          child: TextField(
                            controller: _textCtrl,
-                           decoration: InputDecoration(border: InputBorder.none, hintText: 'Ask about your outfit...', hintStyle: TextStyle(color: theme.mutedText), isDense: true),
+                           decoration: InputDecoration(border: InputBorder.none, hintText: AppLocalizations.t(context, 'calendar_chat_input_hint'), hintStyle: TextStyle(color: theme.mutedText), isDense: true),
                            style: TextStyle(fontSize: 14, color: theme.textPrimary),
                            onSubmitted: (_) => _sendMsg(),
                          ),

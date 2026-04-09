@@ -4,6 +4,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/calendar.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/daily_wear.dart' as daily_wear;
@@ -13,7 +14,6 @@ import 'package:myapp/occasion.dart'; // Handles Daily Wear, Office, Party, Vaca
 // ── Specific Board Imports ──
 import 'package:myapp/everything_else.dart' as everything_else;
 import 'package:myapp/home_and_utilities.dart' as home_utils;
-import 'package:myapp/bills_page.dart' as bills;
 import 'package:myapp/skincare.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/diet_fitness.dart' as diet_fitness;
@@ -113,7 +113,7 @@ class _CalendarCardState extends State<CalendarCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Schedule / Calendar',
+                        AppLocalizations.t(context, 'boards_schedule_calendar'),
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 15,
@@ -149,38 +149,6 @@ class _CalendarCardState extends State<CalendarCard> {
   }
 }
 
-class _NavyCard extends StatelessWidget {
-  final Widget child;
-  final Color borderColor;
-
-  const _NavyCard({
-    required this.child,
-    required this.borderColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.themeTokens.card,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: context.themeTokens.cardBorder, width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: context.themeTokens.backgroundSecondary.withValues(alpha: 0.6),
-              blurRadius: 32,
-              spreadRadius: 1,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: child,
-      ),
-    );
-  }
-}
 
 
 class _GlassCard extends StatelessWidget {
@@ -402,16 +370,11 @@ class _BoardsScreenState extends State<BoardsScreen>
     );
   }
 
-  void _closeCreateBoardDialog() {
-    _createBoardFocusNode.unfocus();
-    Navigator.of(context, rootNavigator: true).maybePop();
-  }
-
   void _submitCreateBoard() {
     final trimmed = _createBoardController.text.trim();
     if (trimmed.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a board name.')),
+        SnackBar(content: Text(AppLocalizations.t(context, 'boards_please_enter'))),
       );
       return;
     }
@@ -421,7 +384,7 @@ class _BoardsScreenState extends State<BoardsScreen>
     );
     if (alreadyExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('That board already exists.')),
+        SnackBar(content: Text(AppLocalizations.t(context, 'boards_already_exists'))),
       );
       return;
     }
@@ -451,15 +414,15 @@ class _BoardsScreenState extends State<BoardsScreen>
         shadowColor: const Color(0xFFFF8F72).withValues(alpha: 0.30),
         iconBg: _panel,
         icon: Icons.celebration_rounded,
-        title: 'Party Looks',
-        subtitle: 'Evening & cocktail',
+        title: AppLocalizations.t(context, 'boards_party_looks'),
+        subtitle: AppLocalizations.t(context, 'boards_party_looks_sub'),
         onTap: () => _push(
-          const OccasionBoard(
-            occasion: 'Party',
-            title: 'Party Looks',
-            subtitle: 'Evening & cocktail',
-            emptyEmoji: '🎊',
-          ),
+          OccasionBoard(
+              occasion: 'Party',
+              titleKey: 'boards_party_looks',
+              subtitleKey: 'boards_party_looks_sub',
+              emptyEmoji: '🎊',
+            ),
         ),
       ),
       _BoardCardConfig(
@@ -471,15 +434,15 @@ class _BoardsScreenState extends State<BoardsScreen>
         shadowColor: const Color(0xFFFFC956).withValues(alpha: 0.30),
         iconBg: _panel,
         icon: Icons.business_center_rounded,
-        title: 'Office Fits',
-        subtitle: 'Work-ready looks',
+        title: AppLocalizations.t(context, 'boards_office_fits'),
+        subtitle: AppLocalizations.t(context, 'boards_office_fits_sub'),
         onTap: () => _push(
-          const OccasionBoard(
-            occasion: 'Office',
-            title: 'Office Fits',
-            subtitle: 'Work-ready looks',
-            emptyEmoji: '💼',
-          ),
+          OccasionBoard(
+              occasion: 'Office',
+              titleKey: 'boards_office_fits',
+              subtitleKey: 'boards_office_fits_sub',
+              emptyEmoji: '💼',
+            ),
         ),
       ),
       _BoardCardConfig(
@@ -491,15 +454,15 @@ class _BoardsScreenState extends State<BoardsScreen>
         shadowColor: const Color(0xFF58DCB0).withValues(alpha: 0.25),
         iconBg: _panel,
         icon: Icons.beach_access_rounded,
-        title: 'Vacation',
-        subtitle: 'Travel outfits',
+        title: AppLocalizations.t(context, 'boards_vacation'),
+        subtitle: AppLocalizations.t(context, 'boards_vacation_sub'),
         onTap: () => _push(
-          const OccasionBoard(
-            occasion: 'Vacation',
-            title: 'Vacation',
-            subtitle: 'Travel outfits',
-            emptyEmoji: '✈️',
-          ),
+          OccasionBoard(
+              occasion: 'Vacation',
+              titleKey: 'boards_vacation',
+              subtitleKey: 'boards_vacation_sub',
+              emptyEmoji: '✈️',
+            ),
         ),
       ),
       _BoardCardConfig(
@@ -511,15 +474,15 @@ class _BoardsScreenState extends State<BoardsScreen>
         shadowColor: const Color(0xFF77A8FF).withValues(alpha: 0.28),
         iconBg: _card,
         icon: Icons.auto_awesome_rounded,
-        title: 'Occasion',
-        subtitle: 'Special events',
+        title: AppLocalizations.t(context, 'boards_occasion'),
+        subtitle: AppLocalizations.t(context, 'boards_occasion_sub'),
         onTap: () => _push(
-          const OccasionBoard(
-            occasion: 'Occasion',
-            title: 'Occasion',
-            subtitle: 'Special events',
-            emptyEmoji: '✨',
-          ),
+          OccasionBoard(
+              occasion: 'Occasion',
+              titleKey: 'boards_occasion',
+              subtitleKey: 'boards_occasion_sub',
+              emptyEmoji: '✨',
+            ),
         ),
       ),
     ];
@@ -549,12 +512,12 @@ class _BoardsScreenState extends State<BoardsScreen>
         iconBg: _panel,
         icon: Icons.dashboard_customize_rounded,
         title: boardName,
-        subtitle: 'Custom board',
+        subtitle: AppLocalizations.t(context, 'boards_custom_sub'),
         onTap: () => _push(
           OccasionBoard(
             occasion: 'Custom:$boardName',
-            title: boardName,
-            subtitle: 'Custom board',
+            titleLabel: boardName,
+            subtitleLabel: AppLocalizations.t(context, 'boards_custom_sub'),
             emptyEmoji: '🧩',
           ),
         ),
@@ -796,7 +759,7 @@ class _BoardsScreenState extends State<BoardsScreen>
         Row(
           children: [
             Text(
-              'Planner',
+              AppLocalizations.t(context, 'boards_planner'),
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 38,
@@ -810,7 +773,7 @@ class _BoardsScreenState extends State<BoardsScreen>
         ),
         const SizedBox(height: _S.sm),
         Text(
-          'Your life, organised visually.',
+          AppLocalizations.t(context, 'boards_life_tagline'),
           style: TextStyle(
             fontFamily: 'Inter',
             fontSize: 14,
@@ -835,7 +798,7 @@ class _BoardsScreenState extends State<BoardsScreen>
         children: [
           Expanded(
             child: _ToggleButton(
-              label: 'Life',
+              label: AppLocalizations.t(context, 'boards_life'),
               icon: Icons.auto_awesome_rounded,
               isActive: _isLifeTab,
               activeShellColor: _text,
@@ -847,7 +810,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           ),
           Expanded(
             child: _ToggleButton(
-              label: 'Boards',
+              label: AppLocalizations.t(context, 'boards_boards'),
               icon: Icons.grid_view_rounded,
               isActive: !_isLifeTab,
               activeShellColor: _text,
@@ -907,9 +870,9 @@ class _BoardsScreenState extends State<BoardsScreen>
                     size: 32,
                     color: _cardIconColor,
                   ),
-                  title: 'Daily Wear',
+                  title: AppLocalizations.t(context, 'boards_daily_wear'),
                   titleColor: lifeContentColor,
-                  subtitle: "Today's outfits",
+                  subtitle: AppLocalizations.t(context, 'boards_daily_wear_sub'),
                   subtitleColor: lifeContentColor,
                   arrowBg: _card,
                   arrowColor: _cardIconColor,
@@ -942,9 +905,9 @@ class _BoardsScreenState extends State<BoardsScreen>
                     size: 32,
                     color: _cardIconColor,
                   ),
-                  title: 'Home / Utilities',
+                  title: AppLocalizations.t(context, 'boards_home_utilities'),
                   titleColor: lifeContentColor,
-                  subtitle: 'Bills & stuff',
+                  subtitle: AppLocalizations.t(context, 'boards_home_utilities_sub'),
                   subtitleColor: lifeContentColor,
                   arrowBg: _card,
                   arrowColor: _cardIconColor,
@@ -980,9 +943,9 @@ class _BoardsScreenState extends State<BoardsScreen>
                     size: 32,
                     color: _cardIconColor,
                   ),
-                  title: 'Skincare',
+                  title: AppLocalizations.t(context, 'boards_skincare'),
                   titleColor: lifeContentColor,
-                  subtitle: 'Morning & night routine',
+                  subtitle: AppLocalizations.t(context, 'boards_skincare_sub'),
                   subtitleColor: lifeContentColor,
                   arrowBg: _panel,
                   arrowColor: _cardIconColor,
@@ -1013,9 +976,9 @@ class _BoardsScreenState extends State<BoardsScreen>
                     size: 32,
                     color: _cardIconColor,
                   ),
-                  title: 'Diet & Fitness',
+                  title: AppLocalizations.t(context, 'boards_diet_fitness'),
                   titleColor: lifeContentColor,
-                  subtitle: 'Meals, workout & goals',
+                  subtitle: AppLocalizations.t(context, 'boards_diet_fitness_sub'),
                   subtitleColor: lifeContentColor,
                   arrowBg: _panel,
                   arrowColor: _cardIconColor,
@@ -1057,10 +1020,10 @@ class _BoardsScreenState extends State<BoardsScreen>
               size: 28,
               color: _cardIconColor,
             ),
-            title: 'Create Your Own Board',
+            title: AppLocalizations.t(context, 'boards_create_own'),
             titleColor: Colors.white,
             titleSize: 15,
-            subtitle: 'Name it and start building',
+            subtitle: AppLocalizations.t(context, 'boards_create_own_sub'),
             subtitleColor: Colors.white,
             arrowBg: _panel,
             arrowColor: _cardIconColor,
@@ -1085,7 +1048,7 @@ class _BoardsScreenState extends State<BoardsScreen>
             iconColor: _cardIconColor,
             panelColor: _panel,
             shellColor: _shell,
-            onTap: () => _push(const everything_else.Screen4()),
+            onTap: () => _push(const everything_else.EverythingElseScreen()),
           ),
         ),
       ],
@@ -1588,7 +1551,7 @@ class _EverythingElseCardState extends State<_EverythingElseCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Everything Else',
+                      AppLocalizations.t(context, 'boards_everything_else'),
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 16,
@@ -1599,7 +1562,7 @@ class _EverythingElseCardState extends State<_EverythingElseCard> {
                     ),
                     const SizedBox(height: _S.xs - 1),
                     Text(
-                      'Outfits for other events',
+                      AppLocalizations.t(context, 'boards_everything_else_sub'),
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 11.5,
@@ -1696,6 +1659,7 @@ class _StaggeredCardState extends State<_StaggeredCard>
 class _HoverPressButton extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
+  // ignore: unused_element_parameter
   final double hoverScale;
   final double pressScale;
 
@@ -1786,7 +1750,7 @@ class _CreateBoardDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Create Your Own Board',
+                AppLocalizations.t(context, 'boards_create_own'),
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 18,
@@ -1796,7 +1760,7 @@ class _CreateBoardDialog extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Name it and start building',
+                AppLocalizations.t(context, 'boards_create_own_sub'),
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontSize: 13,
@@ -1812,9 +1776,9 @@ class _CreateBoardDialog extends StatelessWidget {
                 onSubmitted: (_) => onSubmit(),
                 style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: text),
                 decoration: InputDecoration(
-                  labelText: 'Name It',
+                  labelText: AppLocalizations.t(context, 'boards_name_it'),
                   labelStyle: TextStyle(fontFamily: 'Inter', color: muted, fontSize: 13),
-                  hintText: 'Enter board name',
+                  hintText: AppLocalizations.t(context, 'boards_enter_name'),
                   hintStyle: TextStyle(fontFamily: 'Inter', color: muted),
                   filled: true,
                   fillColor: inputFill,
@@ -1839,7 +1803,7 @@ class _CreateBoardDialog extends StatelessWidget {
                   TextButton(
                     onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
                     child: Text(
-                      'Cancel',
+                      AppLocalizations.t(context, 'common_cancel'),
                       style: TextStyle(
                         fontFamily: 'Inter',
                         color: muted,
@@ -1856,9 +1820,9 @@ class _CreateBoardDialog extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
                     onPressed: onSubmit,
-                    child: const Text(
-                      'Create',
-                      style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+                    child: Text(
+                      AppLocalizations.t(context, 'common_create'),
+                      style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],

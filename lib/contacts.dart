@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
 enum _ContactSort { az, recent }
@@ -138,7 +139,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         decoration: InputDecoration(
           border: InputBorder.none,
           isDense: true,
-          hintText: 'Search name or number',
+          hintText: AppLocalizations.t(context, 'contacts_search_hint'),
           hintStyle: TextStyle(color: t.mutedText),
           prefixIcon: Icon(Icons.search_rounded, color: t.mutedText, size: 20),
           contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
@@ -153,7 +154,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         Expanded(
           child: _ActionBtn(
             icon: Icons.person_add_alt_1_rounded,
-            label: 'Add Contact',
+            label: AppLocalizations.t(context, 'contacts_add'),
             onTap: _openAddContactPage,
           ),
         ),
@@ -161,7 +162,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         Expanded(
           child: _ActionBtn(
             icon: Icons.import_contacts_rounded,
-            label: 'Import Contacts',
+            label: AppLocalizations.t(context, 'contacts_import'),
             onTap: () {},
           ),
         ),
@@ -170,12 +171,14 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildSort(AppThemeTokens t) {
-    final label = _sort == _ContactSort.az ? 'A-Z' : 'Recent';
+    final label = _sort == _ContactSort.az
+        ? AppLocalizations.t(context, 'contacts_sort_az')
+        : AppLocalizations.t(context, 'contacts_sort_recent');
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Contacts',
+          AppLocalizations.t(context, 'contacts'),
           style: TextStyle(
             color: t.textPrimary,
             fontSize: 16,
@@ -184,9 +187,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ),
         PopupMenuButton<_ContactSort>(
           onSelected: (value) => setState(() => _sort = value),
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: _ContactSort.az, child: Text('A-Z')),
-            PopupMenuItem(value: _ContactSort.recent, child: Text('Recent')),
+          itemBuilder: (context) => [
+            PopupMenuItem(value: _ContactSort.az, child: Text(AppLocalizations.t(context, 'contacts_sort_az'))),
+            PopupMenuItem(value: _ContactSort.recent, child: Text(AppLocalizations.t(context, 'contacts_sort_recent'))),
           ],
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -492,7 +495,7 @@ class _AddContactPageState extends State<_AddContactPage> {
                             style: TextStyle(color: t.textPrimary, fontSize: 13),
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              hintText: 'Search...',
+                              hintText: AppLocalizations.t(context, 'contacts_search_hint'),
                               hintStyle: TextStyle(color: t.mutedText),
                               prefixIcon: Icon(Icons.search_rounded, color: t.mutedText, size: 18),
                               isDense: true,
@@ -599,14 +602,14 @@ class _AddContactPageState extends State<_AddContactPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Contact saved')),
+      SnackBar(content: Text(AppLocalizations.t(context, 'contacts_saved_snackbar'))),
     );
     Navigator.of(context).pop();
   }
 
-  String _birthdayText() {
+  String _birthdayText(BuildContext context) {
     final b = _birthday;
-    if (b == null) return 'Select birthday';
+    if (b == null) return AppLocalizations.t(context, 'contacts_select_birthday');
     final month = b.month.toString().padLeft(2, '0');
     final day = b.day.toString().padLeft(2, '0');
     return '${b.year}-$month-$day';
@@ -624,7 +627,7 @@ class _AddContactPageState extends State<_AddContactPage> {
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: t.textPrimary),
         title: Text(
-          'Create Contact',
+          AppLocalizations.t(context, 'contacts_create_contact'),
           style: TextStyle(
             color: t.textPrimary,
             fontWeight: FontWeight.w700,
@@ -642,12 +645,12 @@ class _AddContactPageState extends State<_AddContactPage> {
               children: [
                 _InputField(
                   controller: _firstNameCtrl,
-                  label: 'First name',
-                  hint: 'Enter first name',
+                  label: 'contacts_first_name',
+                  hint: 'contacts_first_name_hint',
                   keyboardType: TextInputType.name,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'First name is required';
+                      return AppLocalizations.t(context, 'contacts_first_name_required');
                     }
                     return null;
                   },
@@ -655,13 +658,13 @@ class _AddContactPageState extends State<_AddContactPage> {
                 const SizedBox(height: 12),
                 _InputField(
                   controller: _surnameCtrl,
-                  label: 'Surname',
-                  hint: 'Enter surname',
+                  label: 'contacts_surname',
+                  hint: 'contacts_surname_hint',
                   keyboardType: TextInputType.name,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Phone number',
+                  AppLocalizations.t(context, 'contacts_phone_number'),
                   style: TextStyle(
                     color: t.textPrimary,
                     fontSize: 13,
@@ -719,11 +722,11 @@ class _AddContactPageState extends State<_AddContactPage> {
                           child: _InputField(
                             controller: _phoneCtrl,
                             label: '',
-                            hint: 'Phone number',
+                            hint: 'contacts_phone_hint',
                             keyboardType: TextInputType.phone,
                             validator: (value) {
                               if (value == null || value.trim().isEmpty) {
-                                return 'Phone number is required';
+                                return AppLocalizations.t(context, 'contacts_phone_required');
                               }
                               return null;
                             },
@@ -737,13 +740,13 @@ class _AddContactPageState extends State<_AddContactPage> {
                 const SizedBox(height: 12),
                 _InputField(
                   controller: _emailCtrl,
-                  label: 'Email',
-                  hint: 'Enter email',
+                  label: 'contacts_email',
+                  hint: 'contacts_email_hint',
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Birthday',
+                  AppLocalizations.t(context, 'contacts_birthday'),
                   style: TextStyle(
                     color: t.textPrimary,
                     fontSize: 13,
@@ -774,7 +777,7 @@ class _AddContactPageState extends State<_AddContactPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _birthdayText(),
+                          _birthdayText(context),
                           style: TextStyle(
                             color: _birthday == null ? t.mutedText : t.textPrimary,
                             fontSize: 14,
@@ -788,16 +791,16 @@ class _AddContactPageState extends State<_AddContactPage> {
                 const SizedBox(height: 12),
                 _InputField(
                   controller: _addressCtrl,
-                  label: 'Address',
-                  hint: 'Enter address',
+                  label: 'contacts_address',
+                  hint: 'contacts_address_hint',
                   keyboardType: TextInputType.streetAddress,
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
                 _InputField(
                   controller: _otherInfoCtrl,
-                  label: 'Other info',
-                  hint: 'Additional notes',
+                  label: 'contacts_other_info',
+                  hint: 'contacts_other_info_hint',
                   maxLines: 2,
                 ),
                 const SizedBox(height: 20),
@@ -814,9 +817,9 @@ class _AddContactPageState extends State<_AddContactPage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Save Contact',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.t(context, 'contacts_save_contact'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),
@@ -874,12 +877,14 @@ class _InputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
+    final localizedLabel = label.isNotEmpty ? AppLocalizations.t(context, label) : '';
+    final localizedHint = hint.isNotEmpty ? AppLocalizations.t(context, hint) : '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label.isNotEmpty) ...[
+        if (localizedLabel.isNotEmpty) ...[
           Text(
-            label,
+            localizedLabel,
             style: TextStyle(
               color: t.textPrimary,
               fontSize: 13,
@@ -895,7 +900,7 @@ class _InputField extends StatelessWidget {
           maxLines: maxLines,
           style: TextStyle(color: t.textPrimary, fontSize: 14),
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: localizedHint,
             hintStyle: TextStyle(color: t.mutedText),
             filled: true,
             fillColor: t.panel,

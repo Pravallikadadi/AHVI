@@ -56,6 +56,29 @@ class AppwriteService extends ChangeNotifier {
     }
   }
 
+  Future<bool> loginWithApple() async {
+    try {
+      await account.createOAuth2Session(provider: OAuthProvider.apple);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint("Apple login error: $e");
+      return false;
+    }
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await account.createRecovery(
+        email: email,
+        url: '${Env.appwriteEndpoint}/reset-password',
+      );
+    } catch (e) {
+      debugPrint("Password reset error: $e");
+      rethrow;
+    }
+  }
+
   Future<User> registerEmailPassword(String email, String password, String name) async {
      try {
        final user = await account.create(

@@ -1,5 +1,7 @@
 import 'dart:math';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
@@ -22,6 +24,54 @@ Color kRed = Color(0xFFFF6B7A);
 Color kPanel = Color(0x14FFFFFF);
 Color kPanel2 = Color(0x1FFFFFFF);
 Color kBorder = Color(0x1FFFFFFF);
+
+// ════════════════════════════════════════════════════════════════════
+//  TRANSLATION HELPERS  (top-level so all widgets can use them)
+// ════════════════════════════════════════════════════════════════════
+String _translateCategory(BuildContext context, String key) {
+  switch (key.toLowerCase()) {
+    case 'shopping': return AppLocalizations.t(context, 'bills_cat_shopping');
+    case 'food':     return AppLocalizations.t(context, 'bills_cat_food');
+    case 'utility':  return AppLocalizations.t(context, 'bills_cat_utility');
+    case 'medical':  return AppLocalizations.t(context, 'bills_cat_medical');
+    default:         return AppLocalizations.t(context, 'bills_cat_other');
+  }
+}
+
+String _translatePayment(BuildContext context, String key) {
+  switch (key) {
+    case 'UPI':         return AppLocalizations.t(context, 'bills_pay_upi');
+    case 'Credit Card': return AppLocalizations.t(context, 'bills_pay_credit');
+    case 'Debit Card':  return AppLocalizations.t(context, 'bills_pay_debit');
+    case 'Cash':        return AppLocalizations.t(context, 'bills_pay_cash');
+    case 'Net Banking': return AppLocalizations.t(context, 'bills_pay_netbanking');
+    default:            return key;
+  }
+}
+
+String _categoryDbKey(BuildContext context, String localizedCat) {
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_shopping')) return 'shopping';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_food'))     return 'food';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_utility'))  return 'utility';
+  if (localizedCat == AppLocalizations.t(context, 'bills_cat_medical'))  return 'medical';
+  return 'other';
+}
+
+String _couponTypeDbKey(BuildContext context, String localizedType) {
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_percent')) return 'percent';
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_flat'))    return 'flat';
+  if (localizedType == AppLocalizations.t(context, 'bills_coupon_type_free'))    return 'free';
+  return localizedType.toLowerCase();
+}
+
+String _paymentDbKey(BuildContext context, String localizedPay) {
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_upi'))        return 'UPI';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_credit'))     return 'Credit Card';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_debit'))      return 'Debit Card';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_cash'))       return 'Cash';
+  if (localizedPay == AppLocalizations.t(context, 'bills_pay_netbanking')) return 'Net Banking';
+  return localizedPay;
+}
 
 // ════════════════════════════════════════════════════════════════════
 //  ROOT WIDGET
@@ -47,28 +97,29 @@ class _BillsScreenState extends State<BillsScreen>
   bool _chatOpen = false;
 
   String _addMode = 'ai';
-  String _selCategory = 'Shopping';
-  String _selPayment = 'UPI';
-  String _couponTypeVal = 'Percent';
+  // These are initialized lazily in didChangeDependencies so they always
+  // match the first item in the localized dropdown lists.
+  String? _selCategory;
+  String? _selPayment;
+  String? _couponTypeVal; // Initialized in didChangeDependencies from localized list
+  DateTime _selectedDate = DateTime.now();
 
   String _toastMsg = '';
   bool _toastVisible = false;
   late AnimationController _toastAnim;
 
   late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
 
   late AnimationController _chatCtrl;
   late Animation<double> _chatSlide;
 
   late AnimationController _sheetCtrl;
-  late Animation<double> _sheetSlide;
-
-  String _overlayType = '';
-  OverlayEntry? _overlayEntry;
 
   bool _isSavingBill = false;
   bool _isSavingCoupon = false;
+
+  // Holds the StatefulBuilder's setState so the sheet rebuilds on toggle
+  StateSetter? _sheetSetState;
 
   final List<Map<String, String>> _chatMessages = [
     {
@@ -144,6 +195,48 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   // ── LIFECYCLE ─────────────────────────────────────────────────────
+
+  /// Called once after first build (when context has Localizations).
+  /// Re-initializes dropdown values whenever the locale changes so that
+  /// the selected value always matches one of the localized items.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final firstCat = AppLocalizations.t(context, 'bills_cat_shopping');
+    final firstPay = AppLocalizations.t(context, 'bills_pay_upi');
+    // Only reset when unset or when the locale-generated value has changed
+    // (i.e. the user switched language mid-session).
+    final catItems = [
+      AppLocalizations.t(context, 'bills_cat_shopping'),
+      AppLocalizations.t(context, 'bills_cat_food'),
+      AppLocalizations.t(context, 'bills_cat_utility'),
+      AppLocalizations.t(context, 'bills_cat_medical'),
+      AppLocalizations.t(context, 'bills_cat_other'),
+    ];
+    final payItems = [
+      AppLocalizations.t(context, 'bills_pay_upi'),
+      AppLocalizations.t(context, 'bills_pay_credit'),
+      AppLocalizations.t(context, 'bills_pay_debit'),
+      AppLocalizations.t(context, 'bills_pay_cash'),
+      AppLocalizations.t(context, 'bills_pay_netbanking'),
+    ];
+    if (_selCategory == null || !catItems.contains(_selCategory)) {
+      _selCategory = firstCat;
+    }
+    if (_selPayment == null || !payItems.contains(_selPayment)) {
+      _selPayment = firstPay;
+    }
+
+    final couponItems = [
+      AppLocalizations.t(context, 'bills_coupon_type_percent'),
+      AppLocalizations.t(context, 'bills_coupon_type_flat'),
+      AppLocalizations.t(context, 'bills_coupon_type_free'),
+    ];
+    if (_couponTypeVal == null || !couponItems.contains(_couponTypeVal)) {
+      _couponTypeVal = couponItems[0];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -153,10 +246,7 @@ class _BillsScreenState extends State<BillsScreen>
       vsync: this,
       duration: Duration(seconds: 2),
     )..repeat(reverse: true);
-    _pulseAnim = Tween<double>(
-      begin: 1.0,
-      end: 1.35,
-    ).animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
 
     _chatCtrl = AnimationController(
       vsync: this,
@@ -168,10 +258,6 @@ class _BillsScreenState extends State<BillsScreen>
       vsync: this,
       duration: Duration(milliseconds: 450),
     );
-    _sheetSlide = CurvedAnimation(
-      parent: _sheetCtrl,
-      curve: Cubic(0.34, 1.2, 0.64, 1),
-    );
 
     _toastAnim = AnimationController(
       vsync: this,
@@ -181,8 +267,6 @@ class _BillsScreenState extends State<BillsScreen>
 
   @override
   void dispose() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
     _pulseCtrl.dispose();
     _chatCtrl.dispose();
     _sheetCtrl.dispose();
@@ -260,8 +344,9 @@ class _BillsScreenState extends State<BillsScreen>
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-      _showToast('Failed to load data');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showToast(AppLocalizations.t(context, 'bills_load_error'));
     }
   }
 
@@ -271,10 +356,10 @@ class _BillsScreenState extends State<BillsScreen>
       await appwrite.deleteBill(id);
       if (!mounted) return;
       setState(() => _bills.removeWhere((b) => b['id'] == id));
-      _showToast('Bill removed');
+      _showToast(AppLocalizations.t(context, 'bills_removed'));
     } catch (e) {
       if (!mounted) return;
-      _showToast('Error removing bill');
+      _showToast(AppLocalizations.t(context, 'bills_remove_error'));
     }
   }
 
@@ -284,10 +369,10 @@ class _BillsScreenState extends State<BillsScreen>
       await appwrite.deleteCoupon(id);
       if (!mounted) return;
       setState(() => _coupons.removeWhere((c) => c['id'] == id));
-      _showToast('Coupon removed');
+      _showToast(AppLocalizations.t(context, 'bills_coupon_removed'));
     } catch (e) {
       if (!mounted) return;
-      _showToast('Error removing coupon');
+      _showToast(AppLocalizations.t(context, 'bills_coupon_remove_error'));
     }
   }
 
@@ -301,7 +386,7 @@ class _BillsScreenState extends State<BillsScreen>
   }) async {
     final amt = double.tryParse(amount) ?? 0;
     if (store.trim().isEmpty || amt <= 0) {
-      _showToast('Please fill Store and Amount');
+      _showToast(AppLocalizations.t(context, 'bills_fill_required'));
       return;
     }
 
@@ -311,10 +396,9 @@ class _BillsScreenState extends State<BillsScreen>
       await appwrite.createBill({
         'store': store.trim(),
         'amount': amt.toInt(), // ✅ FIXED: Appwrite expects Integer!
-        'date': DateTime.now()
-            .toIso8601String(), // ✅ FIXED: Appwrite expects ISO Datetime
-        'category': category.toLowerCase(),
-        'payment': payment,
+        'date': _selectedDate.toIso8601String(),
+        'category': _categoryDbKey(context, category),
+        'payment': _paymentDbKey(context, payment),
         'items': items.trim(),
         'note': note.trim().isEmpty ? null : note.trim(), // Send null if empty
       });
@@ -325,7 +409,7 @@ class _BillsScreenState extends State<BillsScreen>
         _showToast('✦ Bill saved!');
       }
     } catch (e) {
-      if (mounted) _showToast('Error saving bill');
+      if (mounted) _showToast(AppLocalizations.t(context, 'bills_save_error'));
       debugPrint("Bill Error: $e");
     } finally {
       if (mounted) _setOverlayState(() => _isSavingBill = false);
@@ -338,15 +422,16 @@ class _BillsScreenState extends State<BillsScreen>
     final note = _newNoteCtrl.text.trim();
 
     if (code.isEmpty) {
-      _showToast('Enter a coupon code');
+      _showToast(AppLocalizations.t(context, 'bills_enter_coupon'));
       return;
     }
-    if (_couponTypeVal != 'Free' && value <= 0) {
-      _showToast('Enter a valid value');
+    final couponFreeKey = AppLocalizations.t(context, 'bills_coupon_type_free');
+    if (_couponTypeVal != couponFreeKey && value <= 0) {
+      _showToast(AppLocalizations.t(context, 'bills_enter_valid'));
       return;
     }
     if (_coupons.any((c) => c['code'] == code)) {
-      _showToast('Coupon already saved!');
+      _showToast(AppLocalizations.t(context, 'bills_coupon_saved'));
       return;
     }
 
@@ -356,7 +441,7 @@ class _BillsScreenState extends State<BillsScreen>
 
       await appwrite.createCoupon({
         'code': code,
-        'type': _couponTypeVal.toLowerCase(),
+        'type': _couponTypeDbKey(context, _couponTypeVal ?? ''),
         'value': value.toInt(), // ✅ FIXED: Appwrite expects Integer!
         'note': note.isEmpty ? null : note,
       });
@@ -369,7 +454,7 @@ class _BillsScreenState extends State<BillsScreen>
         _showToast('✦ Coupon "$code" saved!');
       }
     } catch (e) {
-      if (mounted) _showToast('Error saving coupon');
+      if (mounted) _showToast(AppLocalizations.t(context, 'bills_coupon_save_error'));
       debugPrint("Coupon Error: $e");
     } finally {
       if (mounted) _setOverlayState(() => _isSavingCoupon = false);
@@ -387,37 +472,52 @@ class _BillsScreenState extends State<BillsScreen>
     }
   }
 
-  /// Calls setState + marks overlay for rebuild (needed when sheet content changes)
+  /// Calls setState on both the parent and the sheet's StatefulBuilder
+  /// so that mode toggles and loading flags both rebuild the sheet UI.
   void _setOverlayState(VoidCallback fn) {
     setState(fn);
-    _overlayEntry?.markNeedsBuild();
+    _sheetSetState?.call(fn);
   }
 
   void _openOverlay(String type) {
-    setState(() => _overlayType = type);
-    _sheetCtrl.forward(from: 0);
-
-    _overlayEntry?.remove();
-    _overlayEntry = OverlayEntry(
-      builder: (_) {
-        return Material(
-          type: MaterialType.transparency,
-          child: ListenableBuilder(
-            listenable: _sheetCtrl,
-            builder: (_, _) => _buildOverlayBackdrop(),
-          ),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Color(0xB808111F),
+      useRootNavigator: true,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            // Store so _setOverlayState can trigger sheet rebuilds (e.g. mode toggle)
+            _sheetSetState = setSheetState;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: type == 'add'
+                  ? _buildAddSheet()
+                  : _buildCouponMgrSheet(),
+            );
+          },
         );
       },
-    );
-    Overlay.of(context).insert(_overlayEntry!);
+    ).then((_) {
+      _sheetSetState = null; // Clear stale reference after sheet closes
+      if (mounted) {
+        setState(() {
+          _selectedDate = DateTime.now();
+          _storeCtrl.clear();
+          _amountCtrl.clear();
+          _itemsCtrl.clear();
+          _notesCtrl.clear();
+        });
+      }
+    });
   }
 
   void _closeOverlay() {
-    _sheetCtrl.reverse().then((_) {
-      _overlayEntry?.remove();
-      _overlayEntry = null;
-      if (mounted) setState(() => _overlayType = '');
-    });
+    Navigator.of(context, rootNavigator: true).maybePop();
   }
 
   void _showToast(String msg) async {
@@ -492,8 +592,12 @@ class _BillsScreenState extends State<BillsScreen>
                     child: Transform(
                       alignment: Alignment.bottomRight,
                       transform: Matrix4.identity()
-                        ..translate(0.0, 16.0 * (1 - _chatSlide.value))
-                        ..scale(0.95 + 0.05 * _chatSlide.value),
+                        ..translateByVector3(
+                            Vector3(0.0, 16.0 * (1 - _chatSlide.value), 0.0))
+                        ..scaleByVector3(Vector3(
+                            0.95 + 0.05 * _chatSlide.value,
+                            0.95 + 0.05 * _chatSlide.value,
+                            1.0)),
                       child: IgnorePointer(
                         ignoring: !_chatOpen,
                         child: _buildChatPanel(),
@@ -541,7 +645,7 @@ class _BillsScreenState extends State<BillsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'My Bills',
+                AppLocalizations.t(context, 'bills_title'),
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w900,
@@ -552,7 +656,7 @@ class _BillsScreenState extends State<BillsScreen>
               ),
               SizedBox(height: 4),
               Text(
-                'BY AHVI',
+                AppLocalizations.t(context, 'bills_by_ahvi'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
@@ -583,8 +687,8 @@ class _BillsScreenState extends State<BillsScreen>
               SizedBox(height: 12),
               Text(
                 _activeFilter == 'all'
-                    ? 'Recent Bills'
-                    : '${_toTitleCase(_activeFilter)} Bills',
+                    ? AppLocalizations.t(context, 'bills_recent')
+                    : _translateCategory(context, _activeFilter),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -612,8 +716,6 @@ class _BillsScreenState extends State<BillsScreen>
     );
   }
 
-  String _toTitleCase(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   Widget _buildSpendingCard() {
     final bills = _filteredBills;
@@ -670,7 +772,7 @@ class _BillsScreenState extends State<BillsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'TOTAL SPENDING',
+                  AppLocalizations.t(context, 'bills_total_spending'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -712,11 +814,11 @@ class _BillsScreenState extends State<BillsScreen>
                 SizedBox(height: 14),
                 Row(
                   children: [
-                    Expanded(child: _buildStatPill('$count', 'Bills')),
+                    Expanded(child: _buildStatPill('$count', AppLocalizations.t(context, 'bills_stat_bills'))),
                     SizedBox(width: 8),
-                    Expanded(child: _buildStatPill(_avgBill, 'Avg Bill')),
+                    Expanded(child: _buildStatPill(_avgBill, AppLocalizations.t(context, 'bills_stat_avg'))),
                     SizedBox(width: 8),
-                    Expanded(child: _buildStatPill(_topCategory, 'Top Cat.')),
+                    Expanded(child: _buildStatPill(_topCategory, AppLocalizations.t(context, 'bills_stat_top'))),
                   ],
                 ),
               ],
@@ -764,34 +866,34 @@ class _BillsScreenState extends State<BillsScreen>
 
   Widget _buildFilterTabs() {
     final tabs = [
-      {'key': 'all', 'label': 'All', 'color': Colors.white, 'bg': kBg2},
+      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': Colors.white, 'bg': kBg2},
       {
         'key': 'shopping',
-        'label': 'Shopping',
+        'label': AppLocalizations.t(context, 'bills_filter_shopping'),
         'color': _accent2,
         'bg': _accent2.withValues(alpha: 0.18),
       },
       {
         'key': 'food',
-        'label': 'Food',
+        'label': AppLocalizations.t(context, 'bills_filter_food'),
         'color': _accent5,
         'bg': _accent5.withValues(alpha: 0.18),
       },
       {
         'key': 'utility',
-        'label': 'Utility',
+        'label': AppLocalizations.t(context, 'bills_filter_utility'),
         'color': _accent3,
         'bg': _accent3.withValues(alpha: 0.18),
       },
       {
         'key': 'medical',
-        'label': 'Medical',
+        'label': AppLocalizations.t(context, 'bills_filter_medical'),
         'color': _accent4,
         'bg': _accent4.withValues(alpha: 0.18),
       },
       {
         'key': 'other',
-        'label': 'Other',
+        'label': AppLocalizations.t(context, 'bills_filter_other'),
         'color': _t.textPrimary,
         'bg': _t.backgroundSecondary,
       },
@@ -884,7 +986,7 @@ class _BillsScreenState extends State<BillsScreen>
           Text('🧾', style: TextStyle(fontSize: 56)),
           SizedBox(height: 16),
           Text(
-            'No Bills Yet',
+            AppLocalizations.t(context, 'bills_empty_title'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -893,7 +995,7 @@ class _BillsScreenState extends State<BillsScreen>
           ),
           SizedBox(height: 6),
           Text(
-            'Tap "Add Bill" below to scan or\nmanually enter your first bill.',
+            AppLocalizations.t(context, 'bills_empty_desc'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
@@ -943,7 +1045,7 @@ class _BillsScreenState extends State<BillsScreen>
                     ),
                     SizedBox(width: 8),
                     Text(
-                      'Add Bill',
+                      AppLocalizations.t(context, 'bills_btn_add_bill'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -989,7 +1091,7 @@ class _BillsScreenState extends State<BillsScreen>
                         ),
                         SizedBox(width: 8),
                         Text(
-                          'My Coupons',
+                          AppLocalizations.t(context, 'bills_btn_my_coupons'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -1260,51 +1362,7 @@ class _BillsScreenState extends State<BillsScreen>
     _chatInputCtrl.clear();
   }
 
-  Widget _buildOverlayBackdrop() {
-    final mq = MediaQuery.of(context);
-    final keyboardH = mq.viewInsets.bottom;
-    final maxSheetH = mq.size.height - mq.viewPadding.top - 32;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _closeOverlay();
-      },
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _closeOverlay,
-              child: Container(
-                color: Color.lerp(
-                  Colors.transparent,
-                  Color(0xB808111F),
-                  _sheetSlide.value,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: keyboardH,
-            child: GestureDetector(
-              onTap: () {},
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxSheetH),
-                child: Transform.translate(
-                  offset: Offset(0, (1 - _sheetSlide.value) * 600),
-                  child: _overlayType == 'add'
-                      ? _buildAddSheet()
-                      : _buildCouponMgrSheet(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ════════════════════════════════════════════════════════════════════
   //  ADD BILL SHEET
@@ -1337,7 +1395,7 @@ class _BillsScreenState extends State<BillsScreen>
           children: [
             _sheetHandle(),
             Text(
-              'Add a Bill',
+              AppLocalizations.t(context, 'bills_sheet_add_title'),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -1346,7 +1404,7 @@ class _BillsScreenState extends State<BillsScreen>
             ),
             SizedBox(height: 3),
             Text(
-              "Choose how you'd like to add your bill",
+              AppLocalizations.t(context, 'bills_sheet_add_sub'),
               style: TextStyle(
                 fontSize: 11,
                 color: _t.mutedText,
@@ -1369,10 +1427,10 @@ class _BillsScreenState extends State<BillsScreen>
             ],
 
             _buildFormGroup(
-              'Store / Vendor *',
+              AppLocalizations.t(context, 'bills_field_store'),
               child: _glassInput(
                 controller: _storeCtrl,
-                placeholder: 'e.g. Zara, Swiggy, Apollo…',
+                placeholder: AppLocalizations.t(context, 'bills_field_store_hint'),
               ),
             ),
             SizedBox(height: 10),
@@ -1380,7 +1438,7 @@ class _BillsScreenState extends State<BillsScreen>
               children: [
                 Expanded(
                   child: _buildFormGroup(
-                    'Amount (₹) *',
+                    AppLocalizations.t(context, 'bills_field_amount'),
                     child: _glassInput(
                       controller: _amountCtrl,
                       placeholder: '0.00',
@@ -1390,7 +1448,7 @@ class _BillsScreenState extends State<BillsScreen>
                 ),
                 SizedBox(width: 10),
                 Expanded(
-                  child: _buildFormGroup('Date *', child: _datePickerTrigger()),
+                  child: _buildFormGroup(AppLocalizations.t(context, 'bills_field_date'), child: _datePickerTrigger()),
                 ),
               ],
             ),
@@ -1399,15 +1457,15 @@ class _BillsScreenState extends State<BillsScreen>
               children: [
                 Expanded(
                   child: _buildFormGroup(
-                    'Category',
+                    AppLocalizations.t(context, 'bills_field_category'),
                     child: _buildSelectField(
-                      value: _selCategory,
+                      value: _selCategory!,
                       items: [
-                        'Shopping',
-                        'Food',
-                        'Utility',
-                        'Medical',
-                        'Other',
+                        AppLocalizations.t(context, 'bills_cat_shopping'),
+                        AppLocalizations.t(context, 'bills_cat_food'),
+                        AppLocalizations.t(context, 'bills_cat_utility'),
+                        AppLocalizations.t(context, 'bills_cat_medical'),
+                        AppLocalizations.t(context, 'bills_cat_other'),
                       ],
                       onChanged: (v) => _setOverlayState(() => _selCategory = v!),
                     ),
@@ -1416,15 +1474,15 @@ class _BillsScreenState extends State<BillsScreen>
                 SizedBox(width: 10),
                 Expanded(
                   child: _buildFormGroup(
-                    'Payment',
+                    AppLocalizations.t(context, 'bills_field_payment'),
                     child: _buildSelectField(
-                      value: _selPayment,
+                      value: _selPayment!,
                       items: [
-                        'UPI',
-                        'Credit Card',
-                        'Debit Card',
-                        'Cash',
-                        'Net Banking',
+                        AppLocalizations.t(context, 'bills_pay_upi'),
+                        AppLocalizations.t(context, 'bills_pay_credit'),
+                        AppLocalizations.t(context, 'bills_pay_debit'),
+                        AppLocalizations.t(context, 'bills_pay_cash'),
+                        AppLocalizations.t(context, 'bills_pay_netbanking'),
                       ],
                       onChanged: (v) => _setOverlayState(() => _selPayment = v!),
                     ),
@@ -1434,18 +1492,18 @@ class _BillsScreenState extends State<BillsScreen>
             ),
             SizedBox(height: 10),
             _buildFormGroup(
-              'Items (optional)',
+              AppLocalizations.t(context, 'bills_field_items'),
               child: _glassInput(
                 controller: _itemsCtrl,
-                placeholder: 'Shirt, Shoes, Watch…',
+                placeholder: AppLocalizations.t(context, 'bills_field_items_hint'),
               ),
             ),
             SizedBox(height: 10),
             _buildFormGroup(
-              'Notes (optional)',
+              AppLocalizations.t(context, 'bills_field_notes'),
               child: _glassInput(
                 controller: _notesCtrl,
-                placeholder: 'Any extra details…',
+                placeholder: AppLocalizations.t(context, 'bills_field_notes_hint'),
                 maxLines: 3,
               ),
             ),
@@ -1466,7 +1524,7 @@ class _BillsScreenState extends State<BillsScreen>
                       ),
                       child: Center(
                         child: Text(
-                          'Cancel',
+                          AppLocalizations.t(context, 'bills_btn_cancel'),
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -1486,8 +1544,8 @@ class _BillsScreenState extends State<BillsScreen>
                       _addBill(
                         store: _storeCtrl.text,
                         amount: _amountCtrl.text,
-                        category: _selCategory,
-                        payment: _selPayment,
+                        category: _selCategory ?? '',
+                        payment: _selPayment ?? '',
                         items: _itemsCtrl.text,
                         note: _notesCtrl.text,
                       );
@@ -1516,7 +1574,7 @@ class _BillsScreenState extends State<BillsScreen>
                                 ),
                               )
                             : Text(
-                                '✦ Save Bill',
+                                AppLocalizations.t(context, 'bills_btn_save'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -1570,7 +1628,9 @@ class _BillsScreenState extends State<BillsScreen>
                     ),
                     SizedBox(width: 5),
                     Text(
-                      mode == 'ai' ? '✦ AI Autofill' : 'Enter Manually',
+                      mode == 'ai'
+                          ? AppLocalizations.t(context, 'bills_mode_ai')
+                          : AppLocalizations.t(context, 'bills_mode_manual'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -1595,7 +1655,7 @@ class _BillsScreenState extends State<BillsScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'UPLOAD BILL PHOTO',
+          AppLocalizations.t(context, 'bills_upload_photo'),
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -1612,8 +1672,8 @@ class _BillsScreenState extends State<BillsScreen>
                 iconColor: Color(0xFFD4756E),
                 bg: isDark ? Color(0x1FD4756E) : Color(0xFFD4756E).withValues(alpha: 0.08),
                 border: isDark ? Color(0x33D4756E) : Color(0xFFD4756E).withValues(alpha: 0.30),
-                label: 'Camera',
-                sub: 'Take a photo',
+                label: AppLocalizations.t(context, 'bills_camera_label'),
+                sub: AppLocalizations.t(context, 'bills_camera_sub'),
               ),
             ),
             SizedBox(width: 10),
@@ -1623,8 +1683,8 @@ class _BillsScreenState extends State<BillsScreen>
                 iconColor: Color(0xFF5A8FD8),
                 bg: isDark ? Color(0x1F5A8FD8) : Color(0xFF5A8FD8).withValues(alpha: 0.08),
                 border: isDark ? Color(0x335A8FD8) : Color(0xFF5A8FD8).withValues(alpha: 0.30),
-                label: 'Upload File',
-                sub: 'JPG, PNG or PDF',
+                label: AppLocalizations.t(context, 'bills_upload_label'),
+                sub: AppLocalizations.t(context, 'bills_upload_sub'),
               ),
             ),
           ],
@@ -1694,7 +1754,7 @@ class _BillsScreenState extends State<BillsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Manual Entry Mode',
+                AppLocalizations.t(context, 'bills_manual_mode'),
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -1702,7 +1762,7 @@ class _BillsScreenState extends State<BillsScreen>
                 ),
               ),
               Text(
-                'Fill in the details below — all * fields required',
+                AppLocalizations.t(context, 'bills_manual_sub'),
                 style: TextStyle(
                   fontSize: 10,
                   color: _t.mutedText,
@@ -1778,7 +1838,7 @@ class _BillsScreenState extends State<BillsScreen>
       onTap: () async {
         final picked = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: _selectedDate,
           firstDate: DateTime(2020),
           lastDate: DateTime.now(),
           builder: (ctx, child) => Theme(
@@ -1793,6 +1853,9 @@ class _BillsScreenState extends State<BillsScreen>
             child: child!,
           ),
         );
+        if (picked != null) {
+          _setOverlayState(() => _selectedDate = picked);
+        }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -1810,13 +1873,20 @@ class _BillsScreenState extends State<BillsScreen>
             ),
             SizedBox(width: 8),
             Expanded(
-              child: Text(
-                'Select date',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _t.mutedText,
-                ),
+              child: Builder(
+                builder: (context) {
+                  final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                  final d = _selectedDate;
+                  final label = '${months[d.month - 1]} ${d.day}, ${d.year}';
+                  return Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: _t.textPrimary,
+                    ),
+                  );
+                },
               ),
             ),
             Icon(
@@ -1866,101 +1936,6 @@ class _BillsScreenState extends State<BillsScreen>
     );
   }
 
-  Widget _buildCouponRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Coupon Code',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: _t.mutedText,
-          ),
-        ),
-        SizedBox(height: 5),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Color(0x0A8D7DFF),
-                  border: Border.all(color: Color(0x598D7DFF), width: 1.5),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(left: 12),
-                      child: Icon(
-                        Icons.local_offer_outlined,
-                        size: 14,
-                        color: kAccent2,
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _couponCtrl,
-                        textCapitalization: TextCapitalization.characters,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _t.textPrimary,
-                          letterSpacing: 1.0,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Enter code',
-                          hintStyle: TextStyle(color: _t.mutedText),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(width: 8),
-            _PressScaleButton(
-              onTap: () {
-                final code = _couponCtrl.text.trim().toUpperCase();
-                if (code.isEmpty) {
-                  _showToast('Enter a coupon code');
-                  return;
-                }
-                final found = _coupons.any((c) => c['code'] == code);
-                if (found) {
-                  _showToast('✦ Coupon "$code" applied!');
-                } else {
-                  _showToast('Coupon not found');
-                }
-              },
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Color(0x1F8D7DFF),
-                  border: Border.all(color: Color(0x388D7DFF), width: 1.5),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  'Apply',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: kAccent2,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   // ════════════════════════════════════════════════════════════════════
   //  COUPON MANAGER SHEET
   // ════════════════════════════════════════════════════════════════════
@@ -1997,7 +1972,7 @@ class _BillsScreenState extends State<BillsScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'My Coupons',
+                            AppLocalizations.t(context, 'bills_my_coupons_title'),
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
@@ -2006,7 +1981,7 @@ class _BillsScreenState extends State<BillsScreen>
                           ),
                           SizedBox(height: 3),
                           Text(
-                            '${_coupons.length} Saved Coupon${_coupons.length != 1 ? 's' : ''}',
+                            AppLocalizations.t(context, 'bills_saved_coupons_count').replaceFirst('{count}', '${_coupons.length}'),
                             style: TextStyle(
                               fontSize: 12,
                               color: _t.mutedText,
@@ -2077,11 +2052,11 @@ class _BillsScreenState extends State<BillsScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _couponFieldLabel('COUPON CODE'),
+          _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_code_label')),
           SizedBox(height: 5),
           _couponInput(
             controller: _newCodeCtrl,
-            placeholder: 'E.G. SAVE10',
+            placeholder: AppLocalizations.t(context, 'bills_coupon_code_placeholder'),
             isBold: true,
           ),
           SizedBox(height: 10),
@@ -2091,7 +2066,7 @@ class _BillsScreenState extends State<BillsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _couponFieldLabel('TYPE'),
+                    _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_type_label')),
                     SizedBox(height: 5),
                     Container(
                       decoration: BoxDecoration(
@@ -2101,7 +2076,7 @@ class _BillsScreenState extends State<BillsScreen>
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _couponTypeVal,
+                          value: _couponTypeVal ?? AppLocalizations.t(context, 'bills_coupon_type_percent'),
                           dropdownColor: _t.backgroundSecondary,
                           icon: Icon(
                             Icons.keyboard_arrow_down_rounded,
@@ -2118,12 +2093,11 @@ class _BillsScreenState extends State<BillsScreen>
                             fontWeight: FontWeight.w500,
                             color: _t.textPrimary,
                           ),
-                          items: ['Percent', 'Flat', 'Free']
-                              .map(
-                                (o) =>
-                                    DropdownMenuItem(value: o, child: Text(o)),
-                              )
-                              .toList(),
+                          items: [
+                                AppLocalizations.t(context, 'bills_coupon_type_percent'),
+                                AppLocalizations.t(context, 'bills_coupon_type_flat'),
+                                AppLocalizations.t(context, 'bills_coupon_type_free'),
+                              ].map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
                           onChanged: (v) => _setOverlayState(() => _couponTypeVal = v!),
                         ),
                       ),
@@ -2136,7 +2110,7 @@ class _BillsScreenState extends State<BillsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _couponFieldLabel('VALUE'),
+                    _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_value_label')),
                     SizedBox(height: 5),
                     _couponInput(
                       controller: _newValueCtrl,
@@ -2149,11 +2123,11 @@ class _BillsScreenState extends State<BillsScreen>
             ],
           ),
           SizedBox(height: 10),
-          _couponFieldLabel('NOTE (OPTIONAL)'),
+          _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_note_label')),
           SizedBox(height: 5),
           _couponInput(
             controller: _newNoteCtrl,
-            placeholder: 'Short description…',
+            placeholder: AppLocalizations.t(context, 'bills_coupon_note_placeholder'),
           ),
           SizedBox(height: 12),
           _PressScaleButton(
@@ -2190,7 +2164,7 @@ class _BillsScreenState extends State<BillsScreen>
                     Icon(Icons.add_rounded, color: Colors.white, size: 16),
                     SizedBox(width: 6),
                     Text(
-                      'Save Coupon',
+                      AppLocalizations.t(context, 'bills_coupon_save'),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -2271,7 +2245,7 @@ class _BillsScreenState extends State<BillsScreen>
           Text('🏷️', style: TextStyle(fontSize: 40)),
           SizedBox(height: 10),
           Text(
-            'No coupons saved yet',
+            AppLocalizations.t(context, 'bills_coupon_empty'),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -2280,7 +2254,7 @@ class _BillsScreenState extends State<BillsScreen>
           ),
           SizedBox(height: 5),
           Text(
-            'Add a coupon code above to save it here',
+            AppLocalizations.t(context, 'bills_coupon_empty_sub'),
             style: TextStyle(
               fontSize: 11,
               color: _t.mutedText,
@@ -2307,8 +2281,10 @@ class _BillsScreenState extends State<BillsScreen>
               ? '₹${coupon['value'].toInt()}'
               : '${coupon['value'].toInt()}%');
     final unitTxt = coupon['type'] == 'free'
-        ? 'SPECIAL'
-        : (coupon['type'] == 'flat' ? 'FLAT OFF' : 'OFF');
+        ? AppLocalizations.t(context, 'bills_coupon_type_special')
+        : (coupon['type'] == 'flat'
+            ? AppLocalizations.t(context, 'bills_coupon_type_flat')
+            : AppLocalizations.t(context, 'bills_coupon_type_off'));
 
     return Container(
       margin: EdgeInsets.only(bottom: 12),
@@ -2445,7 +2421,7 @@ class _BillsScreenState extends State<BillsScreen>
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: gradientColors.first.withOpacity(0.12),
+                            color: gradientColors.first.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
@@ -2708,7 +2684,7 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                (bill['category'] as String).toUpperCase(),
+                                _translateCategory(context, bill['category'] as String).toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w700,
@@ -2750,7 +2726,7 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
                       ),
                       SizedBox(height: 2),
                       Text(
-                        bill['payment'] as String,
+                        _translatePayment(context, bill['payment'] as String),
                         style: TextStyle(
                           fontSize: 9,
                           color: t.mutedText,
@@ -2926,7 +2902,7 @@ class _DetailSheet extends StatelessWidget {
                   Text('✦', style: TextStyle(fontSize: 8, color: kAccent2)),
                   SizedBox(width: 4),
                   Text(
-                    'AI Scanned',
+                    AppLocalizations.t(context, 'bills_ai_scanned'),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -2939,7 +2915,7 @@ class _DetailSheet extends StatelessWidget {
             Padding(
               padding: EdgeInsets.only(top: 18, bottom: 10),
               child: Text(
-                'BILL DETAILS',
+                AppLocalizations.t(context, 'bills_detail_title'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -2948,18 +2924,18 @@ class _DetailSheet extends StatelessWidget {
                 ),
               ),
             ),
-            _detailRow('Category', (bill['category'] as String).toUpperCase()),
-            _detailRow('Payment', bill['payment'] as String),
-            _detailRow('Amount', '₹${_fmtAmount(bill['amount'] as double)}'),
-            _detailRow('Date', bill['date'] as String),
+            _detailRow(AppLocalizations.t(context, 'bills_detail_category'), _translateCategory(context, bill['category'] as String).toUpperCase()),
+            _detailRow(AppLocalizations.t(context, 'bills_detail_payment'), _translatePayment(context, bill['payment'] as String)),
+            _detailRow(AppLocalizations.t(context, 'bills_detail_amount'), '₹${_fmtAmount(bill['amount'] as double)}'),
+            _detailRow(AppLocalizations.t(context, 'bills_detail_date'), bill['date'] as String),
             if ((bill['items'] as String).isNotEmpty) ...[
-              _detailRow('Items', bill['items'] as String),
+              _detailRow(AppLocalizations.t(context, 'bills_detail_items'), bill['items'] as String),
             ],
             if ((bill['note'] as String).isNotEmpty) ...[
               Padding(
                 padding: EdgeInsets.only(top: 18, bottom: 10),
                 child: Text(
-                  'NOTES',
+                  AppLocalizations.t(context, 'bills_detail_notes'),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -2994,12 +2970,12 @@ class _DetailSheet extends StatelessWidget {
             SizedBox(height: 18),
             Row(
               children: [
-                Expanded(child: _detailBtn(context, 'Share', false)),
+                Expanded(child: _detailBtn(context, AppLocalizations.t(context, 'bills_detail_share'), false)),
                 SizedBox(width: 9),
                 Expanded(
                   child: _detailBtn(
                     context,
-                    'Delete Bill',
+                    AppLocalizations.t(context, 'bills_detail_delete'),
                     true,
                     onTap: () => onDelete(bill['id'] as String),
                   ),

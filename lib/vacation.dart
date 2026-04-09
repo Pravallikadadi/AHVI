@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/models.dart';
+import 'package:appwrite/models.dart' hide Row;
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/app_localizations.dart';
 
 class VacationScreen extends StatefulWidget {
   const VacationScreen({super.key});
@@ -12,22 +13,19 @@ class VacationScreen extends StatefulWidget {
 }
 
 class _VacationScreenState extends State<VacationScreen> {
-  // ... leave the rest of your code exactly as it is!
   bool _isLoading = true;
   List<Document> _boards = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchOfficeBoards();
+    _fetchVacationBoards();
   }
 
-  Future<void> _fetchOfficeBoards() async {
+  Future<void> _fetchVacationBoards() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      // 🔥 Fetching specifically 'Office' occasion boards!
       final boards = await appwrite.getSavedBoardsByOccasion('Vacation');
-      
       if (mounted) {
         setState(() {
           _boards = boards;
@@ -35,10 +33,8 @@ class _VacationScreenState extends State<VacationScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Error fetching office boards: $e");
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      debugPrint("Error fetching vacation boards: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -52,7 +48,8 @@ class _VacationScreenState extends State<VacationScreen> {
         children: [
           // ── Header ──
           Container(
-            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 14),
+            padding: EdgeInsets.fromLTRB(
+                20, MediaQuery.of(context).padding.top + 12, 20, 14),
             child: Row(
               children: [
                 GestureDetector(
@@ -65,7 +62,8 @@ class _VacationScreenState extends State<VacationScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: t.cardBorder),
                     ),
-                    child: Icon(Icons.chevron_left_rounded, color: t.textPrimary, size: 22),
+                    child: Icon(Icons.chevron_left_rounded,
+                        color: t.textPrimary, size: 22),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -73,7 +71,7 @@ class _VacationScreenState extends State<VacationScreen> {
                   text: TextSpan(
                     children: [
                       TextSpan(
-                        text: 'Vacation ',
+                        text: '${context.tr('boards_vacation')} ',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 17,
@@ -83,7 +81,7 @@ class _VacationScreenState extends State<VacationScreen> {
                         ),
                       ),
                       TextSpan(
-                        text: 'Looks',
+                        text: context.tr('boards_vacation_sub'),
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 17,
@@ -101,7 +99,8 @@ class _VacationScreenState extends State<VacationScreen> {
           // ── Body ──
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: t.accent.primary))
+                ? Center(
+                    child: CircularProgressIndicator(color: t.accent.primary))
                 : _boards.isEmpty
                     ? _buildEmptyState(t)
                     : _buildBoardsGrid(t),
@@ -123,11 +122,12 @@ class _VacationScreenState extends State<VacationScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: t.cardBorder),
             ),
-            child: Icon(Icons.business_center_rounded, size: 48, color: const Color(0xFFFFC956)),
+            child: Icon(Icons.beach_access_rounded,
+                size: 48, color: const Color(0xFFFFC956)),
           ),
           const SizedBox(height: 24),
           Text(
-            "No Office Fits Yet!",
+            context.tr('boards_vacation'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -136,7 +136,7 @@ class _VacationScreenState extends State<VacationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Generate professional style boards with\nAHVI and they will appear here.",
+            context.tr('wardrobe_insight_empty'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -153,16 +153,16 @@ class _VacationScreenState extends State<VacationScreen> {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, 
+        crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.65, 
+        childAspectRatio: 0.65,
       ),
       itemCount: _boards.length,
       itemBuilder: (context, index) {
         final board = _boards[index];
         final imageUrl = board.data['imageUrl'] ?? '';
-        
+
         return GestureDetector(
           onTap: () {
             // TODO: Fullscreen image viewer
@@ -174,13 +174,12 @@ class _VacationScreenState extends State<VacationScreen> {
               color: t.panel,
               image: imageUrl.isNotEmpty
                   ? DecorationImage(
-                      image: NetworkImage(imageUrl),
-                      fit: BoxFit.cover,
-                    )
+                      image: NetworkImage(imageUrl), fit: BoxFit.cover)
                   : null,
             ),
             child: imageUrl.isEmpty
-                ? Center(child: Icon(Icons.image_not_supported, color: t.mutedText))
+                ? Center(
+                    child: Icon(Icons.image_not_supported, color: t.mutedText))
                 : null,
           ),
         );

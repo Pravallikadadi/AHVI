@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/medi_tracker.dart' as medi_tracker;
 import 'package:myapp/bills_page.dart' as bills;
 import 'package:myapp/contacts.dart' as contacts;
@@ -173,7 +174,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: 'Home & ',
+                  text: AppLocalizations.t(context, 'home_title_bold'),
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 17,
@@ -183,7 +184,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                   ),
                 ),
                 TextSpan(
-                  text: 'Utilities',
+                  text: AppLocalizations.t(context, 'home_title_light'),
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 17,
@@ -245,10 +246,10 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
           fontWeight: FontWeight.w500,
           fontSize: 13,
         ),
-        tabs: const [
-          Tab(text: 'Medi'),
-          Tab(text: 'Bills'),
-          Tab(text: 'Contacts'),
+        tabs: [
+          Tab(text: AppLocalizations.t(context, 'home_tab_medi')),
+          Tab(text: AppLocalizations.t(context, 'home_tab_bills')),
+          Tab(text: AppLocalizations.t(context, 'home_tab_contacts')),
         ],
       ),
     );

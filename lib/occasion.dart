@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/app_localizations.dart';
 
 // ── Data model ───────────────────────────────────────────────────────────────
 class LookItem {
@@ -26,21 +27,29 @@ class LookItem {
   });
 }
 
-enum LookBadgeStyle { streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBadge }
-enum LookBgStyle { streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBg }
+enum LookBadgeStyle {
+  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBadge
+}
+enum LookBgStyle {
+  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBg
+}
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 class OccasionBoard extends StatefulWidget {
   final String occasion;
-  final String title;
-  final String subtitle;
+  final String titleKey;      // l10n key for the bold title word
+  final String subtitleKey;   // l10n key for the accent subtitle word
+  final String? titleLabel;   // raw string override (e.g. custom board name)
+  final String? subtitleLabel; // raw string override
   final String emptyEmoji;
 
   const OccasionBoard({
-    super.key, 
+    super.key,
     required this.occasion,
-    required this.title,
-    required this.subtitle,
+    this.titleKey = '',
+    this.subtitleKey = '',
+    this.titleLabel,
+    this.subtitleLabel,
     this.emptyEmoji = '✨',
   });
 
@@ -68,22 +77,20 @@ class _OccasionBoardState extends State<OccasionBoard> {
   Future<void> _fetchLooks() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      // 🔥 Fetch dynamically based on the parameter passed from boards.dart!
       final docs = await appwrite.getSavedBoardsByOccasion(widget.occasion);
 
       final List<LookItem> loadedLooks = [];
-
       for (var doc in docs) {
-        // Pick a dynamic badge based on string length to give it that varied Pinterest feel
         final badgeIndex = doc.$id.length % LookBadgeStyle.values.length;
         final dynamicBadge = LookBadgeStyle.values[badgeIndex];
         final dynamicBg = LookBgStyle.values[badgeIndex];
 
         loadedLooks.add(LookItem(
           id: doc.$id,
-          title: doc.data['occasion'] ?? widget.occasion, 
-          description: doc.data['outfitDescription'] ?? 'Custom ${widget.occasion} inspiration',
-          emoji: doc.data['emoji'] ?? widget.emptyEmoji, 
+          title: doc.data['occasion'] ?? widget.occasion,
+          description: doc.data['outfitDescription'] ??
+              'Custom ${widget.occasion} inspiration',
+          emoji: doc.data['emoji'] ?? widget.emptyEmoji,
           category: widget.occasion,
           imageUrl: doc.data['imageUrl'],
           badge: dynamicBadge,
@@ -99,7 +106,7 @@ class _OccasionBoardState extends State<OccasionBoard> {
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      _showToast('Failed to load looks.');
+      _showToast(context.tr('error'));
     }
   }
 
@@ -108,9 +115,9 @@ class _OccasionBoardState extends State<OccasionBoard> {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       await appwrite.deleteSavedBoard(id);
-      _showToast('Look removed');
+      _showToast(context.tr('wardrobe_remove'));
     } catch (e) {
-      _showToast('Failed to delete from cloud');
+      _showToast(context.tr('error'));
     }
   }
 
@@ -124,8 +131,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
   @override
   Widget build(BuildContext context) {
     final countText = _looks.isEmpty
-        ? 'No looks saved yet'
-        : '${_looks.length} look${_looks.length != 1 ? 's' : ''} saved';
+        ? context.tr('wardrobe_empty_title')
+        : '${_looks.length} ${context.tr('fitness_saved')}';
 
     return Scaffold(
       backgroundColor: _bg,
@@ -145,23 +152,30 @@ class _OccasionBoardState extends State<OccasionBoard> {
             children: [
               // ── HEADER ──
               _Header(
-                countText: countText, 
-                title: widget.title, 
-                subtitle: widget.subtitle
+                countText: countText,
+                titleKey: widget.titleKey,
+                subtitleKey: widget.subtitleKey,
+                titleLabel: widget.titleLabel,
+                subtitleLabel: widget.subtitleLabel,
               ),
-              
+
               // ── GRID SCROLL AREA ──
               Expanded(
                 child: Container(
                   color: _bg,
-                  child: _isLoading 
-                      ? Center(child: CircularProgressIndicator(color: _t.accent.primary))
+                  child: _isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                              color: _t.accent.primary))
                       : _looks.isEmpty
-                          ? _EmptyState(title: widget.title, emoji: widget.emptyEmoji)
+                          ? _EmptyState(
+                              titleKey: widget.titleKey,
+                              emoji: widget.emptyEmoji)
                           : _LooksGrid(
                               looks: _looks,
                               onDelete: _deleteLook,
-                              onShare: (look) => _showToast('Copied!'),
+                              onShare: (look) =>
+                                  _showToast(context.tr('wardrobe_share')),
                             ),
                 ),
               ),
@@ -175,7 +189,8 @@ class _OccasionBoardState extends State<OccasionBoard> {
               right: 0,
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   decoration: BoxDecoration(
                     color: _phoneShell,
                     borderRadius: BorderRadius.circular(999),
@@ -201,13 +216,17 @@ class _OccasionBoardState extends State<OccasionBoard> {
 // ── Header ───────────────────────────────────────────────────────────────────
 class _Header extends StatelessWidget {
   final String countText;
-  final String title;
-  final String subtitle;
-  
+  final String titleKey;
+  final String subtitleKey;
+  final String? titleLabel;
+  final String? subtitleLabel;
+
   const _Header({
-    required this.countText, 
-    required this.title, 
-    required this.subtitle
+    required this.countText,
+    required this.titleKey,
+    required this.subtitleKey,
+    this.titleLabel,
+    this.subtitleLabel,
   });
 
   @override
@@ -215,7 +234,7 @@ class _Header extends StatelessWidget {
     final t = context.themeTokens;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 48, 14, 16), 
+      padding: const EdgeInsets.fromLTRB(14, 48, 14, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -224,96 +243,58 @@ class _Header extends StatelessWidget {
           colors: [t.phoneShellInner, t.phoneShell, t.backgroundSecondary],
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            top: -30,
-            right: -20,
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 160,
-              height: 160,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [t.accent.tertiary.withValues(alpha: 0.30), t.backgroundPrimary.withValues(alpha: 0.0)],
-                  stops: const [0.0, 0.65],
-                ),
+                color: t.panel,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: t.cardBorder),
               ),
+              child: Icon(Icons.chevron_left_rounded,
+                  color: t.textPrimary, size: 22),
             ),
           ),
-          Positioned(
-            bottom: -20,
-            left: 20,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [t.accent.primary.withValues(alpha: 0.22), t.backgroundPrimary.withValues(alpha: 0.0)],
-                  stops: const [0.0, 0.65],
+          const SizedBox(height: 16),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '${titleLabel ?? context.tr(titleKey)} ',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: t.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
+                TextSpan(
+                  text: subtitleLabel ?? context.tr(subtitleKey),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 26,
+                    fontWeight: FontWeight.w300,
+                    color: t.accent.primary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: t.panel,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: t.cardBorder),
-                      ),
-                      child: Icon(Icons.chevron_left_rounded, color: t.textPrimary, size: 22),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: t.textPrimary,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: t.accent.tertiary.withValues(alpha: 0.85),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    countText,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      color: t.mutedText,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            countText,
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              color: t.mutedText,
+            ),
           ),
         ],
       ),
@@ -324,58 +305,33 @@ class _Header extends StatelessWidget {
 // ── Looks Grid ───────────────────────────────────────────────────────────────
 class _LooksGrid extends StatelessWidget {
   final List<LookItem> looks;
-  final ValueChanged<String> onDelete;
-  final ValueChanged<LookItem> onShare;
-  const _LooksGrid({required this.looks, required this.onDelete, required this.onShare});
+  final void Function(String id) onDelete;
+  final void Function(LookItem look) onShare;
+
+  const _LooksGrid({
+    required this.looks,
+    required this.onDelete,
+    required this.onShare,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return GridView.builder(
       padding: const EdgeInsets.all(12),
-      child: _buildGrid(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.62,
+      ),
+      itemCount: looks.length,
+      itemBuilder: (context, index) => _LookCard(
+        look: looks[index],
+        featured: index == 0,
+        onDelete: onDelete,
+        onShare: onShare,
+      ),
     );
-  }
-
-  Widget _buildGrid() {
-    final List<Widget> rows = [];
-    int i = 0;
-
-    // First card is "featured" (full-width)
-    if (looks.isNotEmpty) {
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _LookCard(look: looks[0], featured: true, onDelete: onDelete, onShare: onShare),
-        ),
-      );
-      i = 1;
-    }
-
-    // Remaining cards in 2-column pairs
-    while (i < looks.length) {
-      final left = looks[i];
-      final right = i + 1 < looks.length ? looks[i + 1] : null;
-      rows.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _LookCard(look: left, featured: false, onDelete: onDelete, onShare: onShare)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: right != null
-                    ? _LookCard(look: right, featured: false, onDelete: onDelete, onShare: onShare)
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
-        ),
-      );
-      i += 2;
-    }
-
-    return Column(children: rows);
   }
 }
 
@@ -383,8 +339,8 @@ class _LooksGrid extends StatelessWidget {
 class _LookCard extends StatefulWidget {
   final LookItem look;
   final bool featured;
-  final ValueChanged<String> onDelete;
-  final ValueChanged<LookItem> onShare;
+  final void Function(String id) onDelete;
+  final void Function(LookItem look) onShare;
 
   const _LookCard({
     required this.look,
@@ -399,76 +355,47 @@ class _LookCard extends StatefulWidget {
 
 class _LookCardState extends State<_LookCard> {
   bool _hovered = false;
+
   AppThemeTokens get _t => context.themeTokens;
 
-  Gradient _bgGradient(LookBgStyle bg) {
+  LinearGradient _bgGradient(LookBgStyle bg) {
     switch (bg) {
       case LookBgStyle.streetwear:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.secondary.withValues(alpha: 0.15), _t.accent.primary.withValues(alpha: 0.18)],
-        );
+        return LinearGradient(colors: [
+          _t.accent.tertiary.withValues(alpha: 0.3),
+          _t.accent.primary.withValues(alpha: 0.15)
+        ]);
       case LookBgStyle.athleisure:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.tertiary.withValues(alpha: 0.18), _t.accent.primary.withValues(alpha: 0.15)],
-        );
-      case LookBgStyle.boho:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.secondary.withValues(alpha: 0.22), _t.accent.tertiary.withValues(alpha: 0.16)],
-        );
-      case LookBgStyle.minimalist:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.primary.withValues(alpha: 0.12), _t.accent.secondary.withValues(alpha: 0.10)],
-        );
-      case LookBgStyle.vintage:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.secondary.withValues(alpha: 0.22), _t.accent.tertiary.withValues(alpha: 0.20)],
-        );
-      case LookBgStyle.monochrome:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.phoneShell.withValues(alpha: 0.60), _t.phoneShellInner.withValues(alpha: 0.50)],
-        );
-      case LookBgStyle.cottagecore:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.tertiary.withValues(alpha: 0.14), _t.accent.secondary.withValues(alpha: 0.20)],
-        );
-      case LookBgStyle.defaultBg:
-        return LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [_t.accent.primary.withValues(alpha: 0.12), _t.accent.tertiary.withValues(alpha: 0.10)],
-        );
+        return LinearGradient(colors: [
+          _t.accent.secondary.withValues(alpha: 0.3),
+          _t.accent.tertiary.withValues(alpha: 0.1)
+        ]);
+      default:
+        return LinearGradient(colors: [_t.panel, _t.backgroundSecondary]);
     }
   }
 
   Color _badgeColor(LookBadgeStyle badge) {
     switch (badge) {
-      case LookBadgeStyle.streetwear: return _t.accent.secondary;
-      case LookBadgeStyle.athleisure: return _t.accent.tertiary;
-      case LookBadgeStyle.boho: return _t.accent.secondary;
-      case LookBadgeStyle.minimalist: return _t.accent.primary;
-      case LookBadgeStyle.vintage: return _t.accent.secondary;
-      case LookBadgeStyle.monochrome: return _t.mutedText;
-      case LookBadgeStyle.cottagecore: return _t.accent.tertiary;
-      case LookBadgeStyle.defaultBadge: return _t.accent.tertiary;
+      case LookBadgeStyle.streetwear: return _t.accent.primary;
+      case LookBadgeStyle.athleisure: return _t.accent.secondary;
+      case LookBadgeStyle.boho: return _t.accent.tertiary;
+      default: return _t.mutedText;
     }
   }
 
   Color _badgeBg(LookBadgeStyle badge) {
     switch (badge) {
-      case LookBadgeStyle.streetwear: return _t.accent.secondary.withValues(alpha: 0.15);
-      case LookBadgeStyle.athleisure: return _t.accent.tertiary.withValues(alpha: 0.15);
-      case LookBadgeStyle.boho: return _t.accent.secondary.withValues(alpha: 0.20);
-      case LookBadgeStyle.minimalist: return _t.accent.primary.withValues(alpha: 0.15);
-      case LookBadgeStyle.vintage: return _t.accent.secondary.withValues(alpha: 0.16);
+      case LookBadgeStyle.streetwear:
+        return _t.accent.primary.withValues(alpha: 0.12);
+      case LookBadgeStyle.minimalist:
+        return _t.accent.primary.withValues(alpha: 0.15);
+      case LookBadgeStyle.vintage:
+        return _t.accent.secondary.withValues(alpha: 0.16);
       case LookBadgeStyle.monochrome: return _t.panel;
-      case LookBadgeStyle.cottagecore: return _t.accent.tertiary.withValues(alpha: 0.14);
-      case LookBadgeStyle.defaultBadge: return _t.panel;
+      case LookBadgeStyle.cottagecore:
+        return _t.accent.tertiary.withValues(alpha: 0.14);
+      default: return _t.panel;
     }
   }
 
@@ -521,9 +448,11 @@ class _LookCardState extends State<_LookCard> {
                       : AspectRatio(
                           aspectRatio: aspectRatio,
                           child: Container(
-                            decoration: BoxDecoration(gradient: _bgGradient(look.bg)),
+                            decoration:
+                                BoxDecoration(gradient: _bgGradient(look.bg)),
                             child: Center(
-                              child: Text(look.emoji, style: const TextStyle(fontSize: 32)),
+                              child: Text(look.emoji,
+                                  style: const TextStyle(fontSize: 32)),
                             ),
                           ),
                         ),
@@ -545,7 +474,8 @@ class _LookCardState extends State<_LookCard> {
                             border: Border.all(color: _t.cardBorder, width: 1),
                           ),
                           child: Center(
-                            child: Icon(Icons.close, size: 14, color: _t.textPrimary),
+                            child: Icon(Icons.close,
+                                size: 14, color: _t.textPrimary),
                           ),
                         ),
                       ),
@@ -562,7 +492,8 @@ class _LookCardState extends State<_LookCard> {
                     // Badge
                     Container(
                       margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
                         color: _badgeBg(look.badge),
                         borderRadius: BorderRadius.circular(4),
@@ -631,10 +562,11 @@ class _LookCardState extends State<_LookCard> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome_rounded, size: 14, color: onAccent),
+                        Icon(Icons.auto_awesome_rounded,
+                            size: 14, color: onAccent),
                         const SizedBox(width: 6),
                         Text(
-                          'Try On',
+                          context.tr('daily_wear_try_on'),
                           style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 12,
@@ -655,11 +587,11 @@ class _LookCardState extends State<_LookCard> {
   }
 }
 
-// ── Empty / No-results states ────────────────────────────────────────────────
+// ── Empty state ──────────────────────────────────────────────────────────────
 class _EmptyState extends StatelessWidget {
-  final String title;
+  final String titleKey;
   final String emoji;
-  const _EmptyState({required this.title, required this.emoji});
+  const _EmptyState({required this.titleKey, required this.emoji});
 
   @override
   Widget build(BuildContext context) {
@@ -673,7 +605,7 @@ class _EmptyState extends StatelessWidget {
             Text(emoji, style: const TextStyle(fontSize: 52)),
             const SizedBox(height: 16),
             Text(
-              'No $title yet',
+              context.tr(titleKey),
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 18,
@@ -683,7 +615,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Save your favorite looks from the AI chat and they\'ll automatically appear here.',
+              context.tr('wardrobe_insight_empty'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Inter',

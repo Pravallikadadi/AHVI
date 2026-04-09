@@ -1,45 +1,47 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/bills_page.dart' as bills_page;
 import 'package:myapp/calendar.dart' as calendar_page;
 import 'package:myapp/daily_wear.dart' as daily_wear_page;
 import 'package:myapp/medi_tracker.dart' as medi_tracker_page;
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 
-const _chipsByModule = <String, List<String>>{
+Map<String, List<String>> _getChipsByModule(BuildContext context) => {
   'style': [
-    'What should I wear today?',
-    'Build a rooftop party outfit',
-    'Show trending casual looks',
+    AppLocalizations.t(context, 'intent_style_s1'),
+    AppLocalizations.t(context, 'intent_style_s2'),
+    AppLocalizations.t(context, 'intent_style_s3'),
   ],
   'organize': [
-    'Today\'s meals',
-    'My medicines',
-    'Pending bills',
-    'Today\'s workout',
-    'Upcoming events',
-    'Today\'s events',
-    'Morning skincare',
-    'My life goals',
+    AppLocalizations.t(context, 'intent_organize_s1'),
+    AppLocalizations.t(context, 'intent_organize_s2'),
+    AppLocalizations.t(context, 'intent_organize_s3'),
+    AppLocalizations.t(context, 'intent_organize_s4'),
+    AppLocalizations.t(context, 'intent_organize_s5'),
+    AppLocalizations.t(context, 'intent_organize_s6'),
+    AppLocalizations.t(context, 'intent_organize_s7'),
+    AppLocalizations.t(context, 'intent_organize_s8'),
   ],
   'plan': [
-    'Plan a 3-day Goa trip',
-    'Pack for business travel',
-    'Create a wedding checklist',
+    AppLocalizations.t(context, 'intent_prepare_s1'),
+    AppLocalizations.t(context, 'intent_prepare_s2'),
+    AppLocalizations.t(context, 'intent_prepare_s3'),
   ],
 };
 
 class _ChatMessage {
   final String text;
   final bool isMe;
+  final bool isGreeting;
   final List<dynamic> chips;
   final String? boardId;
   final String? packId;
@@ -47,6 +49,7 @@ class _ChatMessage {
   _ChatMessage({
     required this.text,
     required this.isMe,
+    this.isGreeting = false,
     this.chips = const [],
     this.boardId,
     this.packId,
@@ -450,6 +453,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── History ────────────────────────────────────────────────────────────────
   List<_ChatSession> _sessions = [];
   late String _currentSessionId;
+  bool _greetingAdded = false;
   String get _module => widget.moduleContext.toLowerCase().trim() == 'prepare'
       ? 'plan'
       : widget.moduleContext.toLowerCase().trim();
@@ -458,20 +462,29 @@ class _ChatScreenState extends State<ChatScreen>
   void initState() {
     super.initState();
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
-    _fetchUser();
     _loadSessions();
     _initSpeech();
-    _messages.add(
-      _ChatMessage(
-        text: "Hi! I'm AHVI. How can I help you style or plan your day?",
-        isMe: false,
-      ),
-    );
-    final pendingPrompt = widget.initialPrompt?.trim();
-    if (pendingPrompt != null && pendingPrompt.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _sendMessage(pendingPrompt);
-      });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_greetingAdded) {
+      _greetingAdded = true;
+      _fetchUser();
+      _messages.add(
+        _ChatMessage(
+          text: '',
+          isMe: false,
+          isGreeting: true,
+        ),
+      );
+      final pendingPrompt = widget.initialPrompt?.trim();
+      if (pendingPrompt != null && pendingPrompt.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _sendMessage(pendingPrompt);
+        });
+      }
     }
   }
 
@@ -602,8 +615,9 @@ class _ChatScreenState extends State<ChatScreen>
       _messages
         ..clear()
         ..add(_ChatMessage(
-          text: "Hi! I'm AHVI. How can I help you style or plan your day?",
+          text: '',
           isMe: false,
+          isGreeting: true,
         ));
       _chatHistory.clear();
       _runningMemory = '';
@@ -621,8 +635,9 @@ class _ChatScreenState extends State<ChatScreen>
       _messages.clear();
       // Rebuild _messages from history for display
       _messages.add(_ChatMessage(
-        text: "Hi! I'm AHVI. How can I help you style or plan your day?",
+        text: '',
         isMe: false,
+        isGreeting: true,
       ));
       for (final h in session.history) {
         _messages.add(_ChatMessage(
@@ -669,7 +684,7 @@ class _ChatScreenState extends State<ChatScreen>
       }
       final aiText =
           response['message']?['content']?.toString() ??
-          "I'm having trouble connecting.";
+          AppLocalizations.t(context, 'chat_connection_error');
       _chatHistory.add({'role': 'assistant', 'content': aiText});
       setState(
         () => _messages.add(
@@ -687,7 +702,7 @@ class _ChatScreenState extends State<ChatScreen>
       if (!mounted) return;
       setState(
         () => _messages.add(
-          _ChatMessage(text: 'Connection Error: $e', isMe: false),
+          _ChatMessage(text: '${AppLocalizations.t(context, 'chat_error_prefix')}: $e', isMe: false),
         ),
       );
     } finally {
@@ -759,31 +774,31 @@ class _ChatScreenState extends State<ChatScreen>
         leading: widget.showBackButton
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                tooltip: 'Back',
+                tooltip: AppLocalizations.t(context, 'chat_back'),
                 onPressed: () => Navigator.of(context).pop(),
               )
             : Padding(
                 padding: const EdgeInsets.only(left: 16),
                 child: Text(
                   'AHVI',
-                  style: GoogleFonts.anton(
+                  style: GoogleFonts.inter(
                     color: t.textPrimary,
                     fontSize: 36,
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: 3.2,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
                     height: 1.0,
                   ),
                 ),
               ),
-        leadingWidth: widget.showBackButton ? 56 : 100,
+        leadingWidth: widget.showBackButton ? 56 : 130,
         title: widget.showBackButton
             ? Text(
                 'AHVI',
-                style: GoogleFonts.anton(
+                style: GoogleFonts.inter(
                   color: t.textPrimary,
                   fontSize: 36,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 3.2,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
                   height: 1.0,
                 ),
               )
@@ -792,7 +807,7 @@ class _ChatScreenState extends State<ChatScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.history_rounded),
-            tooltip: 'Chat History',
+            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
         ],
@@ -817,7 +832,7 @@ class _ChatScreenState extends State<ChatScreen>
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'AHVI is typing...',
+                  AppLocalizations.t(context, 'chat_typing'),
                   style: TextStyle(color: t.mutedText, fontSize: 12),
                 ),
               ),
@@ -845,7 +860,7 @@ class _ChatScreenState extends State<ChatScreen>
               child: Row(
                 children: [
                   Text(
-                    'Chats',
+                    AppLocalizations.t(context, 'chat_history_title'),
                     style: TextStyle(
                       color: t.textPrimary,
                       fontSize: 20,
@@ -869,9 +884,9 @@ class _ChatScreenState extends State<ChatScreen>
                         children: [
                           const Icon(Icons.add, color: Colors.white, size: 14),
                           const SizedBox(width: 4),
-                          const Text(
-                            'New',
-                            style: TextStyle(
+                          Text(
+                            AppLocalizations.t(context, 'chat_new'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -891,7 +906,7 @@ class _ChatScreenState extends State<ChatScreen>
               child: _sessions.isEmpty
                   ? Center(
                       child: Text(
-                        'No past chats yet.\nStart a conversation!',
+                        AppLocalizations.t(context, 'chat_no_history'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: t.mutedText, fontSize: 13),
                       ),
@@ -968,8 +983,8 @@ class _ChatScreenState extends State<ChatScreen>
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inDays == 0) return 'Today';
-    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays == 0) return AppLocalizations.t(context, 'chat_today');
+    if (diff.inDays == 1) return AppLocalizations.t(context, 'chat_yesterday');
     if (diff.inDays < 7) return '${diff.inDays} days ago';
     return '${dt.day}/${dt.month}/${dt.year}';
   }
@@ -998,7 +1013,9 @@ class _ChatScreenState extends State<ChatScreen>
             border: m.isMe ? null : Border.all(color: t.cardBorder),
           ),
           child: Text(
-            m.text,
+            m.isGreeting
+                ? AppLocalizations.t(context, 'chat_greeting')
+                : m.text,
             style: TextStyle(
               color: m.isMe ? Colors.white : t.textPrimary,
               fontSize: 14.5,
@@ -1029,8 +1046,13 @@ class _ChatScreenState extends State<ChatScreen>
 
   Widget _localView(_LocalResponse r, AppThemeTokens t) {
     if (r.type == _RespType.outfits) {
+      final screenW = MediaQuery.of(context).size.width;
+      final screenH = MediaQuery.of(context).size.height;
+      final outfitCardW = (screenW * 0.22).clamp(80.0, 110.0);
+      final outfitStripH = (screenH * 0.20).clamp(140.0, 175.0);
+      final outfitImgH = outfitStripH * 0.62;
       return SizedBox(
-        height: 155,
+        height: outfitStripH,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: r.outfits.length,
@@ -1038,7 +1060,7 @@ class _ChatScreenState extends State<ChatScreen>
           itemBuilder: (context, i) {
             final o = r.outfits[i];
             return Container(
-              width: 86,
+              width: outfitCardW,
               decoration: BoxDecoration(
                 color: t.card,
                 borderRadius: BorderRadius.circular(12),
@@ -1049,7 +1071,7 @@ class _ChatScreenState extends State<ChatScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(
-                    height: 96,
+                    height: outfitImgH,
                     child: Image.network(
                       o.image,
                       fit: BoxFit.cover,
@@ -1062,7 +1084,7 @@ class _ChatScreenState extends State<ChatScreen>
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                    padding: const EdgeInsets.fromLTRB(7, 5, 7, 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1074,11 +1096,13 @@ class _ChatScreenState extends State<ChatScreen>
                             fontWeight: FontWeight.w600,
                           ),
                           overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         const SizedBox(height: 2),
                         Wrap(
                           spacing: 3,
-                          children: o.tags
+                          runSpacing: 2,
+                          children: o.tags.take(2)
                               .map(
                                 (tag) => Container(
                                   padding: const EdgeInsets.symmetric(
@@ -1150,6 +1174,8 @@ class _ChatScreenState extends State<ChatScreen>
                             fontSize: 12.5,
                             height: 1.5,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -1167,7 +1193,11 @@ class _ChatScreenState extends State<ChatScreen>
     final accent = t.accent.primary;
     final done = d.rows.where((x) => x.done).length;
     return Container(
-      margin: const EdgeInsets.only(left: 4, right: 28, bottom: 16),
+      margin: EdgeInsets.only(
+        left: 4,
+        right: (MediaQuery.of(context).size.width * 0.07).clamp(16.0, 28.0),
+        bottom: 16,
+      ),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: t.card,
@@ -1249,11 +1279,15 @@ class _ChatScreenState extends State<ChatScreen>
                             fontSize: 12.5,
                             fontWeight: FontWeight.w600,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           x.sub,
                           style: TextStyle(color: t.mutedText, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -1412,7 +1446,11 @@ class _ChatScreenState extends State<ChatScreen>
         final progress = totalItems == 0 ? 0.0 : totalChecked / totalItems;
 
         return Container(
-          margin: const EdgeInsets.only(left: 4, right: 28, bottom: 16),
+          margin: EdgeInsets.only(
+            left: 4,
+            right: (MediaQuery.of(context).size.width * 0.07).clamp(16.0, 28.0),
+            bottom: 16,
+          ),
           decoration: BoxDecoration(
             color: t.backgroundSecondary,
             borderRadius: BorderRadius.circular(18),
@@ -1623,7 +1661,7 @@ class _ChatScreenState extends State<ChatScreen>
                                   fontSize: 12,
                                 ),
                                 decoration: InputDecoration(
-                                  hintText: '+ Add item…',
+                                  hintText: AppLocalizations.t(context, 'chat_add_item'),
                                   hintStyle: TextStyle(
                                     color: t.mutedText,
                                     fontSize: 12,
@@ -1699,7 +1737,7 @@ class _ChatScreenState extends State<ChatScreen>
                                 children: [
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Save to a Style Board',
+                                    AppLocalizations.t(context, 'save_to_board_title'),
                                     style: TextStyle(
                                       color: t.textPrimary,
                                       fontSize: 15,
@@ -1752,7 +1790,7 @@ class _ChatScreenState extends State<ChatScreen>
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      isSaved ? 'List Saved!' : 'Save to Style Board',
+                      isSaved ? AppLocalizations.t(context, 'list_saved') : AppLocalizations.t(context, 'save_to_board'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onPrimary,
@@ -1771,7 +1809,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _chips(AppThemeTokens t) {
-    final chips = _chipsByModule[_module] ?? const <String>[];
+    final chips = _getChipsByModule(context)[_module] ?? const <String>[];
     if (chips.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 40,
@@ -1856,7 +1894,7 @@ class _ChatScreenState extends State<ChatScreen>
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                       border: InputBorder.none,
-                      hintText: 'Ask AHVI anything...',
+                      hintText: AppLocalizations.t(context, 'chat_hint'),
                       hintStyle: TextStyle(color: t.mutedText, fontSize: 14.5),
                     ),
                     onSubmitted: (v) {
@@ -2019,7 +2057,7 @@ class _LensActionSheet extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'AHVI Lens',
+                      AppLocalizations.t(context, 'lens_title'),
                       style: TextStyle(
                         color: textHeading,
                         fontSize: 16,
@@ -2077,7 +2115,7 @@ class _LensActionSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Visual AI Search',
+                        AppLocalizations.t(context, 'lens_visual_ai_search'),
                         style: TextStyle(
                           color: textHeading,
                           fontSize: 14,
@@ -2086,7 +2124,7 @@ class _LensActionSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Point at any item to find, save, or get styling advice.',
+                        AppLocalizations.t(context, 'lens_visual_ai_desc'),
                         style: TextStyle(
                           color: textMuted,
                           fontSize: 11.5,
@@ -2102,8 +2140,8 @@ class _LensActionSheet extends StatelessWidget {
           // options
           _LensOptionTile(
             icon: Icons.search,
-            name: 'Find Similar',
-            desc: 'Discover similar items with shopping links',
+            name: AppLocalizations.t(context, 'lens_find_similar'),
+            desc: AppLocalizations.t(context, 'lens_find_similar_desc'),
             color: accent,
             textHeading: textHeading,
             textMuted: textMuted,
@@ -2113,8 +2151,8 @@ class _LensActionSheet extends StatelessWidget {
           ),
           _LensOptionTile(
             icon: Icons.add_photo_alternate_outlined,
-            name: 'Add to Wardrobe',
-            desc: 'Save to your collection',
+            name: AppLocalizations.t(context, 'lens_add_wardrobe'),
+            desc: AppLocalizations.t(context, 'lens_add_wardrobe_desc'),
             color: accentSecondary,
             textHeading: textHeading,
             textMuted: textMuted,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 import 'package:myapp/theme/theme_tokens.dart';
@@ -82,7 +83,7 @@ class _AhviStylistFabState extends State<AhviStylistFab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Ask AHVI',
+                    AppLocalizations.t(context, 'ask_ahvi'),
                     style: GoogleFonts.anton(
                       fontSize: 13,
                       color: Colors.white,
@@ -135,12 +136,12 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
   final List<_ChatSession> _history = [];
   String? _currentSessionId;
 
-  final List<String> _quickPrompts = const [
-    'What should I wear today?',
-    'Style tips for tonight',
-    'Build a minimal routine',
-    'Help me plan my day',
-    'Smart tips for this week',
+  List<String> _getQuickPrompts(BuildContext context) => [
+    AppLocalizations.t(context, 'wear_chip_today'),
+    AppLocalizations.t(context, 'wear_chip_style_tips'),
+    AppLocalizations.t(context, 'wear_chip_first_date'),
+    AppLocalizations.t(context, 'wear_chip_linen'),
+    AppLocalizations.t(context, 'wear_chip_colours'),
   ];
 
   @override
@@ -158,8 +159,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
       setState(() {
         _messages.add(
           _SheetMessage(
-            text:
-                "Hi! I'm AHVI, your personal AI stylist ✦\n\nAsk me about outfit ideas, routines, planning, or daily recommendations.",
+            textKey: 'chat_greeting',
             isUser: false,
           ),
         );
@@ -171,9 +171,10 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
     if (_messages.isEmpty) return;
     final userMessages = _messages.where((m) => m.isUser).toList();
     if (userMessages.isEmpty) return;
-    final title = userMessages.first.text.length > 40
-        ? '${userMessages.first.text.substring(0, 40)}…'
-        : userMessages.first.text;
+    final rawText = userMessages.first.text ?? '';
+    final title = rawText.length > 40
+        ? '${rawText.substring(0, 40)}…'
+        : rawText;
     final existingIdx = _history.indexWhere((s) => s.id == _currentSessionId);
     final session = _ChatSession(
       id: _currentSessionId!,
@@ -199,8 +200,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
       _inputController.clear();
       _messages.add(
         _SheetMessage(
-          text:
-              "Hi! I'm AHVI, your personal AI stylist ✦\n\nAsk me about outfit ideas, routines, planning, or daily recommendations.",
+          textKey: 'chat_greeting',
           isUser: false,
         ),
       );
@@ -254,25 +254,25 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
       if (!mounted) return;
       setState(() {
         _typing = false;
-        _messages.add(_SheetMessage(text: _buildReply(trimmed), isUser: false));
+        _messages.add(_SheetMessage(text: _buildReply(context, trimmed), isUser: false));
       });
       _scrollToBottom();
       _saveCurrentSession();
     });
   }
 
-  String _buildReply(String query) {
+  String _buildReply(BuildContext context, String query) {
     final q = query.toLowerCase();
     if (q.contains('wear') || q.contains('outfit')) {
-      return 'Go for a clean base and one accent layer. Keep colors coordinated and match footwear to the occasion.';
+      return AppLocalizations.t(context, 'ai_sug_4');
     }
     if (q.contains('routine') || q.contains('skin')) {
-      return 'Keep it simple and consistent: cleanse, targeted treatment, moisturize, and SPF in daytime.';
+      return AppLocalizations.t(context, 'ai_sug_2');
     }
     if (q.contains('plan') || q.contains('meal') || q.contains('workout')) {
-      return 'Start with your top 3 priorities today, then build around time blocks so your plan stays realistic.';
+      return AppLocalizations.t(context, 'ai_sug_3');
     }
-    return 'Great question. Tell me your goal and context, and I will give you a concise personalized recommendation.';
+    return AppLocalizations.t(context, 'chat_greeting');
   }
 
   Widget _historyDrawer() {
@@ -287,7 +287,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
               padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
               child: Row(children: [
                 Text(
-                  'Chats',
+                  AppLocalizations.t(context, 'common_chats'),
                   style: GoogleFonts.anton(
                     fontSize: 20,
                     color: t.textPrimary,
@@ -305,10 +305,10 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.add, color: Colors.white, size: 14),
                       SizedBox(width: 4),
-                      Text('New', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                      Text(AppLocalizations.t(context, 'common_new'), style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                     ]),
                   ),
                 ),
@@ -320,7 +320,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
               child: _history.isEmpty
                   ? Center(
                       child: Text(
-                        'No chats yet.\nStart a conversation!',
+                        AppLocalizations.t(context, 'chat_no_history'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: t.mutedText, fontSize: 13),
                       ),
@@ -477,7 +477,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                         ),
                       ),
                       Text(
-                        'Your personal AI stylist',
+                        AppLocalizations.t(context, 'daily_wear_ai_stylist_sub'),
                         style: TextStyle(
                           fontSize: 11,
                           color: t.mutedText,
@@ -520,7 +520,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (_, i) => GestureDetector(
-                  onTap: () => _sendMessage(_quickPrompts[i]),
+                  onTap: () => _sendMessage(_getQuickPrompts(context)[i]),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -532,7 +532,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                       border: Border.all(color: t.cardBorder),
                     ),
                     child: Text(
-                      _quickPrompts[i],
+                      _getQuickPrompts(context)[i],
                       style: TextStyle(
                         fontSize: 11,
                         color: t.accent.secondary,
@@ -542,7 +542,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                   ),
                 ),
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemCount: _quickPrompts.length,
+                itemCount: _getQuickPrompts(context).length,
               ),
             ),
           Container(
@@ -555,7 +555,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               controller: _inputController,
               focusNode: _inputFocusNode,
-              hintText: 'Ask your stylist...',
+              hintText: AppLocalizations.t(context, 'daily_wear_chat_hint'),
               hasText: _chatHasText,
               surface: t.phoneShellInner,
               border: t.cardBorder,
@@ -582,10 +582,17 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
 }
 
 class _SheetMessage {
-  final String text;
+  final String? text;
+  final String? textKey;
   final bool isUser;
 
-  _SheetMessage({required this.text, required this.isUser});
+  _SheetMessage({this.text, this.textKey, required this.isUser})
+      : assert(text != null || textKey != null);
+
+  String resolve(BuildContext context) {
+    if (textKey != null) return AppLocalizations.t(context, textKey!);
+    return text ?? '';
+  }
 }
 
 class _Bubble extends StatelessWidget {
@@ -627,7 +634,7 @@ class _Bubble extends StatelessWidget {
           ],
         ),
         child: Text(
-          msg.text,
+          msg.resolve(context),
           style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.45),
         ),
       ),

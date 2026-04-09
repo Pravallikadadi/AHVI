@@ -28,6 +28,8 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart'; // <-- Added Backend Service
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'; // 🆕 Localization
+import 'package:myapp/app_localizations.dart';                      // 🆕 Localization
 
 Future<void> main() async {
   // Ensure Flutter bindings are initialized before calling async methods
@@ -67,8 +69,28 @@ abstract final class _A {
 // ─────────────────────────────────────────────────────────────────────────────
 //  APP ROOT
 // ─────────────────────────────────────────────────────────────────────────────
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  // 🆕 ఏ screen నుండైనా language మార్చడానికి
+  static _MyAppState? of(BuildContext context) =>
+      context.findAncestorStateOfType<_MyAppState>();
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Maps profile language name → locale code
+  static Locale _langToLocale(String lang) {
+    const map = {
+      'English': 'en', 'Hindi': 'hi', 'Tamil': 'ta',
+      'Telugu': 'te', 'Kannada': 'kn', 'Malayalam': 'ml',
+      'Bengali': 'bn', 'Marathi': 'mr', 'French': 'fr',
+      'Spanish': 'es', 'German': 'de', 'Arabic': 'ar', 'Japanese': 'ja',
+    };
+    return Locale(map[lang] ?? 'en');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,15 +100,13 @@ class MyApp extends StatelessWidget {
           create: (context) => ThemeController()..loadTheme(),
         ),
         ChangeNotifierProvider(create: (context) => ProfileController()),
-        // FIXED: AppwriteService extends ChangeNotifier, so it MUST use ChangeNotifierProvider
         ChangeNotifierProvider<AppwriteService>(
           create: (_) => AppwriteService(),
         ),
-        // Python AI Backend Service
         Provider<BackendService>(create: (_) => BackendService()),
       ],
-      child: Consumer<ThemeController>(
-        builder: (context, controller, child) {
+      child: Consumer2<ThemeController, ProfileController>(
+        builder: (context, controller, profileCtrl, child) {
           final accent = getAccentPalette(controller.currentTheme);
           final lightTokens = AppThemeTokens.light(accent);
           final darkTokens = AppThemeTokens.dark(accent);
@@ -112,7 +132,20 @@ class MyApp extends StatelessWidget {
             darkTheme: darkTheme,
             themeMode: controller.themeMode,
 
-            // Uses AuthWrapper to check session on startup
+            // Locale driven directly by ProfileController — updates all screens
+            locale: _langToLocale(profileCtrl.state.lang),
+            supportedLocales: const [
+              Locale('en'), Locale('hi'), Locale('ta'), Locale('te'),
+              Locale('kn'), Locale('ml'), Locale('bn'), Locale('mr'),
+              Locale('fr'), Locale('es'), Locale('de'), Locale('ar'), Locale('ja'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+
             home: const AuthWrapper(),
 
             routes: {
@@ -142,13 +175,8 @@ class MyApp extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 //  NAV ITEMS
 // ─────────────────────────────────────────────────────────────────────────────
-const _navItems = <({IconData icon, String label})>[
-  (icon: Icons.home_outlined, label: 'Home'),
-  (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
-  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
-  (icon: Icons.grid_view_rounded, label: 'Planner'),
-  (icon: Icons.explore_outlined, label: 'Explore'),
-];
+// Nav items are now built dynamically inside _buildBottomNav()
+// so they respond to locale changes automatically.
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN NAVIGATION SHELL
@@ -171,19 +199,8 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   late final AnimationController _lensSheetCtrl;
   late final List<AnimationController> _navRiseCtrls;
 
-  // Persistent pages — keep state alive via IndexedStack
-  // NOTE: Pages are defined once as final widgets so IndexedStack preserves
-  // their state, but they still respond to theme changes via InheritedWidget
-  // (Theme) propagation — no caching needed.
-  late final List<Widget> _pages = [
-    _HomePageHost(onNavTapRequested: _switchToIndex),
-    const ChatScreen(showBackButton: false),
-    const WardrobeScreen(),
-    const BoardsScreen(),
-    const SizedBox.shrink(),
-  ];
-
-  Widget _pageForIndex(int index) => _pages[index];
+  // Pages are built in build() so locale changes trigger proper rebuilds.
+  // PageStorageKey preserves scroll state across tab switches.
 
   @override
   void initState() {
@@ -192,7 +209,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     _lensSheetCtrl = AnimationController(vsync: this, duration: _A.sheet);
 
     _navRiseCtrls = List.generate(
-      _navItems.length,
+      5, // Home, Chat, Wardrobe, Planner, Explore
       (i) => AnimationController(
         vsync: this,
         duration: _A.normal,
@@ -277,6 +294,24 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    // ✅ Built here so locale changes rebuild nav labels automatically
+    final l = AppLocalizations.of(context);
+    final navItems = <({IconData icon, String label})>[
+      (icon: Icons.home_outlined,               label: l?.translate('home') ?? 'Home'),
+      (icon: Icons.chat_bubble_outline_rounded, label: l?.translate('chat') ?? 'Chat'),
+      (icon: Icons.dry_cleaning_outlined,       label: l?.translate('wardrobe') ?? 'Wardrobe'),
+      (icon: Icons.grid_view_rounded,           label: l?.translate('planner') ?? 'Planner'),
+      (icon: Icons.explore_outlined,            label: l?.translate('explore') ?? 'Explore'),
+    ];
+
+    // ✅ Built here so locale changes cause a full rebuild of all screens
+    final pages = <Widget>[
+      _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _switchToIndex),
+      const ChatScreen(key: PageStorageKey('chat'), showBackButton: false),
+      const WardrobeScreen(key: PageStorageKey('wardrobe')),
+      const BoardsScreen(key: PageStorageKey('boards')),
+      const SizedBox.shrink(),
+    ];
     return NotificationListener<ShellBackNavigationNotification>(
       onNotification: (notification) => _handleShellBack(),
       child: PopScope(
@@ -294,10 +329,10 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               Positioned.fill(
                 child: IndexedStack(
                   index: _currentIndex,
-                  children: List<Widget>.generate(_navItems.length, (index) {
+                  children: List<Widget>.generate(navItems.length, (index) {
                     return TickerMode(
                       enabled: index == _currentIndex,
-                      child: _pageForIndex(index),
+                      child: pages[index],
                     );
                   }),
                 ),
@@ -308,7 +343,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 left: _S.base,
                 right: _S.base,
                 bottom: _S.base,
-                child: _buildBottomNav(),
+                child: _buildBottomNav(navItems),
               ),
 
               // Lens sheet (conditionally rendered)
@@ -324,7 +359,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   }
 
   // ── Bottom nav ─────────────────────────────────────────────────────────────
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(List<({IconData icon, String label})> navItems) {
     const pillH = 64.0;
     const maxBulge = 11.0;
     const totalH = pillH + maxBulge + 6.0;
@@ -351,7 +386,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 child: CustomPaint(
                   painter: _NavPillPainter(
                     activeIdx: activeIdx,
-                    itemCount: _navItems.length,
+                    itemCount: navItems.length,
                     bulgeT: bulgeT,
                     pillH: pillH,
                     maxBulge: maxBulge,
@@ -369,10 +404,10 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 bottom: 0,
                 height: pillH,
                 child: Row(
-                  children: List.generate(_navItems.length, (i) {
+                  children: List.generate(navItems.length, (i) {
                     final active = activeIdx == i;
                     final rise = -10.0 * _navRiseCtrls[i].value;
-                    final item = _navItems[i];
+                    final item = navItems[i];
 
                     return Expanded(
                       child: GestureDetector(
@@ -915,8 +950,7 @@ class _PressButtonState extends State<_PressButton> {
 //  HOME PAGE HOST
 // ═════════════════════════════════════════════════════════════════════════════
 class _HomePageHost extends StatelessWidget {
-  const _HomePageHost({required this.onNavTapRequested});
-
+  const _HomePageHost({super.key, required this.onNavTapRequested});
   final ValueChanged<int> onNavTapRequested;
 
   @override

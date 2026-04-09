@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:appwrite/appwrite.dart';
 import 'package:myapp/app_routes.dart';
-import 'package:provider/provider.dart'; // <-- Added Provider
-import 'package:myapp/services/appwrite_service.dart'; // <-- Added AppwriteService
+import 'package:provider/provider.dart';
+import 'package:myapp/services/appwrite_service.dart';
 
 void main() => runApp(const AhviApp());
 
@@ -52,6 +53,28 @@ class SignInScreen extends StatelessWidget {
     }
   }
 
+  // --- Real Apple Login Flow ---
+  Future<void> _handleAppleLogin(BuildContext context) async {
+    final appwrite = Provider.of<AppwriteService>(context, listen: false);
+    final success = await appwrite.loginWithApple();
+    if (success && context.mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.main,
+        (route) => false,
+      );
+    } else if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Apple Sign-In failed or was canceled.'),
+          backgroundColor: const Color(0xFFBF3B3B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,9 +86,8 @@ class SignInScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 child: _SignUpPage(
-                  // --- NEW: Wired up the Google button ---
                   onGoogleTap: () => _handleGoogleLogin(context),
-                  onAppleTap: () => _goToMain(context),
+                  onAppleTap: () => _handleAppleLogin(context),
                   onEmailTap: () => _goToEmailAuth(context),
                 ),
               ),
@@ -87,6 +109,7 @@ class EmailAuthScreen extends StatefulWidget {
 class _EmailAuthScreenState extends State<EmailAuthScreen> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _passwordCtrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -108,27 +131,76 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
     return regex.hasMatch(trimmed);
   }
 
-  void _showValidationError(String message) {
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+            isError ? const Color(0xFFBF3B3B) : const Color(0xFF2E7D52),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
     );
   }
 
-  void _onSignIn() {
+  Future<void> _onSignIn() async {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
+
     if (!_isValidEmail(email)) {
-      _showValidationError('Please enter a valid email address.');
+      _showSnackBar('Please enter a valid email address.');
       return;
     }
     if (password.trim().isEmpty) {
-      _showValidationError('Please enter your password.');
+      _showSnackBar('Please enter your password.');
       return;
     }
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoutes.main,
-      (route) => false,
-    );
+
+    setState(() => _isLoading = true);
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      final session = await appwrite.loginEmailPassword(email, password);
+      if (!mounted) return;
+      if (session != null) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          AppRoutes.main,
+          (route) => false,
+        );
+      }
+    } on AppwriteException catch (e) {
+      if (e.code == 401) {
+        _showSnackBar('Invalid email or password. Please try again.');
+      } else {
+        _showSnackBar('Something went wrong. Please try again.');
+      }
+    } catch (_) {
+      _showSnackBar('Something went wrong. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onForgotPassword() async {
+    final email = _emailCtrl.text.trim();
+    if (!_isValidEmail(email)) {
+      _showSnackBar(
+          'Enter your email address above first, then tap Forgot password.');
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      await appwrite.sendPasswordReset(email);
+      if (!mounted) return;
+      _showSnackBar('Password reset link sent to $email', isError: false);
+    } catch (_) {
+      _showSnackBar('Failed to send reset email. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _onCreateAccount() {
@@ -144,16 +216,29 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 child: _SignInPage(
                   emailController: _emailCtrl,
                   passwordController: _passwordCtrl,
                   onCreateAccount: _onCreateAccount,
                   onSignIn: _onSignIn,
+                  onForgotPassword: _onForgotPassword,
+                  isLoading: _isLoading,
                 ),
               ),
             ),
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.35),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF8D7DFF),
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -350,13 +435,17 @@ class _SignUpPage extends StatelessWidget {
 class _SignInPage extends StatelessWidget {
   final VoidCallback onCreateAccount;
   final VoidCallback onSignIn;
+  final VoidCallback onForgotPassword;
   final TextEditingController emailController;
   final TextEditingController passwordController;
+  final bool isLoading;
   const _SignInPage({
     required this.onCreateAccount,
     required this.onSignIn,
+    required this.onForgotPassword,
     required this.emailController,
     required this.passwordController,
+    this.isLoading = false,
   });
 
   @override
@@ -384,21 +473,26 @@ class _SignInPage extends StatelessWidget {
             obscure: true,
             controller: passwordController,
             textInputAction: TextInputAction.done,
+            onSubmitted: (_) => onSignIn(),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 20),
-              child: _AnimatedForgotPassword(onTap: () {}),
+              child: _AnimatedForgotPassword(onTap: onForgotPassword),
             ),
           ),
-          _PrimaryButton(label: 'Sign In', onTap: onSignIn),
+          _PrimaryButton(
+            label: isLoading ? 'Signing in…' : 'Sign In',
+            onTap: isLoading ? () {} : onSignIn,
+          ),
           const SizedBox(height: 18),
           Center(
             child: GestureDetector(
               onTap: onCreateAccount,
               child: const _HoverOpacity(
-                child: _LinkText(prefix: 'New here? ', highlight: 'Create New Account'),
+                child: _LinkText(
+                    prefix: 'New here? ', highlight: 'Create New Account'),
               ),
             ),
           ),
@@ -470,6 +564,7 @@ class _AnimatedInputField extends StatefulWidget {
   final TextEditingController? controller;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
   const _AnimatedInputField({
     required this.icon,
     required this.placeholder,
@@ -477,6 +572,7 @@ class _AnimatedInputField extends StatefulWidget {
     this.controller,
     this.keyboardType,
     this.textInputAction,
+    this.onSubmitted,
   });
   @override
   State<_AnimatedInputField> createState() => _AnimatedInputFieldState();
@@ -538,6 +634,7 @@ class _AnimatedInputFieldState extends State<_AnimatedInputField> {
         keyboardType: widget.keyboardType,
         textInputAction: widget.textInputAction,
         obscureText: widget.obscure,
+        onSubmitted: widget.onSubmitted,
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,

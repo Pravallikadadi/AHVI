@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:myapp/chat.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
@@ -249,7 +250,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       SnackBar(
         content: Text(
           msg,
-          style: TextStyle(fontFamily: 'Inter', color: t.textPrimary),
+          style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, color: t.textPrimary),
         ),
         backgroundColor: t.backgroundSecondary,
         behavior: SnackBarBehavior.floating,
@@ -280,21 +281,21 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         title: Text(
           'Remove item?',
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.inter().fontFamily,
             fontWeight: FontWeight.w600,
             color: t.textPrimary,
           ),
         ),
         content: Text(
           'Remove "${item.name}" from your wardrobe?',
-          style: TextStyle(fontFamily: 'Inter', color: t.mutedText),
+          style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, color: t.mutedText),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'Cancel',
-              style: TextStyle(fontFamily: 'Inter', color: t.mutedText),
+              AppLocalizations.t(context, 'cancel'),
+              style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, color: t.mutedText),
             ),
           ),
           TextButton(
@@ -304,8 +305,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               _showToast('🗑 "${item.name}" removed');
             },
             child: Text(
-              'Remove',
-              style: TextStyle(fontFamily: 'Inter', color: accent4),
+              AppLocalizations.t(context, 'wardrobe_remove'),
+              style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, color: accent4),
             ),
           ),
         ],
@@ -340,9 +341,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               child: const Text('✦', style: TextStyle(color: Colors.white)),
             ),
             const SizedBox(width: 10),
-            const Text(
-              'Ask AHVI',
-              style: TextStyle(
+            Text(
+              AppLocalizations.t(context, 'ask_ahvi'),
+              style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -385,7 +386,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         body: Column(
           children: [
             _AppHeader(
-              title: _activeTab == 0 ? 'My Wardrobe' : 'Insights',
+              title: _activeTab == 0 ? AppLocalizations.t(context, 'wardrobe_title') : AppLocalizations.t(context, 'wardrobe_insights'),
               activeTab: _activeTab,
               onTabTap: _setTab,
               onAddTap: _openAddModal,
@@ -577,7 +578,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                       child: Text(
                         item.name,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
                           color: t.textPrimary,
@@ -606,7 +607,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                           child: Text(
                             item.cat,
                             style: TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: GoogleFonts.inter().fontFamily,
                               fontSize: 12,
                               color: t.accent.secondary,
                               fontWeight: FontWeight.w500,
@@ -617,7 +618,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                         Text(
                           item.worn == 0 ? 'Never worn' : 'Worn ${item.worn}×',
                           style: TextStyle(
-                            fontFamily: 'Inter',
+                            fontFamily: GoogleFonts.inter().fontFamily,
                             fontSize: 13,
                             color: t.mutedText,
                           ),
@@ -695,18 +696,18 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                                         CrossAxisAlignment.start,
                                     children: [
                                       _DetailInfoRow(
-                                        label: 'Category',
+                                        label: AppLocalizations.t(context, 'wardrobe_category'),
                                         value: item.cat,
                                       ),
                                       const SizedBox(height: 10),
                                       _DetailInfoRow(
-                                        label: 'Times worn',
+                                        label: AppLocalizations.t(context, 'wardrobe_times_worn'),
                                         value: '${item.worn}',
                                       ),
                                       if (item.notes.isNotEmpty) ...[
                                         const SizedBox(height: 10),
                                         _DetailInfoRow(
-                                          label: 'Notes',
+                                          label: AppLocalizations.t(context, 'wardrobe_notes'),
                                           value: item.notes,
                                         ),
                                       ],
@@ -736,7 +737,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                                       child: Text(
                                         o,
                                         style: TextStyle(
-                                          fontFamily: 'Inter',
+                                          fontFamily: GoogleFonts.inter().fontFamily,
                                           fontSize: 12,
                                           color: t.mutedText,
                                         ),
@@ -762,7 +763,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                       runSpacing: 8,
                       children: [
                         _HoverTintButton(
-                          label: '+ Wore it today',
+                          label: AppLocalizations.t(context, 'wardrobe_wore_today'),
                           bgColor: t.accent.tertiary.withValues(alpha: 0.12),
                           hoverBgColor: t.accent.tertiary.withValues(
                             alpha: 0.22,
@@ -772,7 +773,7 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                         ),
                         StatefulBuilder(
                           builder: (ctx, setSt) => _HoverTintButton(
-                            label: item.liked ? '♥ Liked' : '♡ Like',
+                            label: item.liked ? AppLocalizations.t(context, 'wardrobe_liked') : AppLocalizations.t(context, 'wardrobe_like'),
                             bgColor: item.liked
                                 ? accent4.withValues(alpha: 0.12)
                                 : t.panel,
@@ -787,14 +788,14 @@ class _ItemDetailPanelState extends State<_ItemDetailPanel>
                           ),
                         ),
                         _HoverTintButton(
-                          label: '↗ Share',
+                          label: AppLocalizations.t(context, 'wardrobe_share'),
                           bgColor: t.panel,
                           hoverBgColor: t.panelBorder,
                           fgColor: t.textPrimary,
                           onTap: widget.onShare,
                         ),
                         _HoverTintButton(
-                          label: 'Remove',
+                          label: AppLocalizations.t(context, 'wardrobe_remove'),
                           bgColor: accent4.withValues(alpha: 0.08),
                           hoverBgColor: accent4.withValues(alpha: 0.18),
                           fgColor: accent4,
@@ -852,7 +853,7 @@ class _HoverTintButtonState extends State<_HoverTintButton> {
           child: Text(
             widget.label,
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: widget.fgColor,
@@ -878,7 +879,7 @@ class _DetailInfoRow extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.inter().fontFamily,
             fontSize: 10,
             fontWeight: FontWeight.w600,
             color: t.mutedText,
@@ -889,7 +890,7 @@ class _DetailInfoRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.inter().fontFamily,
             fontSize: 14,
             color: t.textPrimary,
           ),
@@ -1032,7 +1033,7 @@ class _AddItemModalState extends State<_AddItemModal>
       _cameras = await availableCameras();
       if (_cameras.isEmpty) return;
       final cam = _isFront && _cameras.length > 1 ? _cameras[1] : _cameras[0];
-      _camCtrl = CameraController(cam, ResolutionPreset.high, enableAudio: false);
+      _camCtrl = CameraController(cam, ResolutionPreset.medium, enableAudio: false);
       await _camCtrl!.initialize();
       await _camCtrl!.setFlashMode(_flash);
       if (mounted) setState(() => _camReady = true);
@@ -1056,6 +1057,12 @@ class _AddItemModalState extends State<_AddItemModal>
     try {
       final xfile = await _camCtrl!.takePicture();
       final bytes = await File(xfile.path).readAsBytes();
+
+      // ✅ Camera no longer needed — dispose immediately to save battery
+      await _camCtrl?.dispose();
+      _camCtrl = null;
+      if (mounted) setState(() => _camReady = false);
+
       setState(() {
         _capturedBytes = bytes;
         _step = _ModalStep.detecting;
@@ -1073,6 +1080,11 @@ class _AddItemModalState extends State<_AddItemModal>
       final files = await picker.pickMultiImage(imageQuality: 90, limit: 6);
       if (files.isEmpty) return;
       if (!mounted) return;
+
+      // ✅ Gallery picked — camera no longer needed, dispose to save battery
+      await _camCtrl?.dispose();
+      _camCtrl = null;
+      if (mounted) setState(() => _camReady = false);
 
       // Warn if user had more than 6 selected (some platforms ignore limit)
       final capped = files.take(6).toList();
@@ -1233,14 +1245,18 @@ class _AddItemModalState extends State<_AddItemModal>
     }
   }
 
-  void _retake() => setState(() {
-    _step = _ModalStep.camera;
-    _capturedBytes = null;
-    _galleryImages = [];
-    _isGalleryPick = false;
-    _detected = [];
-    _detectError = null;
-  });
+  void _retake() {
+    setState(() {
+      _step = _ModalStep.camera;
+      _capturedBytes = null;
+      _galleryImages = [];
+      _isGalleryPick = false;
+      _detected = [];
+      _detectError = null;
+    });
+    // ✅ Restart camera fresh for retake
+    _initCamera();
+  }
 
   void _editItem(int index) {
     final item = _detected[index];
@@ -1313,7 +1329,7 @@ class _AddItemModalState extends State<_AddItemModal>
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: TextStyle(fontFamily: 'Inter', color: t.textPrimary)),
+      content: Text(msg, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, color: t.textPrimary)),
       backgroundColor: t.backgroundSecondary,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1460,9 +1476,9 @@ class _AddItemModalState extends State<_AddItemModal>
             ),
           ),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(titles[_step]!, style: TextStyle(fontFamily: 'Inter', fontSize: 16,
+          Text(titles[_step]!, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 16,
               fontWeight: FontWeight.w700, color: t.textPrimary, letterSpacing: -0.3)),
-          Text(subtitles[_step]!, style: TextStyle(fontFamily: 'Inter', fontSize: 11, color: t.mutedText)),
+          Text(subtitles[_step]!, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 11, color: t.mutedText)),
         ])),
         GestureDetector(
           onTap: () => Navigator.of(context).pop(),
@@ -1506,8 +1522,8 @@ class _AddItemModalState extends State<_AddItemModal>
                 child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                   CircularProgressIndicator(color: t.accent.primary, strokeWidth: 2),
                   const SizedBox(height: 12),
-                  Text('Starting camera…',
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: Colors.white60)),
+                  Text(AppLocalizations.t(context, 'wardrobe_starting_camera'),
+                      style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 13, color: Colors.white60)),
                 ])),
               ),
         // ── Corner frame guides ──
@@ -1553,7 +1569,7 @@ class _AddItemModalState extends State<_AddItemModal>
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     const Icon(Icons.photo_library_outlined, size: 16, color: Colors.white),
                     const SizedBox(width: 7),
-                    const Text('Gallery', style: TextStyle(fontFamily: 'Inter',
+                    Text(AppLocalizations.t(context, 'wardrobe_gallery'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
                   ]),
                 ),
@@ -1605,7 +1621,7 @@ class _AddItemModalState extends State<_AddItemModal>
           const SizedBox(height: 24),
           Text(
             isMulti ? 'Scanning ${_galleryImages.length} images…' : 'Scanning outfit…',
-            style: TextStyle(fontFamily: 'Inter', fontSize: 20,
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 20,
                 fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: -0.3),
           ),
           const SizedBox(height: 8),
@@ -1613,7 +1629,7 @@ class _AddItemModalState extends State<_AddItemModal>
             isMulti
                 ? 'AI is detecting items from all images in parallel'
                 : 'AI is detecting your items',
-            style: TextStyle(fontFamily: 'Inter', fontSize: 13,
+            style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 13,
                 color: Colors.white54, fontWeight: FontWeight.w400),
           ),
         ])),
@@ -1661,7 +1677,7 @@ class _AddItemModalState extends State<_AddItemModal>
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Icon(Icons.refresh, size: 13, color: t.mutedText),
                     const SizedBox(width: 5),
-                    Text('Retake', style: TextStyle(fontFamily: 'Inter',
+                    Text(AppLocalizations.t(context, 'wardrobe_retake'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 12, color: t.mutedText, fontWeight: FontWeight.w600)),
                   ]),
                 ),
@@ -1696,10 +1712,10 @@ class _AddItemModalState extends State<_AddItemModal>
                     color: Colors.black.withOpacity(0.60),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.refresh, color: Colors.white, size: 13),
-                    SizedBox(width: 5),
-                    Text('Retake', style: TextStyle(fontFamily: 'Inter',
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Icon(Icons.refresh, color: Colors.white, size: 13),
+                    const SizedBox(width: 5),
+                    Text(AppLocalizations.t(context, 'wardrobe_retake'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
                   ]),
                 ),
@@ -1722,7 +1738,7 @@ class _AddItemModalState extends State<_AddItemModal>
                 Icon(Icons.info_outline, size: 15, color: t.accent.primary),
                 const SizedBox(width: 8),
                 Expanded(child: Text(_detectError!, style: TextStyle(
-                    fontFamily: 'Inter', fontSize: 12, color: t.mutedText))),
+                    fontFamily: GoogleFonts.inter().fontFamily, fontSize: 12, color: t.mutedText))),
               ]),
               const SizedBox(height: 10),
               GestureDetector(
@@ -1733,7 +1749,7 @@ class _AddItemModalState extends State<_AddItemModal>
                     gradient: LinearGradient(colors: [t.accent.primary, t.accent.tertiary]),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('Try again', style: TextStyle(fontFamily: 'Inter',
+                  child: Text(AppLocalizations.t(context, 'wardrobe_try_again'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                       fontSize: 12, fontWeight: FontWeight.w600, color: t.textPrimary)),
                 ),
               ),
@@ -1756,8 +1772,8 @@ class _AddItemModalState extends State<_AddItemModal>
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text('✦', style: TextStyle(fontSize: 9, color: t.accent.primary)),
                   const SizedBox(width: 4),
-                  Text('${_detected.length} detected · max 6',
-                      style: TextStyle(fontFamily: 'Inter', fontSize: 11,
+                  Text("${_detected.length} ${AppLocalizations.t(context, 'wardrobe_detected')}",
+                      style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 11,
                           fontWeight: FontWeight.w700, color: t.accent.primary)),
                 ]),
               ),
@@ -1781,8 +1797,8 @@ class _AddItemModalState extends State<_AddItemModal>
                   }
                 },
                 child: Text(
-                  _detected.every((i) => i.selected) ? 'Deselect all' : 'Select all',
-                  style: TextStyle(fontFamily: 'Inter', fontSize: 12,
+                  _detected.every((i) => i.selected) ? AppLocalizations.t(context, 'wardrobe_deselect_all') : AppLocalizations.t(context, 'wardrobe_select_all'),
+                  style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 12,
                       color: t.accent.primary, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1833,7 +1849,7 @@ class _AddItemModalState extends State<_AddItemModal>
                       ),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(item.name, style: TextStyle(fontFamily: 'Inter', fontSize: 14,
+                        Text(item.name, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14,
                             fontWeight: FontWeight.w600, color: t.textPrimary)),
                         const SizedBox(height: 5),
                         Wrap(spacing: 5, runSpacing: 4, children: [
@@ -1878,11 +1894,11 @@ class _AddItemModalState extends State<_AddItemModal>
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               const Text('🔍', style: TextStyle(fontSize: 40)),
               const SizedBox(height: 12),
-              Text('No items detected', style: TextStyle(fontFamily: 'Inter', fontSize: 15,
+              Text(AppLocalizations.t(context, 'wardrobe_no_items'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 15,
                   fontWeight: FontWeight.w600, color: t.textPrimary)),
               const SizedBox(height: 4),
-              Text('Try better lighting or a clearer angle.',
-                  style: TextStyle(fontFamily: 'Inter', fontSize: 12, color: t.mutedText)),
+              Text(AppLocalizations.t(context, 'wardrobe_no_items_desc'),
+                  style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 12, color: t.mutedText)),
               const SizedBox(height: 16),
               GestureDetector(
                 onTap: _retake,
@@ -1892,7 +1908,7 @@ class _AddItemModalState extends State<_AddItemModal>
                     gradient: LinearGradient(colors: [t.accent.primary, t.accent.tertiary]),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('Retake photo', style: TextStyle(fontFamily: 'Inter',
+                  child: Text(AppLocalizations.t(context, 'wardrobe_retake_photo'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                       fontSize: 13, fontWeight: FontWeight.w600, color: t.textPrimary)),
                 ),
               ),
@@ -1925,15 +1941,15 @@ class _AddItemModalState extends State<_AddItemModal>
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('🖼', style: TextStyle(fontSize: 10)),
                     const SizedBox(width: 4),
-                    Text('${_galleryImages.length} photos selected',
-                        style: TextStyle(fontFamily: 'Inter', fontSize: 11,
+                    Text("${_galleryImages.length} ${AppLocalizations.t(context, 'wardrobe_photos_selected')}",
+                        style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 11,
                             fontWeight: FontWeight.w700, color: t.accent.primary)),
                   ]),
                 ),
                 const Spacer(),
                 GestureDetector(
                   onTap: _retake,
-                  child: Text('Change', style: TextStyle(fontFamily: 'Inter',
+                  child: Text(AppLocalizations.t(context, 'wardrobe_change'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                       fontSize: 12, color: t.accent.primary, fontWeight: FontWeight.w600)),
                 ),
               ]),
@@ -1985,7 +2001,7 @@ class _AddItemModalState extends State<_AddItemModal>
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('✦', style: TextStyle(fontSize: 9, color: t.textPrimary)),
                     const SizedBox(width: 5),
-                    Text('AI Auto-filled', style: TextStyle(fontFamily: 'Inter',
+                    Text(AppLocalizations.t(context, 'wardrobe_ai_filled'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 11, fontWeight: FontWeight.w700, color: t.textPrimary)),
                   ]),
                 ),
@@ -1996,14 +2012,14 @@ class _AddItemModalState extends State<_AddItemModal>
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _ModalField(label: 'Item name *',
+            _ModalField(label: AppLocalizations.t(context, 'wardrobe_item_name'),
                 child: _StyledInput(controller: _nameCtrl, hint: 'e.g. White linen shirt')),
             const SizedBox(height: 14),
-            _ModalField(label: 'Category *',
+            _ModalField(label: AppLocalizations.t(context, 'wardrobe_category_required'),
                 child: _CategoryDropdown(value: _selectedCat, categories: _cats,
                     onChanged: (v) => setState(() => _selectedCat = v ?? ''))),
             const SizedBox(height: 14),
-            _ModalField(label: 'Occasions',
+            _ModalField(label: AppLocalizations.t(context, 'occasion'),
                 child: Wrap(spacing: 7, runSpacing: 7,
                   children: _occs.map((occ) {
                     final active = _selectedOccs.contains(occ);
@@ -2019,7 +2035,7 @@ class _AddItemModalState extends State<_AddItemModal>
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: active ? t.accent.primary : t.cardBorder, width: 1.5),
                         ),
-                        child: Text(occ, style: TextStyle(fontFamily: 'Inter', fontSize: 13,
+                        child: Text(occ, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: active ? t.textPrimary : t.mutedText)),
                       ),
@@ -2027,7 +2043,7 @@ class _AddItemModalState extends State<_AddItemModal>
                   }).toList(),
                 )),
             const SizedBox(height: 14),
-            _ModalField(label: 'Notes (optional)',
+            _ModalField(label: AppLocalizations.t(context, 'wardrobe_notes_optional'),
                 child: _StyledInput(controller: _notesCtrl,
                     hint: 'Colour, material, where you got it…', maxLines: 3)),
           ]),
@@ -2056,7 +2072,7 @@ class _AddItemModalState extends State<_AddItemModal>
               decoration: BoxDecoration(color: t.panel, borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: t.cardBorder, width: 1.5)),
               alignment: Alignment.center,
-              child: Text('Cancel', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: t.mutedText)),
+              child: Text(AppLocalizations.t(context, 'cancel'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14, color: t.mutedText)),
             ),
           ),
         ),
@@ -2083,8 +2099,8 @@ class _AddItemModalState extends State<_AddItemModal>
                 border: Border.all(color: t.cardBorder, width: 1.5),
               ),
               alignment: Alignment.center,
-              child: Text('Cancel', style: TextStyle(
-                  fontFamily: 'Inter', fontSize: 14, color: t.mutedText)),
+              child: Text(AppLocalizations.t(context, 'cancel'), style: TextStyle(
+                  fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14, color: t.mutedText)),
             ),
           ),
         ),
@@ -2095,7 +2111,7 @@ class _AddItemModalState extends State<_AddItemModal>
       _ModalStep.camera    => '',
       _ModalStep.detecting => '✦  Detecting…',
       _ModalStep.results   => selCount == 0
-          ? 'Select items'
+          ? AppLocalizations.t(context, 'wardrobe_select_items')
           : 'Add $selCount/6 item${selCount != 1 ? 's' : ''} to Wardrobe →',
       _ModalStep.editing   => _editingIndex != null ? 'Save changes' : 'Save to wardrobe ✦',
     };
@@ -2120,7 +2136,7 @@ class _AddItemModalState extends State<_AddItemModal>
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
             decoration: BoxDecoration(color: t.panel, borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: t.cardBorder, width: 1.5)),
-            child: Text('Cancel', style: TextStyle(fontFamily: 'Inter', fontSize: 14, color: t.mutedText)),
+            child: Text(AppLocalizations.t(context, 'cancel'), style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14, color: t.mutedText)),
           ),
         ),
         const SizedBox(width: 10),
@@ -2140,7 +2156,7 @@ class _AddItemModalState extends State<_AddItemModal>
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: Text(primaryLabel, style: TextStyle(fontFamily: 'Inter', fontSize: 14,
+              child: Text(primaryLabel, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14,
                   fontWeight: FontWeight.w700, color: t.textPrimary)),
             ),
           ),
@@ -2251,7 +2267,7 @@ class _SmallPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(color: color.withOpacity(0.14),
           borderRadius: BorderRadius.circular(20)),
-      child: Text(label, style: TextStyle(fontFamily: 'Inter', fontSize: 10,
+      child: Text(label, style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 10,
           color: color, fontWeight: FontWeight.w500)),
     );
   }
@@ -2271,7 +2287,7 @@ class _ModalField extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: t.mutedText,
@@ -2316,7 +2332,7 @@ class _UploadSourceButton extends StatelessWidget {
                 label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: GoogleFonts.inter().fontFamily,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: t.mutedText,
@@ -2353,7 +2369,7 @@ class _StyledInput extends StatelessWidget {
         controller: controller,
         maxLines: maxLines,
         style: TextStyle(
-            fontFamily: 'Inter', fontSize: 14, color: t.textPrimary),
+            fontFamily: GoogleFonts.inter().fontFamily, fontSize: 14, color: t.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: t.mutedText),
@@ -2388,13 +2404,13 @@ class _CategoryDropdown extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value.isEmpty ? null : value,
-          hint: Text('— Select —',
+          hint: Text(AppLocalizations.t(context, 'wardrobe_select_hint'),
               style:
-              TextStyle(color: t.mutedText, fontFamily: 'Inter')),
+              TextStyle(color: t.mutedText, fontFamily: GoogleFonts.inter().fontFamily)),
           isExpanded: true,
           dropdownColor: t.backgroundSecondary,
           style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 14,
               color: t.textPrimary),
           items: categories
@@ -2465,7 +2481,7 @@ class _AppHeader extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
                           color: t.textPrimary,
@@ -2504,9 +2520,9 @@ class _AppHeader extends StatelessWidget {
                                 Icon(Icons.add, color: t.textPrimary, size: 16),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Add item',
+                                  AppLocalizations.t(context, 'wardrobe_add_item'),
                                   style: TextStyle(
-                                    fontFamily: 'Inter',
+                                    fontFamily: GoogleFonts.inter().fontFamily,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
                                     color: t.textPrimary,
@@ -2539,12 +2555,12 @@ class _AppHeader extends StatelessWidget {
                     child: TextField(
                       onChanged: onSearch,
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 15,
                         color: t.textPrimary,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Search your notes, tags…',
+                        hintText: AppLocalizations.t(context, 'wardrobe_search_hint'),
                         hintStyle: TextStyle(color: t.mutedText),
                         isDense: true,
                         border: InputBorder.none,
@@ -2618,7 +2634,7 @@ class _FilterBar extends StatelessWidget {
 
     final chips = [
       _ChipData(
-        label: 'All',
+        label: AppLocalizations.t(context, 'wardrobe_all'),
         icon: Icons.grid_view_rounded,
         activeGradient: LinearGradient(
           colors: [t.accent.primary, t.accent.secondary],
@@ -2631,7 +2647,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Tops',
+        label: AppLocalizations.t(context, 'cat_tops'),
         icon: Icons.checkroom_outlined,
         activeBg: t.accent.primary.withValues(alpha: 0.28),
         activeBorder: t.accent.primary,
@@ -2642,7 +2658,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Bottoms',
+        label: AppLocalizations.t(context, 'cat_bottoms'),
         icon: Icons.format_align_justify,
         activeBg: t.accent.secondary.withValues(alpha: 0.28),
         activeBorder: t.accent.secondary,
@@ -2653,7 +2669,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Outerwear',
+        label: AppLocalizations.t(context, 'cat_outerwear'),
         icon: Icons.umbrella_outlined,
         activeBg: t.accent.tertiary.withValues(alpha: 0.22),
         activeBorder: t.accent.tertiary,
@@ -2664,7 +2680,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Footwear',
+        label: AppLocalizations.t(context, 'cat_footwear'),
         icon: Icons.directions_walk,
         activeBg: accent5.withValues(alpha: 0.22),
         activeBorder: accent5,
@@ -2675,7 +2691,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Dresses',
+        label: AppLocalizations.t(context, 'cat_dresses'),
         icon: Icons.dry_cleaning_outlined,
         activeBg: accent4.withValues(alpha: 0.22),
         activeBorder: accent4,
@@ -2686,7 +2702,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Accessories',
+        label: AppLocalizations.t(context, 'cat_accessories'),
         icon: Icons.watch_outlined,
         activeBg: t.accent.secondary.withValues(alpha: 0.24),
         activeBorder: t.accent.secondary,
@@ -2697,7 +2713,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Bags',
+        label: AppLocalizations.t(context, 'cat_bags'),
         icon: Icons.shopping_bag_outlined,
         activeBg: bags.withValues(alpha: 0.22),
         activeBorder: bags,
@@ -2708,7 +2724,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Jewelry',
+        label: AppLocalizations.t(context, 'cat_jewelry'),
         icon: Icons.diamond_outlined,
         activeBg: jewelry.withValues(alpha: 0.22),
         activeBorder: jewelry,
@@ -2719,7 +2735,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Makeup',
+        label: AppLocalizations.t(context, 'cat_makeup'),
         icon: Icons.face_retouching_natural,
         activeBg: makeup.withValues(alpha: 0.22),
         activeBorder: makeup,
@@ -2730,7 +2746,7 @@ class _FilterBar extends StatelessWidget {
         activeText: t.textPrimary,
       ),
       _ChipData(
-        label: 'Skincare',
+        label: AppLocalizations.t(context, 'cat_skincare'),
         icon: Icons.spa_outlined,
         activeBg: skincare.withValues(alpha: 0.22),
         activeBorder: skincare,
@@ -2868,7 +2884,7 @@ class _FilterChipState extends State<_FilterChip> {
               Text(
                 widget.chip.label,
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: GoogleFonts.inter().fontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: widget.isActive
@@ -2982,7 +2998,7 @@ class _InlineInsightCardState extends State<_InlineInsightCard>
   String _computeInsightText() {
     final total = widget.wardrobe.length;
     if (total == 0) {
-      return 'Add items to your wardrobe to unlock smart style insights.';
+      return AppLocalizations.t(context, 'wardrobe_insight_empty');
     }
     final wornItems = widget.wardrobe.where((i) => i.worn > 0).toList();
     final unwornCount = total - wornItems.length;
@@ -3094,9 +3110,9 @@ class _InlineInsightCardState extends State<_InlineInsightCard>
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'AI INSIGHT',
+                      AppLocalizations.t(context, 'wardrobe_ai_insight'),
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: GoogleFonts.inter().fontFamily,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         color: accent2,
@@ -3109,7 +3125,7 @@ class _InlineInsightCardState extends State<_InlineInsightCard>
                 Text(
                   _computeInsightText(),
                   style: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: GoogleFonts.inter().fontFamily,
                     fontSize: 12.5,
                     color: t.mutedText,
                     height: 1.5,
@@ -3404,7 +3420,7 @@ class _ItemCardState extends State<_ItemCard>
                         Text(
                           item.name,
                           style: TextStyle(
-                            fontFamily: 'Inter',
+                            fontFamily: GoogleFonts.inter().fontFamily,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: t.textPrimary,
@@ -3419,7 +3435,7 @@ class _ItemCardState extends State<_ItemCard>
                             Text(
                               item.cat,
                               style: TextStyle(
-                                fontFamily: 'Inter',
+                                fontFamily: GoogleFonts.inter().fontFamily,
                                 fontSize: 11,
                                 color: t.mutedText,
                               ),
@@ -3436,7 +3452,7 @@ class _ItemCardState extends State<_ItemCard>
                               child: Text(
                                 wornLabel,
                                 style: TextStyle(
-                                  fontFamily: 'Inter',
+                                  fontFamily: GoogleFonts.inter().fontFamily,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                   color: wornTextColor,
@@ -3584,7 +3600,7 @@ class _ItemCardState extends State<_ItemCard>
                                   '+ Wore it',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    fontFamily: 'Inter',
+                                    fontFamily: GoogleFonts.inter().fontFamily,
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: t.tileText,
@@ -3692,9 +3708,9 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Your wardrobe is empty',
+            AppLocalizations.t(context, 'wardrobe_empty_title'),
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 22,
               fontWeight: FontWeight.w600,
               color: t.textPrimary,
@@ -3703,9 +3719,9 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add pieces to start building your digital closet and get AI-powered outfit ideas.',
+            AppLocalizations.t(context, 'wardrobe_empty_desc'),
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 14,
               color: t.mutedText,
               height: 1.7,
@@ -3724,9 +3740,9 @@ class _EmptyState extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '+ Add first item',
+                  '+ ${AppLocalizations.t(context, 'wardrobe_add_first_item')}',
                 style: TextStyle(
-                  fontFamily: 'Inter',
+                  fontFamily: GoogleFonts.inter().fontFamily,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: t.textPrimary,
@@ -3758,7 +3774,7 @@ class _EmptySearch extends StatelessWidget {
           Text(
             'No results',
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 20,
               fontWeight: FontWeight.w600,
               color: t.textPrimary,
@@ -3768,7 +3784,7 @@ class _EmptySearch extends StatelessWidget {
           Text(
             'Try a different search or category.',
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 14,
               color: t.mutedText,
             ),
@@ -3801,7 +3817,7 @@ class _StatsPanel extends StatelessWidget {
           Text(
             'Overview',
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: t.textPrimary,
@@ -3829,7 +3845,7 @@ class _StatsPanel extends StatelessWidget {
                 iconBg: t.accent.primary.withValues(alpha: 0.25),
                 iconChar: '👕',
                 number: '$total',
-                label: 'TOTAL PIECES',
+                label: AppLocalizations.t(context, 'wardrobe_total_pieces'),
                 sub: 'in your wardrobe',
               ),
               _HoverStatCard(
@@ -3844,7 +3860,7 @@ class _StatsPanel extends StatelessWidget {
                 iconBg: accent4.withValues(alpha: 0.25),
                 iconChar: '👗',
                 number: '0',
-                label: 'OUTFITS SAVED',
+                label: AppLocalizations.t(context, 'wardrobe_outfits_saved'),
                 sub: 'ready to wear',
               ),
               _HoverStatCard(
@@ -3859,7 +3875,7 @@ class _StatsPanel extends StatelessWidget {
                 iconBg: t.accent.tertiary.withValues(alpha: 0.25),
                 iconChar: '✓',
                 number: '$totalWears',
-                label: 'TIMES WORN',
+                label: AppLocalizations.t(context, 'wardrobe_times_worn_stat'),
                 sub: 'total logs',
               ),
               _HoverStatCard(
@@ -3874,7 +3890,7 @@ class _StatsPanel extends StatelessWidget {
                 iconBg: t.accent.secondary.withValues(alpha: 0.25),
                 iconChar: '★',
                 number: '$wearRate%',
-                label: 'WEAR RATE',
+                label: AppLocalizations.t(context, 'wardrobe_wear_rate'),
                 sub: 'items worn at least once',
               ),
             ],
@@ -3907,7 +3923,7 @@ class _StatsPanel extends StatelessWidget {
           child: Text(
             'No wear logs yet',
             style: TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: GoogleFonts.inter().fontFamily,
               fontSize: 13,
               color: t.mutedText,
             ),
@@ -3935,7 +3951,7 @@ class _StatsPanel extends StatelessWidget {
         child: Text(
           'Everything has been worn — great work! 🎉',
           style: TextStyle(
-            fontFamily: 'Inter',
+            fontFamily: GoogleFonts.inter().fontFamily,
             fontSize: 13,
             fontStyle: FontStyle.italic,
             color: t.mutedText,
@@ -3986,7 +4002,7 @@ class _StatsPanel extends StatelessWidget {
                           Text(
                             item.name,
                             style: TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: GoogleFonts.inter().fontFamily,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: t.textPrimary,
@@ -3998,7 +4014,7 @@ class _StatsPanel extends StatelessWidget {
                           Text(
                             item.cat,
                             style: TextStyle(
-                              fontFamily: 'Inter',
+                              fontFamily: GoogleFonts.inter().fontFamily,
                               fontSize: 11,
                               color: t.mutedText,
                             ),
@@ -4021,7 +4037,7 @@ class _StatsPanel extends StatelessWidget {
                       child: Text(
                         'Unworn',
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
                           color: accent4,
@@ -4058,7 +4074,7 @@ class _StatsPanel extends StatelessWidget {
       Text(
         label,
         style: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: GoogleFonts.inter().fontFamily,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: context.themeTokens.mutedText,
@@ -4177,7 +4193,7 @@ class _MostWornHoverCardState extends State<_MostWornHoverCard> {
             Text(
               widget.item.name,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: GoogleFonts.inter().fontFamily,
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
                 color: t.textPrimary,
@@ -4190,7 +4206,7 @@ class _MostWornHoverCardState extends State<_MostWornHoverCard> {
             Text(
               '${widget.item.worn}× worn',
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: GoogleFonts.inter().fontFamily,
                 fontSize: 10,
                 color: t.accent.secondary,
               ),
@@ -4279,7 +4295,7 @@ class _HoverStatCardState extends State<_HoverStatCard> {
             Text(
               widget.number,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: GoogleFonts.inter().fontFamily,
                 fontSize: 40,
                 fontWeight: FontWeight.w700,
                 color: t.textPrimary,
@@ -4291,7 +4307,7 @@ class _HoverStatCardState extends State<_HoverStatCard> {
             Text(
               widget.label,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: GoogleFonts.inter().fontFamily,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: t.textPrimary,
@@ -4302,7 +4318,7 @@ class _HoverStatCardState extends State<_HoverStatCard> {
             Text(
               widget.sub,
               style: TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: GoogleFonts.inter().fontFamily,
                 fontSize: 12,
                 color: t.textPrimary.withValues(alpha: 0.75),
                 fontStyle: FontStyle.italic,
@@ -4373,7 +4389,7 @@ class _BarSectionState extends State<_BarSection>
                       child: Text(
                         bar.label,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           fontSize: 13,
                           color: t.mutedText,
                           fontWeight: FontWeight.w400,
@@ -4412,7 +4428,7 @@ class _BarSectionState extends State<_BarSection>
                         '${(bar.value * 100).round()}',
                         textAlign: TextAlign.right,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           fontSize: 12,
                           color: t.mutedText,
                         ),
@@ -4522,7 +4538,7 @@ class _WardrobeLensSheet extends StatelessWidget {
                     Text(
                       'AHVI Lens',
                       style: TextStyle(
-                        fontFamily: 'Inter',
+                        fontFamily: GoogleFonts.inter().fontFamily,
                         color: textHeading,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -4580,7 +4596,7 @@ class _WardrobeLensSheet extends StatelessWidget {
                       Text(
                         'Visual AI Search',
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           color: textHeading,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -4590,7 +4606,7 @@ class _WardrobeLensSheet extends StatelessWidget {
                       Text(
                         'Point at any item to find, save, or get styling advice.',
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           color: textMuted,
                           fontSize: 11.5,
                           height: 1.5,
@@ -4716,7 +4732,7 @@ class _WardrobeLensOptionState extends State<_WardrobeLensOption> {
                       Text(
                         widget.name,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           color: widget.textHeading,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -4725,7 +4741,7 @@ class _WardrobeLensOptionState extends State<_WardrobeLensOption> {
                       Text(
                         widget.desc,
                         style: TextStyle(
-                          fontFamily: 'Inter',
+                          fontFamily: GoogleFonts.inter().fontFamily,
                           color: widget.textMuted,
                           fontSize: 11,
                         ),

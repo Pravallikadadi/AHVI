@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:myapp/app_localizations.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -92,77 +93,85 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   String _weatherContext = '';
   String? _suggestionBanner;
 
-  late final List<Map<String, dynamic>> _allOutfits = [
+  List<Map<String, dynamic>> _buildAllOutfits(BuildContext context) => [
     {
       'id': 'o0',
-      'name': 'Linen & Air',
-      'desc': 'Breathable layers · Perfect for mild days',
-      'tip': 'Ideal for hot & humid weather',
+      'nameKey': 'outfit_linen_air_name',
+      'descKey': 'outfit_linen_air_desc',
+      'tipKey': 'outfit_linen_air_tip',
+      'name': AppLocalizations.t(context, 'outfit_linen_air_name'),
+      'desc': AppLocalizations.t(context, 'outfit_linen_air_desc'),
+      'tip': AppLocalizations.t(context, 'outfit_linen_air_tip'),
       'range': [26, 99],
-      'occ': ['Casual', 'Weekend', 'Travel'],
+      'occ': [AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_weekend'), AppLocalizations.t(context, 'occ_travel')],
       'colors': ['#e8e0d5', '#c8b89a', '#d4a472'],
-      'arTags': const [
-        {'t': 'Linen Overshirt', 'top': 0.28, 'left': 0.18},
-        {'t': 'Drawstring Shorts', 'top': 0.60, 'left': 0.12},
-        {'t': 'Sandals', 'top': 0.82, 'left': 0.22},
+      'arTags': [
+        {'t': AppLocalizations.t(context, 'ar_linen_overshirt'), 'top': 0.28, 'left': 0.18},
+        {'t': AppLocalizations.t(context, 'ar_drawstring_shorts'), 'top': 0.60, 'left': 0.12},
+        {'t': AppLocalizations.t(context, 'ar_sandals'), 'top': 0.82, 'left': 0.22},
       ],
-      'tags': ['Breezy', 'Linen', 'Relaxed Fit', 'Warm Weather'],
-      'img':
-          'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
+      'tags': [AppLocalizations.t(context, 'tag_breezy'), AppLocalizations.t(context, 'tag_linen'), AppLocalizations.t(context, 'tag_relaxed_fit'), AppLocalizations.t(context, 'tag_warm_weather')],
+      'img': 'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
       'localImg': 'images/outfit_linen_air.jpg',
     },
     {
       'id': 'o1',
-      'name': 'Coffee Run',
-      'desc': 'Cosy & put-together · Weekend energy',
-      'tip': 'Great for mild & cool days',
+      'nameKey': 'outfit_coffee_run_name',
+      'descKey': 'outfit_coffee_run_desc',
+      'tipKey': 'outfit_coffee_run_tip',
+      'name': AppLocalizations.t(context, 'outfit_coffee_run_name'),
+      'desc': AppLocalizations.t(context, 'outfit_coffee_run_desc'),
+      'tip': AppLocalizations.t(context, 'outfit_coffee_run_tip'),
       'range': [15, 25],
-      'occ': ['Casual', 'Weekend', 'Errands'],
+      'occ': [AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_weekend'), AppLocalizations.t(context, 'occ_errands')],
       'colors': ['#8d8d8d', '#4a6fa5', '#f5f5f5'],
-      'arTags': const [
-        {'t': 'Oversized Hoodie', 'top': 0.30, 'left': 0.15},
-        {'t': 'Straight Jeans', 'top': 0.62, 'left': 0.10},
-        {'t': 'Chunky Sneakers', 'top': 0.83, 'left': 0.20},
+      'arTags': [
+        {'t': AppLocalizations.t(context, 'ar_oversized_hoodie'), 'top': 0.30, 'left': 0.15},
+        {'t': AppLocalizations.t(context, 'ar_straight_jeans'), 'top': 0.62, 'left': 0.10},
+        {'t': AppLocalizations.t(context, 'ar_chunky_sneakers'), 'top': 0.83, 'left': 0.20},
       ],
-      'tags': ['Cosy', 'Casual', 'Everyday', 'Comfortable'],
-      'img':
-          'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
+      'tags': [AppLocalizations.t(context, 'tag_cosy'), AppLocalizations.t(context, 'tag_casual'), AppLocalizations.t(context, 'tag_everyday'), AppLocalizations.t(context, 'tag_comfortable')],
+      'img': 'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
       'localImg': 'images/outfit_coffee_run.jpg',
     },
     {
       'id': 'o2',
-      'name': 'Office Hours',
-      'desc': 'Sharp & confident · Boardroom ready',
-      'tip': 'Best in comfortable indoor weather',
+      'nameKey': 'outfit_office_hours_name',
+      'descKey': 'outfit_office_hours_desc',
+      'tipKey': 'outfit_office_hours_tip',
+      'name': AppLocalizations.t(context, 'outfit_office_hours_name'),
+      'desc': AppLocalizations.t(context, 'outfit_office_hours_desc'),
+      'tip': AppLocalizations.t(context, 'outfit_office_hours_tip'),
       'range': [18, 28],
-      'occ': ['Work', 'Meetings', 'Formal'],
+      'occ': [AppLocalizations.t(context, 'occ_work'), AppLocalizations.t(context, 'occ_meetings'), AppLocalizations.t(context, 'tag_formal')],
       'colors': ['#2c3e50', '#a8bbd1', '#1a1a1a'],
-      'arTags': const [
-        {'t': 'Slim Blazer', 'top': 0.28, 'left': 0.16},
-        {'t': 'Tailored Trousers', 'top': 0.63, 'left': 0.11},
-        {'t': 'Chelsea Boots', 'top': 0.83, 'left': 0.21},
+      'arTags': [
+        {'t': AppLocalizations.t(context, 'ar_slim_blazer'), 'top': 0.28, 'left': 0.16},
+        {'t': AppLocalizations.t(context, 'ar_tailored_trousers'), 'top': 0.63, 'left': 0.11},
+        {'t': AppLocalizations.t(context, 'ar_chelsea_boots'), 'top': 0.83, 'left': 0.21},
       ],
-      'tags': ['Smart', 'Formal', 'Polished', 'Work-ready'],
-      'img':
-          'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
+      'tags': [AppLocalizations.t(context, 'tag_smart'), AppLocalizations.t(context, 'tag_formal'), AppLocalizations.t(context, 'tag_polished'), AppLocalizations.t(context, 'tag_work_ready')],
+      'img': 'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
       'localImg': 'images/outfit_office_hours.jpg',
     },
     {
       'id': 'o3',
-      'name': 'Golden Hour',
-      'desc': 'Earth tones · Warm palette for evenings',
-      'tip': 'Perfect for warm evenings out',
+      'nameKey': 'outfit_golden_hour_name',
+      'descKey': 'outfit_golden_hour_desc',
+      'tipKey': 'outfit_golden_hour_tip',
+      'name': AppLocalizations.t(context, 'outfit_golden_hour_name'),
+      'desc': AppLocalizations.t(context, 'outfit_golden_hour_desc'),
+      'tip': AppLocalizations.t(context, 'outfit_golden_hour_tip'),
       'range': [20, 30],
-      'occ': ['Date Night', 'Casual', 'Dinner'],
+      'occ': [AppLocalizations.t(context, 'tag_date_night'), AppLocalizations.t(context, 'occ_casual'), AppLocalizations.t(context, 'occ_dinner')],
       'colors': ['#c8864a', '#8b6f5c', '#d4b483'],
-      'arTags': const [
-        {'t': 'Knit Polo', 'top': 0.29, 'left': 0.16},
-        {'t': 'Camel Trousers', 'top': 0.62, 'left': 0.10},
-        {'t': 'Suede Loafers', 'top': 0.83, 'left': 0.20},
+      'arTags': [
+        {'t': AppLocalizations.t(context, 'ar_knit_polo'), 'top': 0.29, 'left': 0.16},
+        {'t': AppLocalizations.t(context, 'ar_camel_trousers'), 'top': 0.62, 'left': 0.10},
+        {'t': AppLocalizations.t(context, 'ar_suede_loafers'), 'top': 0.83, 'left': 0.20},
       ],
-      'tags': ['Earth Tones', 'Trendy', 'Textured', 'Date Night'],
-      'img':
-          'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
+      'tags': [AppLocalizations.t(context, 'tag_earth_tones'), AppLocalizations.t(context, 'tag_trendy'), AppLocalizations.t(context, 'tag_textured'), AppLocalizations.t(context, 'tag_date_night')],
+      'img': 'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
       'localImg': 'images/outfit_golden_hour.jpg',
     },
   ];
@@ -176,7 +185,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Timer? _tryOnStageTimer;
   final List<Timer> _arTagTimers = [];
-  String _tryOnLoadingMessage = 'Requesting camera…';
+  late String _tryOnLoadingMessage;
 
   late AnimationController _optCard0Ctrl;
   late AnimationController _optCard1Ctrl;
@@ -216,14 +225,58 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   bool _micActive = false;
   Timer? _clockAlignTimer;
 
-  final List<String> quickPrompts = [
-    'What to wear today? 🌤️',
-    'Style tips 👔',
-    'First date outfit 💫',
-    'How to style linen? 🌿',
-    'Best colours 🎨',
-    'Office outfit ideas 💼',
-  ];
+  late List<String> quickPrompts;
+  bool _quickPromptsInited = false;
+  bool _outfitsInited = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
+
+    // Rebuild outfit data on every call so text updates when language changes
+    final outfits = _buildAllOutfits(context);
+    if (!_outfitsInited) {
+      _displayedOutfits = List<Map<String, dynamic>>.from(outfits);
+      _savedCarouselById = {
+        for (final outfit in outfits) outfit['id'] as String: false,
+      };
+      _savedOptionById = {
+        for (final outfit in outfits) outfit['id'] as String: false,
+      };
+      _tryOnOutfitId = _displayedOutfits.first['id'] as String;
+      _outfitsInited = true;
+    } else {
+      // Language changed — rebuild displayed outfits preserving order & worn state
+      final currentIds = _displayedOutfits.map((o) => o['id'] as String).toList();
+      final outfitById = {for (final o in outfits) o['id'] as String: o};
+      _displayedOutfits = currentIds
+          .map((id) => outfitById[id] ?? _displayedOutfits.firstWhere((o) => o['id'] == id))
+          .toList();
+    }
+
+    if (!_quickPromptsInited) {
+      quickPrompts = [
+        AppLocalizations.t(context, 'wear_chip_today'),
+        AppLocalizations.t(context, 'wear_chip_style_tips'),
+        AppLocalizations.t(context, 'wear_chip_first_date'),
+        AppLocalizations.t(context, 'wear_chip_linen'),
+        AppLocalizations.t(context, 'wear_chip_colours'),
+        AppLocalizations.t(context, 'wear_chip_office'),
+      ];
+      _quickPromptsInited = true;
+    } else {
+      // Refresh quick prompts text on language change
+      quickPrompts = [
+        AppLocalizations.t(context, 'wear_chip_today'),
+        AppLocalizations.t(context, 'wear_chip_style_tips'),
+        AppLocalizations.t(context, 'wear_chip_first_date'),
+        AppLocalizations.t(context, 'wear_chip_linen'),
+        AppLocalizations.t(context, 'wear_chip_colours'),
+        AppLocalizations.t(context, 'wear_chip_office'),
+      ];
+    }
+  }
 
   List<Map<String, dynamic>> get optionCards {
     final options = _displayedOutfits.skip(1).take(3).toList();
@@ -246,8 +299,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       final outfit = options[index];
       return {
         'outfitId': outfit['id'],
-        'name': outfit['name'],
-        'sub': outfit['desc'],
+        'nameKey': outfit['nameKey'],
+        'name': outfit['nameKey'],
+        'sub': outfit['descKey'],
         'img': outfit['img'],
         'borderColor': borders[index],
         'gradient': gradients[index],
@@ -260,14 +314,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   @override
   void initState() {
     super.initState();
-    _displayedOutfits = List<Map<String, dynamic>>.from(_allOutfits);
-    _savedCarouselById = {
-      for (final outfit in _allOutfits) outfit['id'] as String: false,
-    };
-    _savedOptionById = {
-      for (final outfit in _allOutfits) outfit['id'] as String: false,
-    };
-    _tryOnOutfitId = _displayedOutfits.first['id'] as String;
+    // NOTE: _displayedOutfits, _savedCarouselById, _savedOptionById and
+    // _tryOnOutfitId are initialized in didChangeDependencies() because
+    // they require AppLocalizations (an InheritedWidget) which is not
+    // available during initState().
 
     _updateClock();
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -489,7 +539,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         final temp = (current['temperature_2m'] as num).round();
         final feel = (current['apparent_temperature'] as num).round();
         final code = current['weathercode'] as int;
-        _applyWeather(temp, feel, code);
+        _applyWeather(temp, feel, code, context);
       }
     } catch (_) {
       final hour = DateTime.now().hour;
@@ -528,31 +578,32 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     }
   }
 
-  void _applyWeather(int temp, int feel, int code) {
-    const wm = <int, List<String>>{
-      0: ['☀️', 'Clear sky', 'Great day for light, breezy outfits!'],
-      1: ['🌤️', 'Mostly clear', 'A light layer is all you need.'],
-      2: ['⛅', 'Partly cloudy', 'Perfect for light layers today.'],
-      3: ['☁️', 'Overcast', 'Layer up a little — skies are grey.'],
-      45: ['🌫️', 'Foggy', 'Keep it cosy today.'],
-      51: ['🌦️', 'Light drizzle', 'Grab a light jacket just in case.'],
-      61: ['🌧️', 'Light rain', "Don't forget an umbrella."],
-      63: ['🌧️', 'Rain', 'Waterproof shoes are a must.'],
-      65: ['⛈️', 'Heavy rain', 'Stay dry — full rain gear today.'],
-      80: ['🌦️', 'Showers', 'Pack a compact umbrella.'],
-      95: ['⛈️', 'Thunderstorm', 'Best to stay in today.'],
+  void _applyWeather(int temp, int feel, int code, [BuildContext? ctx]) {
+    final context = ctx ?? this.context;
+    final wm = <int, List<String>>{
+      0: ['☀️', AppLocalizations.t(context, 'weather_clear_sky'), AppLocalizations.t(context, 'weather_clear_sky_tip')],
+      1: ['🌤️', AppLocalizations.t(context, 'weather_mostly_clear'), AppLocalizations.t(context, 'weather_mostly_clear_tip')],
+      2: ['⛅', AppLocalizations.t(context, 'weather_partly_cloudy'), AppLocalizations.t(context, 'weather_partly_cloudy_tip')],
+      3: ['☁️', AppLocalizations.t(context, 'weather_overcast'), AppLocalizations.t(context, 'weather_overcast_tip')],
+      45: ['🌫️', AppLocalizations.t(context, 'weather_foggy'), AppLocalizations.t(context, 'weather_foggy_tip')],
+      51: ['🌦️', AppLocalizations.t(context, 'weather_light_drizzle'), AppLocalizations.t(context, 'weather_light_drizzle_tip')],
+      61: ['🌧️', AppLocalizations.t(context, 'weather_light_rain'), AppLocalizations.t(context, 'weather_light_rain_tip')],
+      63: ['🌧️', AppLocalizations.t(context, 'weather_rain'), AppLocalizations.t(context, 'weather_rain_tip')],
+      65: ['⛈️', AppLocalizations.t(context, 'weather_heavy_rain'), AppLocalizations.t(context, 'weather_heavy_rain_tip')],
+      80: ['🌦️', AppLocalizations.t(context, 'weather_showers'), AppLocalizations.t(context, 'weather_showers_tip')],
+      95: ['⛈️', AppLocalizations.t(context, 'weather_thunderstorm'), AppLocalizations.t(context, 'weather_thunderstorm_tip')],
     };
     final feelsLike = feel >= 36
-        ? 'Very Hot'
+        ? AppLocalizations.t(context, 'feels_very_hot')
         : feel >= 30
-        ? 'Hot'
+        ? AppLocalizations.t(context, 'feels_hot')
         : feel >= 24
-        ? 'Warm'
+        ? AppLocalizations.t(context, 'feels_warm')
         : feel >= 18
-        ? 'Mild'
+        ? AppLocalizations.t(context, 'feels_mild')
         : feel >= 10
-        ? 'Cool'
-        : 'Cold';
+        ? AppLocalizations.t(context, 'feels_cool')
+        : AppLocalizations.t(context, 'feels_cold');
 
     final w = wm[code] ?? wm[2]!;
     if (!mounted) return;
@@ -568,7 +619,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   void _sortOutfitsForWeather(int temp) {
     int score(Map<String, dynamic> outfit) {
-      final range = (outfit['range'] as List).cast<int>();
+      final range = ((outfit['range'] as List?)?.cast<int>() ?? [0, 99]);
       final low = range[0];
       final high = range[1];
       if (temp >= low && temp <= high) return 2;
@@ -576,7 +627,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       return delta <= 5 ? 1 : 0;
     }
 
-    final sorted = List<Map<String, dynamic>>.from(_allOutfits)
+    final sorted = List<Map<String, dynamic>>.from(_buildAllOutfits(context))
       ..sort((a, b) => score(b).compareTo(score(a)));
     final hero = sorted.first;
     final icon = temp >= 30
@@ -587,8 +638,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         ? '🍃'
         : '🧣';
     final banner = score(hero) == 2
-        ? '$icon ${hero['name']} is a perfect fit at $temp°'
-        : '$icon Sorted for $temp° today';
+        ? AppLocalizations.t(context, 'banner_perfect_fit')
+            .replaceAll('{icon}', icon)
+            .replaceAll('{name}', AppLocalizations.t(context, hero['nameKey'] as String))
+            .replaceAll('{temp}', '$temp')
+        : AppLocalizations.t(context, 'banner_sorted_for')
+            .replaceAll('{icon}', icon)
+            .replaceAll('{temp}', '$temp');
     setState(() {
       _displayedOutfits = sorted;
       _carouselIndex = 0;
@@ -650,13 +706,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _wearOutfit(String outfitId, {bool closeModal = false}) {
-    final outfit = _allOutfits.firstWhere((o) => o['id'] == outfitId);
+    final outfit = _buildAllOutfits(context).firstWhere((o) => o['id'] == outfitId);
     HapticFeedback.lightImpact();
     setState(() {
       _wornOutfitId = outfitId;
       if (closeModal) _tryOnOpen = false;
     });
-    _showToast('✓ ${outfit['name']} — wearing today!', green: true);
+    _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
   }
 
   void _openChat() {
@@ -671,7 +727,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             _ChatMessage(
               id: DateTime.now().microsecondsSinceEpoch,
               text:
-                  "Hi! I'm AHVI, your personal AI stylist ✦\n\nI can see today's weather and your outfit options. What would you like help with — styling tips, what to wear, or outfit advice for any occasion?",
+                  AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
               isUser: false,
               createdAt: DateTime.now(),
             ),
@@ -756,14 +812,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         _visibleArTags = 0;
         _selectedSwatchIndex = 0;
         _frontCamera = true;
-        _tryOnLoadingMessage = 'Requesting camera…';
+        _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
         _tryOnStage = _TryOnStage.preview;
       });
     } else {
       _visibleArTags = 0;
       _selectedSwatchIndex = 0;
       _frontCamera = true;
-      _tryOnLoadingMessage = 'Requesting camera…';
+      _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
       _tryOnStage = _TryOnStage.preview;
     }
   }
@@ -771,12 +827,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void _startTryOnCamera() {
     setState(() {
       _tryOnStage = _TryOnStage.loading;
-      _tryOnLoadingMessage = 'Requesting camera…';
+      _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_requesting_camera');
     });
     _tryOnStageTimer?.cancel();
     _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
       if (!mounted) return;
-      setState(() => _tryOnLoadingMessage = 'Initialising AR…');
+      setState(() => _tryOnLoadingMessage = AppLocalizations.t(context, 'daily_wear_initialising_ar'));
       _tryOnStageTimer = Timer(const Duration(milliseconds: 700), () {
         if (!mounted) return;
         setState(() {
@@ -809,19 +865,19 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void _captureTryOn() {
     HapticFeedback.lightImpact();
     setState(() => _tryOnStage = _TryOnStage.captured);
-    _showToast('📸 Look captured!');
+    _showToast(AppLocalizations.t(context, 'daily_wear_toast_captured'));
   }
 
   void _saveCapturedLook() {
     HapticFeedback.selectionClick();
-    _showToast('💾 Saved!', green: true);
+    _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved'), green: true);
   }
 
   void _toggleMic() {
     setState(() => _micActive = !_micActive);
     if (_micActive) {
       _micPulseCtrl.repeat(reverse: true);
-      _showToast('🎙 Voice mode on');
+      _showToast(AppLocalizations.t(context, 'daily_wear_toast_voice_on'));
     } else {
       _micPulseCtrl.stop();
       _micPulseCtrl.reset();
@@ -862,14 +918,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Future<void> _callAnthropicApi(String userText) async {
     final currentOutfit = _currentOutfit;
     final wornNote = _wornOutfitId != null
-        ? 'Wearing today: "${_allOutfits.firstWhere((o) => o['id'] == _wornOutfitId)['name']}"'
+        ? 'Wearing today: "${_buildAllOutfits(context).firstWhere((o) => o['id'] == _wornOutfitId)['name']}"'
         : 'No outfit chosen yet.';
     final systemPrompt =
         'You are AHVI, a warm, elegant personal AI fashion stylist. '
         'Tone: refined, friendly, like a personal shopper.\n'
         'Context: Outfit shown: "${currentOutfit['name']}" — ${currentOutfit['desc']}. '
-        'Tags: ${(currentOutfit['tags'] as List<String>).join(', ')}. '
-        'Occasions: ${(currentOutfit['occ'] as List<String>).join(', ')}. '
+        'Tags: ${((currentOutfit['tags'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
+        'Occasions: ${((currentOutfit['occ'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
         'Weather: ${_weatherContext.isEmpty ? 'unknown' : _weatherContext}. $wornNote\n'
         'Outfits available: Linen & Air (hot/linen/casual), Coffee Run (mild/cosy/weekend), Office Hours (work/formal), Golden Hour (evnings/earth tones).\n'
         'Keep responses concise — 2–4 sentences max or a short list. Be specific. Reference outfit names when relevant. Light emoji (1–2). Never be generic.';
@@ -994,7 +1050,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       setState(() {
         _messages.add(_ChatMessage(
           id: DateTime.now().millisecondsSinceEpoch,
-          text: "Hi! I'm AHVI, your personal AI stylist ✦\n\nI can see today's weather and your outfit options. What would you like help with — styling tips, what to wear, or outfit advice for any occasion?",
+          text: AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
           isUser: false,
           createdAt: DateTime.now(),
         ));
@@ -1034,7 +1090,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
               child: Row(children: [
                 Text(
-                  'Chats',
+                  AppLocalizations.t(context, 'common_chats'),
                   style: GoogleFonts.anton(
                     fontSize: 20,
                     color: t.textPrimary,
@@ -1052,10 +1108,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.add, color: Colors.white, size: 14),
-                      SizedBox(width: 4),
-                      Text('New', style: TextStyle(
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.add, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(AppLocalizations.t(context, 'common_new'), style: const TextStyle(
                           color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                     ]),
                   ),
@@ -1068,7 +1124,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               child: _chatHistory.isEmpty
                   ? Center(
                       child: Text(
-                        'No chats yet.\nStart a conversation!',
+                        AppLocalizations.t(context, 'chat_no_history'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: t.mutedText, fontSize: 13),
                       ),
@@ -1125,7 +1181,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    Text('${session.messages.length} messages',
+                                    Text('${session.messages.length} ${AppLocalizations.t(context, 'wear_messages')}',
                                         style: TextStyle(fontSize: 10, color: t.mutedText)),
                                   ],
                                 ),
@@ -1158,7 +1214,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Map<String, dynamic> get _selectedTryOnOutfit {
     final id = _tryOnOutfitId ?? _currentOutfit['id'];
-    return _allOutfits.firstWhere((outfit) => outfit['id'] == id);
+    return _buildAllOutfits(context).firstWhere((outfit) => outfit['id'] == id);
   }
 
   Color _parseHexColor(String hex) {
@@ -1262,7 +1318,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Daily Wear',
+                  AppLocalizations.t(context, 'daily_wear_title'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -1273,7 +1329,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'CURATED FOR YOU · TODAY',
+                  AppLocalizations.t(context, 'daily_wear_curated_today'),
                   style: TextStyle(
                     fontSize: 9.5,
                     color: mutedColor.withValues(alpha: 0.7),
@@ -1721,7 +1777,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   border: Border.all(color: cardBorderColor),
                 ),
                 child: Text(
-                  '✦ AHVI\'s pick',
+                  AppLocalizations.t(context, 'daily_wear_ahvi_pick'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -1734,10 +1790,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 children: [
                   _circleAction(saved ? '❤️' : '🤍', () {
                     setState(() => _savedCarouselById[outfitId] = !saved);
-                    if (!saved) _showToast('Saved to wardrobe ❤️');
+                    if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved_wardrobe'));
                   }),
                   const SizedBox(width: 8),
-                  _circleShare('${outfit['name']} · ${outfit['desc']}'),
+                  _circleShare('${AppLocalizations.t(context, outfit['nameKey'] as String)} · ${AppLocalizations.t(context, outfit['descKey'] as String)}'),
                 ],
               ),
             ],
@@ -1759,7 +1815,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          outfit['name'] as String,
+                          AppLocalizations.t(context, outfit['nameKey'] as String),
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
@@ -1770,7 +1826,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          outfit['desc'] as String,
+                          AppLocalizations.t(context, outfit['descKey'] as String),
                           style: TextStyle(fontSize: 11, color: mutedColor),
                         ),
                       ],
@@ -1801,7 +1857,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               Wrap(
                 spacing: 5,
                 runSpacing: 5,
-                children: (outfit['tags'] as List<String>)
+                children: ((outfit['tags'] as List?)?.cast<String>() ?? <String>[])
                     .map(
                       (t) => Container(
                         padding: const EdgeInsets.symmetric(
@@ -1850,7 +1906,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   ),
                   child: Center(
                     child: Text(
-                      '✦  Virtual Try‑On',
+                      AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -1888,7 +1944,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     scaleDown: 0.92,
     onTap: () {
       Clipboard.setData(ClipboardData(text: text));
-      _showToast('🔗 Link copied!');
+      _showToast(AppLocalizations.t(context, 'daily_wear_toast_link_copied'));
     },
     child: Container(
       width: 40,
@@ -1910,7 +1966,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Widget _buildSectionTitle() => Padding(
     padding: const EdgeInsets.symmetric(horizontal: 20),
     child: Text(
-      'Other good options',
+      AppLocalizations.t(context, 'daily_wear_other_options'),
       style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.w600,
@@ -2004,7 +2060,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     cacheWidth: _cacheWidth(context, 180),
                     filterQuality: FilterQuality.low,
                     errorBuilder: (_, _, _) {
-                      final outfitData = _allOutfits.firstWhere(
+                      final outfitData = _buildAllOutfits(context).firstWhere(
                         (o) => o['id'] == card['outfitId'],
                         orElse: () => {},
                       );
@@ -2048,7 +2104,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    card['name'] as String,
+                    AppLocalizations.t(context, card['nameKey'] as String),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2059,7 +2115,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    card['sub'] as String,
+                    AppLocalizations.t(context, card['sub'] as String),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2073,10 +2129,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     children: [
                       _smallIcon(saved ? '❤️' : '🤍', () {
                         setState(() => _savedOptionById[outfitId] = !saved);
-                        if (!saved) _showToast('Outfit saved!');
+                        if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_outfit_saved'));
                       }),
                       const SizedBox(width: 5),
-                      _smallShare(card['name'] as String),
+                      _smallShare(AppLocalizations.t(context, card['nameKey'] as String)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -2084,7 +2140,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     children: [
                       Expanded(
                         child: _smallButton(
-                          isWorn ? '✓ Wearing' : 'Wear',
+                          isWorn ? AppLocalizations.t(context, 'daily_wear_wearing') : AppLocalizations.t(context, 'daily_wear_wear'),
                           isWorn ? null : () => _wearOutfit(outfitId),
                           primary: !isWorn,
                           activeLabelColor: isWorn
@@ -2095,7 +2151,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       const SizedBox(width: 5),
                       Expanded(
                         child: _smallButton(
-                          'Try On',
+                          AppLocalizations.t(context, 'daily_wear_try_on'),
                           () => _openTryOn(outfitId),
                           primary: false,
                           activeLabelColor: accent5Color,
@@ -2139,7 +2195,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     scaleDown: 0.92,
     onTap: () {
       Clipboard.setData(ClipboardData(text: text));
-      _showToast('🔗 Link copied!');
+      _showToast(AppLocalizations.t(context, 'daily_wear_toast_link_copied'));
     },
     child: Container(
       width: 30,
@@ -2262,7 +2318,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                             ),
                             const SizedBox(width: 7),
                             Text(
-                              'Ask AHVI',
+                              AppLocalizations.t(context, 'ask_ahvi'),
                               style: GoogleFonts.anton(
                                 fontSize: 11,
                                 letterSpacing: 0.4,
@@ -2317,7 +2373,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'AHVI Stylist',
+                AppLocalizations.t(context, 'daily_wear_ahvi_stylist'),
                 style: TextStyle(
                   fontSize: 21,
                   fontWeight: FontWeight.w600,
@@ -2326,7 +2382,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               ),
               const SizedBox(height: 3),
               Text(
-                'Your personal AI stylist',
+                AppLocalizations.t(context, 'daily_wear_ai_stylist_sub'),
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -2385,7 +2441,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Hello, I'm AHVI",
+                    AppLocalizations.t(context, 'daily_wear_hello_ahvi'),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
@@ -2394,7 +2450,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Your personal AI stylist. Ask me about outfits, styling tips, what to wear today, or advice for any occasion.',
+                    AppLocalizations.t(context, 'daily_wear_empty_desc'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -2465,7 +2521,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         controller: _chatController,
         focusNode: _chatFocusNode,
-        hintText: 'Ask your stylist�',
+        hintText: AppLocalizations.t(context, 'daily_wear_chat_hint'),
         hasTextListenable: _chatController,
         surface: phoneShellInnerColor,
         border: cardBorderColor,
@@ -2549,7 +2605,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Virtual Try‑On',
+                        AppLocalizations.t(context, 'daily_wear_virtual_tryon'),
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w600,
@@ -2558,7 +2614,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Fitting: ${_selectedTryOnOutfit['name']}',
+                        AppLocalizations.t(context, 'daily_wear_fitting').replaceAll('{name}', _selectedTryOnOutfit['name'] as String),
                         style: TextStyle(fontSize: 13, color: mutedColor),
                       ),
                       const SizedBox(height: 18),
@@ -2601,15 +2657,15 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 ),
               ),
               const SizedBox(height: 6),
-              Text('Preparing AR', style: TextStyle(color: mutedColor)),
+              Text(AppLocalizations.t(context, 'wear_preparing_ar'), style: TextStyle(color: mutedColor)),
             ],
           ),
         ),
       );
     }
     if (_tryOnStage == _TryOnStage.camera) {
-      final colors = (outfit['colors'] as List).cast<String>();
-      final tags = (outfit['arTags'] as List).cast<Map<String, dynamic>>();
+      final colors = ((outfit['colors'] as List?)?.cast<String>() ?? <String>[]);
+      final tags = ((outfit['arTags'] as List?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[]);
       return Column(
         children: [
           AspectRatio(
@@ -2646,7 +2702,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                           const _LiveDot(),
                           const SizedBox(width: 6),
                           Text(
-                            'LIVE AR',
+                            AppLocalizations.t(context, 'daily_wear_live_ar'),
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -2698,7 +2754,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                         top:
                             constraints.maxHeight *
                             (tags[index]['top'] as double),
-                        child: _ArTag(label: tags[index]['t'] as String),
+                        child: _ArTag(label: AppLocalizations.t(context, tags[index]['t'] as String)),
                       ),
                     ),
                     Positioned(
@@ -2830,7 +2886,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '✦ ${outfit['name']} · AHVI',
+                          '✦ ${AppLocalizations.t(context, outfit['nameKey'] as String)} · AHVI',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -2856,7 +2912,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             children: [
               Expanded(
                 child: _actionBtn(
-                  '💾  Save Look',
+                  AppLocalizations.t(context, 'daily_wear_save_look'),
                   _saveCapturedLook,
                   primary: true,
                 ),
@@ -2864,7 +2920,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: _actionBtn(
-                  '🔄  Retake',
+                  AppLocalizations.t(context, 'daily_wear_retake'),
                   _startTryOnCamera,
                   primary: false,
                 ),
@@ -2875,7 +2931,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           SizedBox(
             width: double.infinity,
             child: _actionBtn(
-              '✓  Wear Today',
+              AppLocalizations.t(context, 'daily_wear_wear_today'),
               () => _wearOutfit(outfit['id'] as String, closeModal: true),
               primary: false,
             ),
@@ -2936,7 +2992,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     ),
                   ),
                   child: Text(
-                    'AR MODE',
+                    AppLocalizations.t(context, 'daily_wear_ar_mode'),
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
@@ -2949,7 +3005,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 bottom: 18,
                 left: 18,
                 child: Text(
-                  outfit['name'] as String,
+                  AppLocalizations.t(context, outfit['nameKey'] as String),
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
@@ -2975,7 +3031,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  outfit['tip'] as String,
+                  AppLocalizations.t(context, outfit['tipKey'] as String),
                   style: TextStyle(
                     fontSize: 12,
                     color: mutedColor,
@@ -2991,7 +3047,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           children: [
             Expanded(
               child: _actionBtn(
-                '📷  Start Try‑On',
+                AppLocalizations.t(context, 'daily_wear_start_tryon'),
                 _startTryOnCamera,
                 primary: true,
               ),
@@ -2999,7 +3055,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             const SizedBox(width: 10),
             Expanded(
               child: _actionBtn(
-                '✓  Wear Today',
+                AppLocalizations.t(context, 'daily_wear_wear_today'),
                 () => _wearOutfit(outfit['id'] as String, closeModal: true),
                 primary: false,
               ),
