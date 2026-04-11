@@ -401,7 +401,7 @@ class _SignUpPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const _SectionTitle(line1: 'Your stylist awaits.', italic: true),
+          const _SectionTitle(line1: 'Your Personal Assistant Awaits.', italic: true),
           const SizedBox(height: 6),
           const _SectionSub(text: 'Sign in or create your account'),
           const SizedBox(height: 28),

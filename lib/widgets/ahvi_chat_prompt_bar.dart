@@ -22,6 +22,8 @@ class AhviChatPromptBar extends StatelessWidget {
   final VoidCallback? onAddTap;
   final VoidCallback? onVoiceTap;
   final bool isListening;
+  final bool isMenuOpen;
+  final VoidCallback? onFieldTap;
 
   const AhviChatPromptBar({
     super.key,
@@ -44,6 +46,8 @@ class AhviChatPromptBar extends StatelessWidget {
     this.onAddTap,
     this.onVoiceTap,
     this.isListening = false,
+    this.isMenuOpen = false,
+    this.onFieldTap,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
   });
 
@@ -82,16 +86,36 @@ class AhviChatPromptBar extends StatelessWidget {
             return Row(
               children: [
                 if (!compact) ...[
-                  GestureDetector(
+                  _ChatPromptPressable(
+                    scalePressed: 0.88,
                     onTap: onAddTap ?? () {},
-                    child: SizedBox(
-                      width: 26,
-                      height: 26,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: isMenuOpen
+                            ? accent.withValues(alpha: 0.20)
+                            : accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(11),
+                        border: Border.all(
+                          color: isMenuOpen
+                              ? accent.withValues(alpha: 0.45)
+                              : accent.withValues(alpha: 0.25),
+                          width: 1.2,
+                        ),
+                      ),
                       child: Center(
-                        child: Icon(
-                          Icons.search_rounded,
-                          color: accent,
-                          size: 20,
+                        child: AnimatedRotation(
+                          turns: isMenuOpen ? 0.125 : 0.0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutBack,
+                          child: Icon(
+                            Icons.add_rounded,
+                            color: accent,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -123,6 +147,7 @@ class AhviChatPromptBar extends StatelessWidget {
                     cursorColor: accent,
                     cursorWidth: 1.5,
                     cursorRadius: const Radius.circular(1),
+                    onTap: onFieldTap,
                     onSubmitted: onSubmitted,
                   ),
                 ),
@@ -252,6 +277,7 @@ class _ChatPromptPressable extends StatefulWidget {
     this.builder,
     this.onTap,
     this.liftY = 0.0,
+    this.scaleHover = 1.0,
     this.scalePressed = 0.97,
   }) : assert(child != null || builder != null);
 

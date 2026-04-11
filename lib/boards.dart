@@ -1666,6 +1666,8 @@ class _HoverPressButton extends StatefulWidget {
   const _HoverPressButton({
     required this.child,
     required this.onTap,
+    this.hoverScale = 1.03,
+    this.pressScale = 0.97,
   });
 
   @override

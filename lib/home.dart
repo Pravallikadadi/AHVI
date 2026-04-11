@@ -150,6 +150,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   bool _lensSheetOpen = false;
   late AnimationController _lensSheetCtrl;
 
+  // ── Plus menu (ChatGPT-style) ──────────────────────────────────────────────
+  bool _plusMenuOpen = false;
+  late AnimationController _plusMenuCtrl;
+
   bool _toastVisible = false;
   Timer? _toastTimer;
 
@@ -285,6 +289,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     _lensSheetCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
+    );
+
+    _plusMenuCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
     );
 
     _navRiseCtrls = List.generate(
@@ -454,6 +463,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     }
     _seeAllCtrl.dispose();
     _lensSheetCtrl.dispose();
+    _plusMenuCtrl.dispose();
     for (final c in _navRiseCtrls) {
       c.dispose();
     }
@@ -541,6 +551,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   void _closeLensSheet() {
     _lensSheetCtrl.reverse().then((_) {
       if (mounted) setState(() => _lensSheetOpen = false);
+    });
+  }
+
+  void _openPlusMenu() {
+    if (_plusMenuOpen) {
+      _closePlusMenu();
+      return;
+    }
+    HapticFeedback.lightImpact();
+    setState(() => _plusMenuOpen = true);
+    _plusMenuCtrl.animateTo(
+      1.0,
+      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    );
+  }
+
+  void _closePlusMenu() {
+    _plusMenuCtrl.reverse().then((_) {
+      if (mounted) setState(() => _plusMenuOpen = false);
     });
   }
 
@@ -964,14 +993,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Fixed const layout values — no dynamic screen calculations
-                  const double heroHFinal = 270.0;
+                  const double heroHFinal = 240.0;
                   const double heroGap = 10.0;
-                  const double secondaryRowH = 88.0;
+                  const double secondaryRowH = 76.0;
                   const double hPad = 20.0;
                   // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 2
                   final safeBottom2 = MediaQuery.of(context).padding.bottom;
                   // nav top(safeBottom+102) + chat bar height(72) + extra gap(16) = safeBottom+190
-                  final bottomPad = safeBottom2 + 102.0 + 72.0 + 16.0;
+                  final bottomPad = safeBottom2 + 86.0 + 72.0 + 16.0;
 
                   return SingleChildScrollView(
                     physics: const NeverScrollableScrollPhysics(),
@@ -1012,7 +1041,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               // chat bar sits right on nav top edge
               final chatBottom = keyboardH > 0
                   ? keyboardH + 8
-                  : safeBottom + 102.0;
+                  : safeBottom + 86.0;
               return Positioned(
                 left: 0,
                 right: 0,
@@ -1037,6 +1066,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                 );
               },
             ),
+
+          if (_plusMenuOpen) _buildPlusMenu(),
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
           if (widget.onShellNavTap == null)
@@ -2145,7 +2176,99 @@ Builder(builder: (ctx) {
         }
       },
       onEmptySend: () => _submitQuery(''),
-      onAddTap: _openLensSheet,
+      onAddTap: _openPlusMenu,
+    );
+  }
+
+  // ── ChatGPT-style plus menu ───────────────────────────────────────────────
+  Widget _buildPlusMenu() {
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    // Position it just above the chat bar
+    final menuBottom = safeBottom + 86.0 + 72.0 + 8.0;
+
+    const menuItems = [
+      (Icons.camera_alt_outlined,      'Camera',         'Take a photo'),
+      (Icons.photo_library_outlined,   'Photo Library',  'Choose from gallery'),
+      (Icons.insert_drive_file_outlined,'Files',          'Upload a document'),
+      (Icons.browse_gallery_outlined,  'Browse',         'Search the web'),
+    ];
+
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: _closePlusMenu,
+        behavior: HitTestBehavior.translucent,
+        child: Stack(
+          children: [
+            Positioned(
+              left: 20,
+              bottom: menuBottom,
+              child: AnimatedBuilder(
+                animation: _plusMenuCtrl,
+                builder: (context, _) {
+                  final t = _plusMenuCtrl.value;
+                  return Transform.translate(
+                    offset: Offset(0, 16 * (1 - t)),
+                    child: Opacity(
+                      opacity: t.clamp(0.0, 1.0),
+                      child: GestureDetector(
+                        onTap: () {}, // prevent tap-through
+                        child: Container(
+                          width: 220,
+                          decoration: BoxDecoration(
+                            color: _surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _accent.withValues(alpha: 0.18),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _bgPrimary.withValues(alpha: 0.40),
+                                blurRadius: 32,
+                                offset: const Offset(0, 8),
+                              ),
+                              BoxShadow(
+                                color: _accent.withValues(alpha: 0.08),
+                                blurRadius: 16,
+                              ),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(menuItems.length, (i) {
+                              final item = menuItems[i];
+                              final isLast = i == menuItems.length - 1;
+                              return _PlusMenuItem(
+                                icon: item.$1,
+                                title: item.$2,
+                                subtitle: item.$3,
+                                accent: _accent,
+                                accentSecondary: _accentSecondary,
+                                textHeading: _textHeading,
+                                textMuted: _textMuted,
+                                panel: _panel,
+                                border: _border,
+                                showDivider: !isLast,
+                                delayT: (i * 0.06).clamp(0.0, 0.3),
+                                animT: t,
+                                onTap: () {
+                                  _closePlusMenu();
+                                  _showComingSoon();
+                                },
+                              );
+                            }),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -4306,6 +4429,133 @@ Builder(builder: (ctx) {
   }
 }
 
+// ── Plus Menu Item ────────────────────────────────────────────────────────────
+class _PlusMenuItem extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final Color accentSecondary;
+  final Color textHeading;
+  final Color textMuted;
+  final Color panel;
+  final Color border;
+  final bool showDivider;
+  final double delayT;
+  final double animT;
+  final VoidCallback? onTap;
+
+  const _PlusMenuItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.accentSecondary,
+    required this.textHeading,
+    required this.textMuted,
+    required this.panel,
+    required this.border,
+    required this.showDivider,
+    required this.delayT,
+    required this.animT,
+    this.onTap,
+  });
+
+  @override
+  State<_PlusMenuItem> createState() => _PlusMenuItemState();
+}
+
+class _PlusMenuItemState extends State<_PlusMenuItem> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // Staggered per-item fade: each item fades in slightly after the previous
+    final itemT = ((widget.animT - widget.delayT) / (1.0 - widget.delayT))
+        .clamp(0.0, 1.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            color: _pressed
+                ? widget.accent.withValues(alpha: 0.08)
+                : Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Opacity(
+              opacity: itemT,
+              child: Transform.translate(
+                offset: Offset(0, 6 * (1 - itemT)),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: widget.accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: widget.accent.withValues(alpha: 0.20),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: widget.accent,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              color: widget.textHeading,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            widget.subtitle,
+                            style: TextStyle(
+                              color: widget.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (widget.showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: widget.border.withValues(alpha: 0.6),
+            indent: 16,
+            endIndent: 16,
+          ),
+      ],
+    );
+  }
+}
+
 class _NavPillPainter extends CustomPainter {
   final int activeIdx;
   final int itemCount;
@@ -4419,6 +4669,10 @@ class _ResponseData {
     required this.type,
     required this.question,
     this.intro = '',
+    this.outfits = const [],
+    this.tasks = const [],
+    this.weekDays = const [],
+    this.planSections = const [],
   });
 }
 
@@ -4442,6 +4696,7 @@ class _WeekDay {
     this.day,
     this.label,
     this.items, {
+    this.done = false,
     this.isToday = false,
   });
 }
@@ -4547,6 +4802,10 @@ class _EntryFadeSlide extends StatefulWidget {
   const _EntryFadeSlide({
     super.key,
     required this.child,
+    this.duration = const Duration(milliseconds: 400),
+    this.curve = Curves.easeOut,
+    this.dy = 24.0,
+    this.delay = Duration.zero,
   });
 
   @override
@@ -4602,6 +4861,8 @@ class _CardPressable extends StatefulWidget {
   const _CardPressable({
     required this.builder,
     this.onTap,
+    this.pressedScale = 0.97,
+    this.pressedOffset = Offset.zero,
   });
 
   @override

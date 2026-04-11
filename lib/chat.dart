@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/bills_page.dart' as bills_page;
@@ -9,6 +8,7 @@ import 'package:myapp/calendar.dart' as calendar_page;
 import 'package:myapp/daily_wear.dart' as daily_wear_page;
 import 'package:myapp/medi_tracker.dart' as medi_tracker_page;
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
@@ -430,7 +430,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _chatController = TextEditingController();
   final FocusNode _chatFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -450,6 +450,10 @@ class _ChatScreenState extends State<ChatScreen>
   bool _isListening = false;
   bool _speechAvailable = false;
 
+  // ── Plus menu (ChatGPT-style) ──────────────────────────────────────────────
+  bool _plusMenuOpen = false;
+  late AnimationController _plusMenuCtrl;
+
   // ── History ────────────────────────────────────────────────────────────────
   List<_ChatSession> _sessions = [];
   late String _currentSessionId;
@@ -464,6 +468,10 @@ class _ChatScreenState extends State<ChatScreen>
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
     _loadSessions();
     _initSpeech();
+    _plusMenuCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
   }
 
   @override
@@ -751,6 +759,7 @@ class _ChatScreenState extends State<ChatScreen>
     _chatController.dispose();
     _chatFocusNode.dispose();
     _scrollController.dispose();
+    _plusMenuCtrl.dispose();
     for (final ctrls in _checklistAddCtrlsByTitle.values) {
       for (final c in ctrls) {
         c.dispose();
@@ -779,28 +788,20 @@ class _ChatScreenState extends State<ChatScreen>
               )
             : Padding(
                 padding: const EdgeInsets.only(left: 16),
-                child: Text(
-                  'AHVI',
-                  style: GoogleFonts.inter(
-                    color: t.textPrimary,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                    height: 1.0,
-                  ),
+                child: AhviHomeText(
+                  color: t.textPrimary,
+                  fontSize: 30.0,
+                  letterSpacing: 3.2,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
         leadingWidth: widget.showBackButton ? 56 : 130,
         title: widget.showBackButton
-            ? Text(
-                'AHVI',
-                style: GoogleFonts.inter(
-                  color: t.textPrimary,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
-                  height: 1.0,
-                ),
+            ? AhviHomeText(
+                color: t.textPrimary,
+                fontSize: 30.0,
+                letterSpacing: 3.2,
+                fontWeight: FontWeight.w400,
               )
             : null,
         centerTitle: true,
@@ -1843,16 +1844,97 @@ class _ChatScreenState extends State<ChatScreen>
     ),
   );
 
+  void _openPlusMenu() {
+    if (_plusMenuOpen) {
+      _closePlusMenu();
+      return;
+    }
+    setState(() => _plusMenuOpen = true);
+    _plusMenuCtrl.animateTo(1.0, curve: const Cubic(0.16, 1.0, 0.3, 1.0));
+  }
+
+  void _closePlusMenu() {
+    _plusMenuCtrl.reverse().then((_) {
+      if (mounted) setState(() => _plusMenuOpen = false);
+    });
+  }
+
   Widget _input(AppThemeTokens t) {
     final grad = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
       colors: [t.accent.primary, t.accent.secondary],
     );
+
+    const menuItems = [
+      (Icons.camera_alt_outlined,       'Camera',         'Take a photo'),
+      (Icons.photo_library_outlined,    'Photo Library',  'Choose from gallery'),
+      (Icons.insert_drive_file_outlined,'Files',          'Upload a document'),
+      (Icons.browse_gallery_outlined,   'Browse',         'Search the web'),
+    ];
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _chips(t),
+        // ── Plus menu popup ──────────────────────────────────────────────────
+        if (_plusMenuOpen)
+          AnimatedBuilder(
+            animation: _plusMenuCtrl,
+            builder: (context, _) {
+              final anim = _plusMenuCtrl.value;
+              return Transform.translate(
+                offset: Offset(0, 14 * (1 - anim)),
+                child: Opacity(
+                  opacity: anim.clamp(0.0, 1.0),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: t.phoneShellInner,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: t.accent.primary.withValues(alpha: 0.18),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: t.backgroundPrimary.withValues(alpha: 0.40),
+                            blurRadius: 28,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(menuItems.length, (i) {
+                          final item = menuItems[i];
+                          final isLast = i == menuItems.length - 1;
+                          final itemT = ((anim - i * 0.06) / (1.0 - i * 0.06))
+                              .clamp(0.0, 1.0);
+                          return _ChatPlusMenuItem(
+                            icon: item.$1,
+                            title: item.$2,
+                            subtitle: item.$3,
+                            accent: t.accent.primary,
+                            textHeading: t.textPrimary,
+                            textMuted: t.mutedText,
+                            panel: t.panel,
+                            border: t.cardBorder,
+                            showDivider: !isLast,
+                            itemT: itemT,
+                            onTap: _closePlusMenu,
+                          );
+                        }),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        // ── Input bar ────────────────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Container(
@@ -1864,22 +1946,36 @@ class _ChatScreenState extends State<ChatScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
             child: Row(
               children: [
+                // ── Plus button ──────────────────────────────────────────────
                 GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      builder: (_) => _LensActionSheet(t: t),
-                    );
-                  },
-                  child: SizedBox(
-                    width: 26,
-                    height: 26,
+                  onTap: _openPlusMenu,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: _plusMenuOpen
+                          ? t.accent.primary.withValues(alpha: 0.20)
+                          : t.accent.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(
+                        color: _plusMenuOpen
+                            ? t.accent.primary.withValues(alpha: 0.45)
+                            : t.accent.primary.withValues(alpha: 0.25),
+                        width: 1.2,
+                      ),
+                    ),
                     child: Center(
-                      child: Icon(
-                        Icons.search_rounded,
-                        color: t.accent.primary,
-                        size: 20,
+                      child: AnimatedRotation(
+                        turns: _plusMenuOpen ? 0.125 : 0.0,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutBack,
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: t.accent.primary,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -1897,15 +1993,16 @@ class _ChatScreenState extends State<ChatScreen>
                       hintText: AppLocalizations.t(context, 'chat_hint'),
                       hintStyle: TextStyle(color: t.mutedText, fontSize: 14.5),
                     ),
+                    onTap: () {
+                      if (_plusMenuOpen) _closePlusMenu();
+                    },
                     onSubmitted: (v) {
-                      if (v.trim().isNotEmpty) {
-                        _sendMessage(v.trim());
-                      }
+                      if (v.trim().isNotEmpty) _sendMessage(v.trim());
                     },
                   ),
                 ),
                 const SizedBox(width: 6),
-                // ── Voice Button ──────────────────────────────────────────
+                // ── Voice button ─────────────────────────────────────────────
                 GestureDetector(
                   onTap: _toggleListening,
                   child: AnimatedContainer(
@@ -1916,10 +2013,7 @@ class _ChatScreenState extends State<ChatScreen>
                     decoration: BoxDecoration(
                       gradient: _isListening
                           ? LinearGradient(
-                              colors: [
-                                Colors.redAccent,
-                                Colors.red.shade700,
-                              ],
+                              colors: [Colors.redAccent, Colors.red.shade700],
                             )
                           : LinearGradient(
                               colors: [
@@ -1948,6 +2042,7 @@ class _ChatScreenState extends State<ChatScreen>
                   ),
                 ),
                 const SizedBox(width: 6),
+                // ── Send button ──────────────────────────────────────────────
                 GestureDetector(
                   onTap: () => _sendMessage(),
                   child: ValueListenableBuilder<TextEditingValue>(
@@ -1988,299 +2083,117 @@ class _ChatScreenState extends State<ChatScreen>
   }
 }
 
-class _LensActionSheet extends StatelessWidget {
-  final AppThemeTokens t;
-  const _LensActionSheet({required this.t});
-
-  @override
-  Widget build(BuildContext context) {
-      final t = context.themeTokens;
-    final accent = t.accent.primary;
-    final accentSecondary = t.accent.secondary;
-    final textHeading = t.textPrimary;
-    final textMuted = t.mutedText;
-    final panel = t.panel;
-    final surface = t.phoneShellInner;
-    final bgSecondary = t.backgroundSecondary;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [surface, bgSecondary],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: accent.withValues(alpha: 0.15), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.15),
-            blurRadius: 48,
-            offset: const Offset(0, -12),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // drag handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.30),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          // header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: accent.withValues(alpha: 0.25),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(Icons.search, color: accent, size: 17),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      AppLocalizations.t(context, 'lens_title'),
-                      style: TextStyle(
-                        color: textHeading,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.08),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.20),
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(Icons.close, color: textMuted, size: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // info card
-          Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: panel,
-              border: Border.all(color: accent.withValues(alpha: 0.15), width: 1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.5),
-                      width: 2,
-                    ),
-                    color: accent.withValues(alpha: 0.08),
-                  ),
-                  child: Icon(Icons.circle, color: accent, size: 12),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.t(context, 'lens_visual_ai_search'),
-                        style: TextStyle(
-                          color: textHeading,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        AppLocalizations.t(context, 'lens_visual_ai_desc'),
-                        style: TextStyle(
-                          color: textMuted,
-                          fontSize: 11.5,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // options
-          _LensOptionTile(
-            icon: Icons.search,
-            name: AppLocalizations.t(context, 'lens_find_similar'),
-            desc: AppLocalizations.t(context, 'lens_find_similar_desc'),
-            color: accent,
-            textHeading: textHeading,
-            textMuted: textMuted,
-            panel: panel,
-            accentBorder: accent,
-            onTap: () => Navigator.pop(context),
-          ),
-          _LensOptionTile(
-            icon: Icons.add_photo_alternate_outlined,
-            name: AppLocalizations.t(context, 'lens_add_wardrobe'),
-            desc: AppLocalizations.t(context, 'lens_add_wardrobe_desc'),
-            color: accentSecondary,
-            textHeading: textHeading,
-            textMuted: textMuted,
-            panel: panel,
-            accentBorder: accent,
-            onTap: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LensOptionTile extends StatefulWidget {
+// ── ChatGPT-style Plus Menu Item ──────────────────────────────────────────────
+class _ChatPlusMenuItem extends StatefulWidget {
   final IconData icon;
-  final String name;
-  final String desc;
-  final Color color;
+  final String title;
+  final String subtitle;
+  final Color accent;
   final Color textHeading;
   final Color textMuted;
   final Color panel;
-  final Color accentBorder;
-  final VoidCallback onTap;
+  final Color border;
+  final bool showDivider;
+  final double itemT;
+  final VoidCallback? onTap;
 
-  const _LensOptionTile({
+  const _ChatPlusMenuItem({
     required this.icon,
-    required this.name,
-    required this.desc,
-    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
     required this.textHeading,
     required this.textMuted,
     required this.panel,
-    required this.accentBorder,
-    required this.onTap,
+    required this.border,
+    required this.showDivider,
+    required this.itemT,
+    this.onTap,
   });
 
   @override
-  State<_LensOptionTile> createState() => _LensOptionTileState();
+  State<_ChatPlusMenuItem> createState() => _ChatPlusMenuItemState();
 }
 
-class _LensOptionTileState extends State<_LensOptionTile> {
-  bool _hovered = false;
+class _ChatPlusMenuItemState extends State<_ChatPlusMenuItem> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-      final t = context.themeTokens;
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() { _hovered = false; _pressed = false; }),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
-          duration: const Duration(milliseconds: 120),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _hovered
-                  ? widget.color.withValues(alpha: 0.08)
-                  : widget.panel,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _hovered
-                    ? widget.color.withValues(alpha: 0.30)
-                    : widget.accentBorder.withValues(alpha: 0.12),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: widget.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: widget.color.withValues(alpha: 0.25),
-                      width: 1,
+            duration: const Duration(milliseconds: 120),
+            color: _pressed
+                ? widget.accent.withValues(alpha: 0.08)
+                : Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Opacity(
+              opacity: widget.itemT,
+              child: Transform.translate(
+                offset: Offset(0, 6 * (1 - widget.itemT)),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: widget.accent.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: widget.accent.withValues(alpha: 0.20),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(widget.icon, color: widget.accent, size: 18),
                     ),
-                  ),
-                  child: Icon(widget.icon, color: widget.color, size: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.name,
-                        style: TextStyle(
-                          color: widget.textHeading,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              color: widget.textHeading,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            widget.subtitle,
+                            style: TextStyle(
+                              color: widget.textMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        widget.desc,
-                        style: TextStyle(
-                          color: widget.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  transform: Matrix4.translationValues(
-                    _hovered ? 3.0 : 0.0, 0, 0,
-                  ),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    color: _hovered ? widget.color : widget.textMuted,
-                    size: 20,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+        if (widget.showDivider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: widget.border.withValues(alpha: 0.6),
+            indent: 16,
+            endIndent: 16,
+          ),
+      ],
     );
   }
 }

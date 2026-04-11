@@ -133,6 +133,7 @@ class ProfileState {
 
 const List<String> kLanguages = [
   'English',   // en.json ✅
+  'Hindi',     // hi.json ✅
   'Telugu',    // te.json ✅
   'Tamil',     // ta.json ✅
   'Kannada',   // kn.json ✅
@@ -830,6 +831,33 @@ class ProfileController extends ChangeNotifier {
   /// Full-state update used internally by ProfileScreen
   void updateState(ProfileState newState) {
     _state = newState;
+    notifyListeners();
+  }
+
+  /// Call this right after a successful Google / Apple / Email login.
+  /// Pulls the display name and email from the Appwrite account object
+  /// so the profile never shows the "New User" placeholder.
+  void loadFromAccount({
+    required String? name,
+    required String? email,
+  }) {
+    final resolvedName = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : _state.name;
+    final resolvedEmail = (email != null && email.trim().isNotEmpty)
+        ? email.trim()
+        : _state.email;
+
+    // Derive a username from the display name if still at the placeholder
+    final resolvedUsername = _state.username == '@username' && resolvedName != 'New User'
+        ? '@\${resolvedName.toLowerCase().replaceAll(' ', '_')}'
+        : _state.username;
+
+    _state = _state.copyWith(
+      name: resolvedName,
+      email: resolvedEmail,
+      username: resolvedUsername,
+    );
     notifyListeners();
   }
 }

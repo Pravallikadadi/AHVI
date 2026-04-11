@@ -187,10 +187,10 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
               ],
             ),
           ),
-          // FAB (only on home)
+          // FAB (only on home) — pinned bottom-right
           if (_activePage == 'home')
             Positioned(
-              bottom: 28,
+              bottom: MediaQuery.of(context).padding.bottom + 28,
               right: 28,
               child: _AskAhviFab(onTap: () => setState(() => _activePage = 'chat')),
             ),
@@ -275,7 +275,7 @@ class _HomeView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('${AppLocalizations.t(context, 'fitness_your_outfits')} — ${outfits.length} ${AppLocalizations.t(context, 'fitness_saved')}',
+              Text('${AppLocalizations.t(context, 'fitness_your_routines')} — ${outfits.length} ${AppLocalizations.t(context, 'fitness_saved')}',
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, letterSpacing: 1.2, color: context.fMuted)),
               ElevatedButton(
                 onPressed: () => _openAddOutfit(context),
@@ -286,7 +286,7 @@ class _HomeView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                 ),
-                child: Text(AppLocalizations.t(context, 'fitness_add_outfit')),
+                child: Text(AppLocalizations.t(context, 'fitness_add_routine')),
               ),
             ],
           ),
@@ -340,9 +340,45 @@ class _HomeView extends StatelessWidget {
   }
 }
 // ─── HERO CARD: DRESS WELL, TRAIN BETTER ──────────────────────────────────────
-class _HeroCard extends StatelessWidget {
+const _kFitnessQuotes = [
+  (quote: 'Dress to\nPerform.', sub: 'train better.', caption: 'Outfits built for your workout'),
+  (quote: 'Look Good,\nLift Heavy.', sub: 'feel unstoppable.', caption: 'Style meets strength'),
+  (quote: 'Move Bold,\nDress Right.', sub: 'every rep counts.', caption: 'Gear up for greatness'),
+  (quote: 'Sweat in\nStyle.', sub: 'own the gym.', caption: 'Your workout, your look'),
+  (quote: 'Train Hard,\nDress Smart.', sub: 'show up ready.', caption: 'Built for performance'),
+];
+
+class _HeroCard extends StatefulWidget {
+  @override
+  State<_HeroCard> createState() => _HeroCardState();
+}
+
+class _HeroCardState extends State<_HeroCard> with SingleTickerProviderStateMixin {
+  int _quoteIndex = 0;
+  double _opacity = 1.0;
+  late final _timer = Stream.periodic(const Duration(seconds: 4)).listen((_) => _rotate());
+
+  void _rotate() {
+    if (!mounted) return;
+    setState(() => _opacity = 0.0);
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      setState(() {
+        _quoteIndex = (_quoteIndex + 1) % _kFitnessQuotes.length;
+        _opacity = 1.0;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final q = _kFitnessQuotes[_quoteIndex];
     return Container(
       width: double.infinity,
       height: 220,
@@ -355,6 +391,7 @@ class _HeroCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
+          // Right-side image
           Positioned(
             right: 0,
             bottom: 0,
@@ -363,40 +400,63 @@ class _HeroCard extends StatelessWidget {
             child: Opacity(
               opacity: 0.9,
               child: Image.asset(
-                'assets/images/hero_outfit.jpg', // assets/images/ లో add చేయండి
+                'assets/images/hero_outfit.jpg',
                 fit: BoxFit.contain,
                 alignment: Alignment.bottomRight,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Center(
-                    child: Icon(Icons.image_outlined, color: Colors.white24, size: 48),
-                  );
-                },
+                errorBuilder: (context, error, stackTrace) =>
+                    const Center(child: Icon(Icons.image_outlined, color: Colors.white24, size: 48)),
               ),
             ),
           ),
+          // Quote dots indicator
+          Positioned(
+            bottom: 14,
+            left: 26,
+            child: Row(
+              children: List.generate(_kFitnessQuotes.length, (i) => AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(right: 5),
+                width: i == _quoteIndex ? 16 : 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: i == _quoteIndex
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              )),
+            ),
+          ),
+          // Animated quote text
           Padding(
-            padding: const EdgeInsets.all(26),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5),
-                    children: [
-                      TextSpan(text: '${AppLocalizations.t(context, 'fitness_hero_line1')}\n'),
-                      TextSpan(text: AppLocalizations.t(context, 'fitness_hero_line2'), style: const TextStyle(color: Colors.white70)),
-                    ],
+            padding: const EdgeInsets.fromLTRB(26, 26, 26, 36),
+            child: AnimatedOpacity(
+              opacity: _opacity,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5),
+                      children: [
+                        TextSpan(text: '${q.quote}\n'),
+                        TextSpan(text: q.sub, style: const TextStyle(color: Colors.white70)),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: 200,
-                  child: Text(
-                    AppLocalizations.t(context, 'fitness_hero_subtitle'),
-                    style: const TextStyle(fontSize: 12, color: Colors.white54, height: 1.5, fontWeight: FontWeight.w300),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: 200,
+                    child: Text(
+                      q.caption,
+                      style: const TextStyle(fontSize: 12, color: Colors.white54, height: 1.5, fontWeight: FontWeight.w300),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
