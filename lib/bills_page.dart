@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
+import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 
 // ── PALETTE (1:1 from CSS :root) ────────────────────────────────────
 Color kBg = Color(0xFF08111F);
@@ -129,6 +130,8 @@ class _BillsScreenState extends State<BillsScreen>
     },
   ];
   final TextEditingController _chatInputCtrl = TextEditingController();
+  final ChatPlusButtonController _plusCtrl = ChatPlusButtonController();
+  OverlayEntry? _overlay;
 
   // ── DB DATA LISTS ──────────────────────────────────────────────────
   List<Map<String, dynamic>> _bills = [];
@@ -265,15 +268,11 @@ class _BillsScreenState extends State<BillsScreen>
     );
   }
 
-  @override
-  void dispose() {
-    _pulseCtrl.dispose();
-    _chatCtrl.dispose();
-    _sheetCtrl.dispose();
-    _toastAnim.dispose();
-    _chatInputCtrl.dispose();
-    super.dispose();
+  void _removeOverlay() {
+    _overlay?.remove();
+    _overlay = null;
   }
+
 
   // ── APPWRITE ACTIONS ──────────────────────────────────────────────
 
@@ -529,6 +528,18 @@ class _BillsScreenState extends State<BillsScreen>
     await Future.delayed(Duration(milliseconds: 2200));
     await _toastAnim.reverse();
     if (mounted) setState(() => _toastVisible = false);
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _chatCtrl.dispose();
+    _sheetCtrl.dispose();
+    _toastAnim.dispose();
+    _chatInputCtrl.dispose();
+    _plusCtrl.dispose();
+    _removeOverlay();
+    super.dispose();
   }
 
   // ── BUILD ─────────────────────────────────────────────────────────
@@ -1138,7 +1149,7 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   Widget _buildChatFab() {
-    return AhviStylistFab(onTap: () => showAhviStylistChatSheet(context));
+    return AhviStylistFab(onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'));
   }
 
   Widget _buildChatPanel() {
@@ -1279,12 +1290,20 @@ class _BillsScreenState extends State<BillsScreen>
               ),
             ),
             Container(
-              padding: EdgeInsets.fromLTRB(10, 8, 10, 12),
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: _t.cardBorder, width: 1)),
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // ── Attachment chip (shown above input row when file/search picked) ──
+                  ChatAttachmentChip(controller: _plusCtrl),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(10, 8, 10, 12),
+                    child: Row(
+                children: [
+                  ChatPlusButton(controller: _plusCtrl),
+                  SizedBox(width: 8),
                   Container(
                     width: 32,
                     height: 32,
@@ -1343,6 +1362,9 @@ class _BillsScreenState extends State<BillsScreen>
                   ),
                 ],
               ),
+                  ),   // Padding
+                ],
+              ),   // Column
             ),
           ],
         ),
@@ -1351,15 +1373,24 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   void _sendChatMsg(String text) {
-    if (text.trim().isEmpty) return;
+    final att = _plusCtrl.pendingAttachment;
+    if (text.trim().isEmpty && att == null) return;
+
+    final displayText = text.trim().isNotEmpty
+        ? (att != null ? '${text.trim()}\n📎 ${att.label}' : text.trim())
+        : '📎 ${att!.label}';
+
     setState(() {
-      _chatMessages.add({'from': 'user', 'text': text.trim()});
+      _chatMessages.add({'from': 'user', 'text': displayText});
       _chatMessages.add({
         'from': 'ahvi',
-        'text': 'Got it! I\'m reviewing your bills now… ✦',
+        'text': att != null
+            ? 'Got it! I\'m reviewing your attachment now… ✦'
+            : 'Got it! I\'m reviewing your bills now… ✦',
       });
     });
     _chatInputCtrl.clear();
+    _plusCtrl.clearPendingAttachment();
   }
 
 
@@ -3207,4 +3238,285 @@ class _PerforationPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_) => false;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+//  Bills Chat Plus Button — Ahvi-style bottom sheet (same as ahvi_stylist_chat)
+// ─────────────────────────────────────────────────────────────────────────────
+class _BillsPlusButton extends StatefulWidget {
+  final Color panel, cardBorder, accent, accentSecondary, text, background;
+  final VoidCallback? onCameraSelected;
+  final VoidCallback? onMenuOpen;
+  final VoidCallback? onMenuClose;
+
+  const _BillsPlusButton({
+    required this.panel,
+    required this.cardBorder,
+    required this.accent,
+    required this.accentSecondary,
+    required this.text,
+    required this.background,
+    this.onCameraSelected,
+    this.onMenuOpen,
+    this.onMenuClose,
+  });
+
+  @override
+  State<_BillsPlusButton> createState() => _BillsPlusButtonState();
+}
+
+class _BillsPlusButtonState extends State<_BillsPlusButton> {
+  bool _menuOpen = false;
+
+  void _openSheet() {
+    setState(() => _menuOpen = true);
+    widget.onMenuOpen?.call();
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.background,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: widget.cardBorder),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: widget.cardBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                // Menu rows
+                Container(
+                  decoration: BoxDecoration(
+                    color: widget.panel,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: widget.cardBorder),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _BillsMenuRow(
+                        icon: Icons.camera_alt_rounded,
+                        label: 'Camera',
+                        subtitle: 'Take a photo',
+                        accent: widget.accent,
+                        accentSecondary: widget.accentSecondary,
+                        cardBorder: widget.cardBorder,
+                        textPrimary: widget.text,
+                        isFirst: true,
+                        isLast: false,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          widget.onCameraSelected?.call();
+                        },
+                      ),
+                      _BillsMenuRow(
+                        icon: Icons.photo_library_rounded,
+                        label: 'Photo Library',
+                        subtitle: 'Choose from gallery',
+                        accent: widget.accent,
+                        accentSecondary: widget.accentSecondary,
+                        cardBorder: widget.cardBorder,
+                        textPrimary: widget.text,
+                        isFirst: false,
+                        isLast: false,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
+                      _BillsMenuRow(
+                        icon: Icons.insert_drive_file_rounded,
+                        label: 'Files',
+                        subtitle: 'Upload a document',
+                        accent: widget.accent,
+                        accentSecondary: widget.accentSecondary,
+                        cardBorder: widget.cardBorder,
+                        textPrimary: widget.text,
+                        isFirst: false,
+                        isLast: false,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
+                      _BillsMenuRow(
+                        icon: Icons.travel_explore_rounded,
+                        label: 'Browse',
+                        subtitle: 'Search the web',
+                        accent: widget.accent,
+                        accentSecondary: widget.accentSecondary,
+                        cardBorder: widget.cardBorder,
+                        textPrimary: widget.text,
+                        isFirst: false,
+                        isLast: true,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      if (mounted) setState(() => _menuOpen = false);
+      widget.onMenuClose?.call();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openSheet,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: _menuOpen
+              ? widget.accent.withValues(alpha: 0.15)
+              : widget.panel,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _menuOpen
+                ? widget.accent.withValues(alpha: 0.5)
+                : widget.cardBorder,
+            width: 1.5,
+          ),
+        ),
+        child: Icon(
+          _menuOpen ? Icons.close_rounded : Icons.add_rounded,
+          color: widget.accent,
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Ahvi-style menu row for Bills plus sheet ──────────────────────────────────
+class _BillsMenuRow extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color accent, accentSecondary, cardBorder, textPrimary;
+  final bool isFirst, isLast;
+  final VoidCallback onTap;
+
+  const _BillsMenuRow({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.accent,
+    required this.accentSecondary,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  @override
+  State<_BillsMenuRow> createState() => _BillsMenuRowState();
+}
+
+class _BillsMenuRowState extends State<_BillsMenuRow> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        decoration: BoxDecoration(
+          color: _pressed
+              ? widget.accent.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.vertical(
+            top: widget.isFirst ? const Radius.circular(20) : Radius.zero,
+            bottom: widget.isLast ? const Radius.circular(20) : Radius.zero,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          widget.accent.withValues(alpha: 0.18),
+                          widget.accentSecondary.withValues(alpha: 0.18),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(
+                        color: widget.accent.withValues(alpha: 0.22),
+                      ),
+                    ),
+                    child: Icon(widget.icon, color: widget.accent, size: 20),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.label,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: widget.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: widget.textPrimary.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!widget.isLast)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: widget.cardBorder,
+                indent: 74,
+                endIndent: 0,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

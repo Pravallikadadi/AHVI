@@ -398,50 +398,32 @@ class _SkincareScreenState extends State<SkincareScreen>
   // ── Header ──────────────────────────────────────────────────────────────────
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 8, 20, 16),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 4, 20, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: _panel,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: _cardBorder),
               ),
-              child: Icon(Icons.chevron_left_rounded, color: _text, size: 22),
+              child: Icon(Icons.chevron_left_rounded, color: _text, size: 18),
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ShaderMask(
-                shaderCallback: (bounds) => LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [_accent, _accent2],
-                ).createShader(bounds),
-                child: Text(
-                  AppLocalizations.t(context, 'skin_skincare'),
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: _text,
-                    letterSpacing: -0.5,
-                    height: 1,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                AppLocalizations.t(context, 'skin_personalised_ritual'),
-                style: TextStyle(fontSize: 12, color: _muted),
-              ),
-            ],
+          Text(
+            'Skincare',
+            style: TextStyle(
+              fontSize: 22.0,
+              fontWeight: FontWeight.w600,
+              color: _text,
+              letterSpacing: -0.5,
+            ),
           ),
         ],
       ),
@@ -1870,6 +1852,16 @@ class _ChatOverlayState extends State<_ChatOverlay>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          _SkincarePlusButton(
+            panel: _panel,
+            panel2: _panel2,
+            cardBorder: _cardBorder,
+            accent: _accent,
+            text: _text,
+            muted: _muted,
+            onCameraSelected: () => showAhviLensSheet(context, t: context.themeTokens),
+          ),
+          const SizedBox(width: 9),
           GestureDetector(
             onTap: _toggleVoice,
             child: AnimatedBuilder(
@@ -2358,6 +2350,208 @@ class _AskAhviFabState extends State<_AskAhviFab>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+//  Skincare Chat Plus Button (ChatGPT-style attach menu)
+// ─────────────────────────────────────────────────────────────────────────────
+class _SkincarePlusButton extends StatefulWidget {
+  final Color panel, panel2, cardBorder, accent, text, muted;
+  final VoidCallback? onCameraSelected;
+  const _SkincarePlusButton({
+    required this.panel,
+    required this.panel2,
+    required this.cardBorder,
+    required this.accent,
+    required this.text,
+    required this.muted,
+    this.onCameraSelected,
+  });
+  @override
+  State<_SkincarePlusButton> createState() => _SkincarePlusButtonState();
+}
+
+class _SkincarePlusButtonState extends State<_SkincarePlusButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _rotateAnim;
+  bool _menuOpen = false;
+  OverlayEntry? _overlay;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _rotateAnim = Tween<double>(begin: 0.0, end: 0.125)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _closeMenu();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _openMenu() {
+    if (_menuOpen) { _closeMenu(); return; }
+    setState(() => _menuOpen = true);
+    _ctrl.forward();
+    final renderBox = context.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    final actions = [
+      (Icons.camera_alt_outlined, 'Camera', const Color(0xFFFF6B6B)),
+      (Icons.photo_library_outlined, 'Photos', const Color(0xFF4ECDC4)),
+      (Icons.attach_file_rounded, 'Files', const Color(0xFF45B7D1)),
+      (Icons.search_rounded, 'Search Skincare', const Color(0xFF96CEB4)),
+    ];
+
+    _overlay = OverlayEntry(builder: (_) {
+      return GestureDetector(
+        onTap: _closeMenu,
+        behavior: HitTestBehavior.translucent,
+        child: Stack(children: [
+          Positioned(
+            left: offset.dx - 10,
+            bottom: MediaQuery.of(context).size.height - offset.dy + 8,
+            child: GestureDetector(
+              onTap: () {},
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 200,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: widget.panel,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: widget.cardBorder, width: 1),
+                    boxShadow: [BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    )],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions.map((a) => _SkincarePlusMenuRow(
+                      icon: a.$1,
+                      label: a.$2,
+                      color: a.$3,
+                      text: widget.text,
+                      onTap: () {
+                        _closeMenu();
+                        widget.onCameraSelected?.call();
+                      },
+                    )).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]),
+      );
+    });
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _closeMenu() {
+    _overlay?.remove();
+    _overlay = null;
+    _ctrl.reverse();
+    if (mounted) setState(() => _menuOpen = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openMenu,
+      child: AnimatedBuilder(
+        animation: _rotateAnim,
+        builder: (_, child) => Transform.rotate(
+          angle: _rotateAnim.value * 2 * 3.14159,
+          child: child,
+        ),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: _menuOpen
+                ? widget.accent.withValues(alpha: 0.15)
+                : widget.panel,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: _menuOpen
+                  ? widget.accent.withValues(alpha: 0.5)
+                  : widget.cardBorder,
+              width: 1.5,
+            ),
+          ),
+          child: Icon(Icons.add_rounded, color: widget.accent, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _SkincarePlusMenuRow extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color, text;
+  final VoidCallback onTap;
+  const _SkincarePlusMenuRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.text,
+    required this.onTap,
+  });
+  @override
+  State<_SkincarePlusMenuRow> createState() => _SkincarePlusMenuRowState();
+}
+
+class _SkincarePlusMenuRowState extends State<_SkincarePlusMenuRow> {
+  bool _hovered = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _hovered = true),
+      onTapUp: (_) { setState(() => _hovered = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: _hovered
+              ? widget.color.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: widget.color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(widget.icon, color: widget.color, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            widget.label,
+            style: TextStyle(
+              color: widget.text,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ]),
       ),
     );
   }

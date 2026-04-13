@@ -4,6 +4,8 @@ import 'package:myapp/app_localizations.dart';
 import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
+import 'package:myapp/widgets/ahvi_home_text.dart';
 // ─── DATA MODELS ──────────────────────────────────────────────────────────────
 class WorkoutCategory {
   final String id;
@@ -340,12 +342,13 @@ class _HomeView extends StatelessWidget {
   }
 }
 // ─── HERO CARD: DRESS WELL, TRAIN BETTER ──────────────────────────────────────
-const _kFitnessQuotes = [
-  (quote: 'Dress to\nPerform.', sub: 'train better.', caption: 'Outfits built for your workout'),
-  (quote: 'Look Good,\nLift Heavy.', sub: 'feel unstoppable.', caption: 'Style meets strength'),
-  (quote: 'Move Bold,\nDress Right.', sub: 'every rep counts.', caption: 'Gear up for greatness'),
-  (quote: 'Sweat in\nStyle.', sub: 'own the gym.', caption: 'Your workout, your look'),
-  (quote: 'Train Hard,\nDress Smart.', sub: 'show up ready.', caption: 'Built for performance'),
+// Quote keys — values live in assets/l10n/*.json
+const _kFitnessQuoteKeys = [
+  (quoteKey: 'fitness_hero_quote_1', subKey: 'fitness_hero_sub_1', captionKey: 'fitness_hero_caption_1'),
+  (quoteKey: 'fitness_hero_quote_2', subKey: 'fitness_hero_sub_2', captionKey: 'fitness_hero_caption_2'),
+  (quoteKey: 'fitness_hero_quote_3', subKey: 'fitness_hero_sub_3', captionKey: 'fitness_hero_caption_3'),
+  (quoteKey: 'fitness_hero_quote_4', subKey: 'fitness_hero_sub_4', captionKey: 'fitness_hero_caption_4'),
+  (quoteKey: 'fitness_hero_quote_5', subKey: 'fitness_hero_sub_5', captionKey: 'fitness_hero_caption_5'),
 ];
 
 class _HeroCard extends StatefulWidget {
@@ -353,32 +356,9 @@ class _HeroCard extends StatefulWidget {
   State<_HeroCard> createState() => _HeroCardState();
 }
 
-class _HeroCardState extends State<_HeroCard> with SingleTickerProviderStateMixin {
-  int _quoteIndex = 0;
-  double _opacity = 1.0;
-  late final _timer = Stream.periodic(const Duration(seconds: 4)).listen((_) => _rotate());
-
-  void _rotate() {
-    if (!mounted) return;
-    setState(() => _opacity = 0.0);
-    Future.delayed(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      setState(() {
-        _quoteIndex = (_quoteIndex + 1) % _kFitnessQuotes.length;
-        _opacity = 1.0;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
+class _HeroCardState extends State<_HeroCard> {
   @override
   Widget build(BuildContext context) {
-    final q = _kFitnessQuotes[_quoteIndex];
     return Container(
       width: double.infinity,
       height: 220,
@@ -408,51 +388,46 @@ class _HeroCardState extends State<_HeroCard> with SingleTickerProviderStateMixi
               ),
             ),
           ),
-          // Quote dots indicator
-          Positioned(
-            bottom: 14,
-            left: 26,
-            child: Row(
-              children: List.generate(_kFitnessQuotes.length, (i) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.only(right: 5),
-                width: i == _quoteIndex ? 16 : 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: i == _quoteIndex
-                      ? Colors.white
-                      : Colors.white.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              )),
-            ),
-          ),
-          // Animated quote text
-          Padding(
-            padding: const EdgeInsets.fromLTRB(26, 26, 26, 36),
-            child: AnimatedOpacity(
-              opacity: _opacity,
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOut,
+          // Quote text — center aligned with subtitle
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(26, 0, 26, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  RichText(
-                    text: TextSpan(
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white, height: 1.15, letterSpacing: -0.5),
-                      children: [
-                        TextSpan(text: '${q.quote}\n'),
-                        TextSpan(text: q.sub, style: const TextStyle(color: Colors.white70)),
-                      ],
+                  Text(
+                    AppLocalizations.t(context, _kFitnessQuoteKeys[0].quoteKey),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 1.15,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.45,
+                    child: Text(
+                      AppLocalizations.t(context, _kFitnessQuoteKeys[0].subKey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.75),
+                        letterSpacing: 0.2,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  SizedBox(
-                    width: 200,
-                    child: Text(
-                      q.caption,
-                      style: const TextStyle(fontSize: 12, color: Colors.white54, height: 1.5, fontWeight: FontWeight.w300),
+                  Text(
+                    AppLocalizations.t(context, _kFitnessQuoteKeys[0].captionKey),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 1.1,
                     ),
                   ),
                 ],
@@ -910,8 +885,8 @@ class _EmptyGrid extends StatelessWidget {
         children: [
           Text('✦', style: TextStyle(fontSize: 40, color: context.fMuted.withValues(alpha: 0.3))),
           const SizedBox(height: 12),
-          Text(AppLocalizations.t(context, 'fitness_no_workouts'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.fText.withValues(alpha: 0.7))),
-          Text(AppLocalizations.t(context, 'fitness_add_outfit_hint'), style: TextStyle(fontSize: 13, color: context.fMuted)),
+          Text(AppLocalizations.t(context, 'fitness_no_routines'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: context.fText.withValues(alpha: 0.7))),
+          Text(AppLocalizations.t(context, 'fitness_add_routine_hint'), style: TextStyle(fontSize: 13, color: context.fMuted)),
         ],
       ),
     );
@@ -965,7 +940,7 @@ class _AddOutfitSheetState extends State<_AddOutfitSheet> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    AppLocalizations.t(context, 'fitness_new_outfit'),
+                    AppLocalizations.t(context, 'fitness_new_routine'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.fText),
                   ),
                   GestureDetector(
@@ -985,7 +960,7 @@ class _AddOutfitSheetState extends State<_AddOutfitSheet> {
               const SizedBox(height: 24),
 
               // ── Outfit Name ─────────────────────────────────────────────────
-              _Label(AppLocalizations.t(context, 'fitness_outfit_name')),
+              _Label(AppLocalizations.t(context, 'fitness_routine_name')),
               TextField(
                 controller: _nameController,
                 style: TextStyle(color: context.fText, fontSize: 14),
@@ -1007,7 +982,7 @@ class _AddOutfitSheetState extends State<_AddOutfitSheet> {
               const SizedBox(height: 20),
 
               // ── Outfit Photos ───────────────────────────────────────────────
-              _Label(AppLocalizations.t(context, 'fitness_outfit_photos')),
+              _Label(AppLocalizations.t(context, 'fitness_routine_photos')),
               if (_images.isNotEmpty)
                 Container(
                   height: 100,
@@ -1112,7 +1087,7 @@ class _AddOutfitSheetState extends State<_AddOutfitSheet> {
                     elevation: 0,
                   ),
                   child: Text(
-                    AppLocalizations.t(context, 'fitness_save_outfit'),
+                    AppLocalizations.t(context, 'fitness_save_routine'),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, letterSpacing: 0.5),
                   ),
                 ),
@@ -1301,11 +1276,18 @@ class _FitnessSession {
 
 class _ChatViewState extends State<_ChatView> {
   final _inputController = TextEditingController();
+  final _plusCtrl = ChatPlusButtonController();
   final _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
   bool _showVoiceOverlay = false;
+  OverlayEntry? _overlay;
+
+  void _removeOverlay() {
+    _overlay?.remove();
+    _overlay = null;
+  }
 
   @override
   void didChangeDependencies() {
@@ -1426,11 +1408,16 @@ class _ChatViewState extends State<_ChatView> {
   );
 
   void _sendMessage([String? text]) {
-    final msg = text ?? _inputController.text.trim();
-    if (msg.isEmpty) return;
+    final att = _plusCtrl.pendingAttachment;
+    final raw = text ?? _inputController.text.trim();
+    if (raw.isEmpty && att == null) return;
+    final msg = raw.isNotEmpty
+        ? (att != null ? '$raw\n📎 ${att.label}' : raw)
+        : '📎 ${att!.label}';
     setState(() {
       _messages.add(ChatMessage(text: msg, isBot: false));
       if (text == null) _inputController.clear();
+      _plusCtrl.clearPendingAttachment();
       _isTyping = true;
     });
     _scrollToBottom();
@@ -1545,6 +1532,15 @@ class _ChatViewState extends State<_ChatView> {
       gradientColors: [Color(0xFF2D1B69), Color(0xFF7B6EF6), Color(0xFF9B8EFF)],
     );
   }
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _plusCtrl.dispose();
+    _removeOverlay();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -1581,10 +1577,12 @@ class _ChatViewState extends State<_ChatView> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // AHVI title — back button పక్కన
-                  Text(
-                    'AHVI',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: context.fText, letterSpacing: 1.5),
+                  // AHVI logo — same as home page
+                  AhviHomeText(
+                    color: context.fText,
+                    fontSize: 30.0,
+                    letterSpacing: 3.2,
+                    fontWeight: FontWeight.w400,
                   ),
                   const Spacer(),
                   // History Button
@@ -1620,7 +1618,7 @@ class _ChatViewState extends State<_ChatView> {
             _ChatInput(
               controller: _inputController,
               onSend: _sendMessage,
-              onLensTap: _showLensSheet,
+              plusCtrl: _plusCtrl,
               onMicTap: () => setState(() => _showVoiceOverlay = true),
             ),
           ],
@@ -1877,12 +1875,12 @@ class _SuggestionChip extends StatelessWidget {
 class _ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final Function(String) onSend;
-  final VoidCallback onLensTap;
+  final ChatPlusButtonController plusCtrl;
   final VoidCallback onMicTap;
   const _ChatInput({
     required this.controller,
     required this.onSend,
-    required this.onLensTap,
+    required this.plusCtrl,
     required this.onMicTap,
   });
   @override
@@ -1893,79 +1891,230 @@ class _ChatInput extends StatelessWidget {
         color: context.fSurface.withValues(alpha: 0.85),
         border: Border(top: BorderSide(color: kAccent.withValues(alpha: 0.12), width: 1)),
       ),
-      child: Container(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Attachment preview chip (shown when file/image/search is pending)
+          ChatAttachmentChip(controller: plusCtrl),
+          Container(
+            decoration: BoxDecoration(
+              color: context.fCard,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: kAccent.withValues(alpha: 0.30), width: 1.2),
+              boxShadow: [
+                BoxShadow(color: kAccent.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 2)),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            child: Row(
+              children: [
+                // ChatPlusButton — Camera, Photo Library, Files, Web Search
+                ChatPlusButton(controller: plusCtrl),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    style: TextStyle(color: context.fText, fontSize: 14),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      border: InputBorder.none,
+                      hintText: AppLocalizations.t(context, 'fitness_chat_hint'),
+                      hintStyle: TextStyle(color: context.fMuted, fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Microphone Button
+                GestureDetector(
+                  onTap: onMicTap,
+                  child: Container(
+                    width: 30, height: 30,
+                    decoration: BoxDecoration(
+                      color: kAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: kAccent.withValues(alpha: 0.25), width: 1),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.mic_rounded, color: kAccent, size: 16),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Send Button
+                IconButton(
+                  onPressed: () => onSend(controller.text),
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: context.fAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                    minimumSize: const Size(38, 38),
+                    maximumSize: const Size(38, 38),
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),      // Row
+          ),    // inner Container
+        ],
+      ),        // Column
+    );
+  }
+}
+
+// ── ChatGPT-style Plus Button for Fitness ─────────────────────────────────
+class _FitnessPlusButton extends StatefulWidget {
+  final VoidCallback onLensTap;
+  const _FitnessPlusButton({required this.onLensTap});
+  @override
+  State<_FitnessPlusButton> createState() => _FitnessPlusButtonState();
+}
+
+class _FitnessPlusButtonState extends State<_FitnessPlusButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _rotateAnim;
+  bool _menuOpen = false;
+  OverlayEntry? _overlay;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _rotateAnim = Tween<double>(begin: 0.0, end: 0.125)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _closeMenu();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _openMenu() {
+    if (_menuOpen) { _closeMenu(); return; }
+    setState(() => _menuOpen = true);
+    _ctrl.forward();
+    final renderBox = context.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    final actions = [
+      (Icons.camera_alt_outlined, 'Camera', const Color(0xFFFF6B6B)),
+      (Icons.photo_library_outlined, 'Photos', const Color(0xFF4ECDC4)),
+      (Icons.attach_file_rounded, 'Files', const Color(0xFF45B7D1)),
+      (Icons.search_rounded, 'Visual Search', kAccent),
+    ];
+
+    _overlay = OverlayEntry(builder: (_) {
+      return GestureDetector(
+        onTap: _closeMenu,
+        behavior: HitTestBehavior.translucent,
+        child: Stack(children: [
+          Positioned(
+            left: offset.dx - 10,
+            bottom: MediaQuery.of(context).size.height - offset.dy + 8,
+            child: GestureDetector(
+              onTap: () {},
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 200,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: context.fSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kAccent.withValues(alpha: 0.2)),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 24, offset: const Offset(0, 8))],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions.map((a) => _FitnessMenuRow(
+                      icon: a.$1,
+                      label: a.$2,
+                      color: a.$3,
+                      onTap: () {
+                        _closeMenu();
+                        if (a.$2 == 'Visual Search') widget.onLensTap();
+                      },
+                    )).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]),
+      );
+    });
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _closeMenu() {
+    _overlay?.remove();
+    _overlay = null;
+    _ctrl.reverse();
+    if (mounted) setState(() => _menuOpen = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openMenu,
+      child: AnimatedBuilder(
+        animation: _rotateAnim,
+        builder: (_, child) => Transform.rotate(
+          angle: _rotateAnim.value * 2 * 3.14159,
+          child: child,
+        ),
+        child: Container(
+          width: 30, height: 30,
+          decoration: BoxDecoration(
+            color: _menuOpen ? kAccent.withValues(alpha: 0.18) : kAccent.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _menuOpen ? kAccent.withValues(alpha: 0.5) : kAccent.withValues(alpha: 0.25), width: 1),
+          ),
+          child: Icon(Icons.add_rounded, color: kAccent, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _FitnessMenuRow extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _FitnessMenuRow({required this.icon, required this.label, required this.color, required this.onTap});
+  @override
+  State<_FitnessMenuRow> createState() => _FitnessMenuRowState();
+}
+
+class _FitnessMenuRowState extends State<_FitnessMenuRow> {
+  bool _hovered = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _hovered = true),
+      onTapUp: (_) { setState(() => _hovered = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
-          color: context.fCard,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: kAccent.withValues(alpha: 0.30), width: 1.2),
-          boxShadow: [
-            BoxShadow(color: kAccent.withValues(alpha: 0.08), blurRadius: 16, offset: const Offset(0, 2)),
-          ],
+          color: _hovered ? widget.color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        child: Row(
-          children: [
-            // Lens Button
-            GestureDetector(
-              onTap: onLensTap,
-              child: Container(
-                width: 30, height: 30,
-                decoration: BoxDecoration(
-                  color: kAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kAccent.withValues(alpha: 0.25), width: 1),
-                ),
-                child: Center(
-                  child: Icon(Icons.search_rounded, color: kAccent, size: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                style: TextStyle(color: context.fText, fontSize: 14),
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  border: InputBorder.none,
-                  hintText: AppLocalizations.t(context, 'fitness_chat_hint'),
-                  hintStyle: TextStyle(color: context.fMuted, fontSize: 13),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // Microphone Button
-            GestureDetector(
-              onTap: onMicTap,
-              child: Container(
-                width: 30, height: 30,
-                decoration: BoxDecoration(
-                  color: kAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: kAccent.withValues(alpha: 0.25), width: 1),
-                ),
-                child: Center(
-                  child: Icon(Icons.mic_rounded, color: kAccent, size: 16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            // Send Button
-            IconButton(
-              onPressed: () => onSend(controller.text),
-              icon: const Icon(Icons.arrow_forward_rounded),
-              style: IconButton.styleFrom(
-                backgroundColor: context.fAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                minimumSize: const Size(38, 38),
-                maximumSize: const Size(38, 38),
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ],
-        ),
+        child: Row(children: [
+          Container(
+            width: 30, height: 30,
+            decoration: BoxDecoration(color: widget.color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(9)),
+            child: Icon(widget.icon, color: widget.color, size: 15),
+          ),
+          const SizedBox(width: 10),
+          Text(widget.label, style: TextStyle(color: context.fText, fontSize: 13, fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }

@@ -629,8 +629,6 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             _buildDivider(),
             _buildPhoneField(),
             _buildDivider(),
-            _buildGenderField(),
-            _buildDivider(),
             _buildDOBField(),
             _buildDivider(),
             _buildSkinToneField(),
@@ -1217,7 +1215,25 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   }
 
   // ── Shop Preferences Field ──
+  // Three mutually exclusive cards: Women / Men / Both
+  static const List<Map<String, String>> _shopPrefCards = [
+    {'label': 'Women', 'img': 'assets/shop/women.jpg'},
+    {'label': 'Men',   'img': 'assets/shop/men.jpg'},
+    {'label': 'Both',  'img': 'assets/shop/both.jpeg'},
+  ];
+
   Widget _buildShopPrefsField() {
+    // Determine which card is visually active
+    final bool womenSelected = _shopPrefs.length == 1 && _shopPrefs.contains('Women');
+    final bool menSelected   = _shopPrefs.length == 1 && _shopPrefs.contains('Men');
+    final bool bothSelected  = _shopPrefs.contains('Women') && _shopPrefs.contains('Men');
+
+    bool isCardActive(String label) {
+      if (label == 'Women') return womenSelected;
+      if (label == 'Men')   return menSelected;
+      return bothSelected; // Both
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
@@ -1231,100 +1247,100 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 10, mainAxisSpacing: 10,
-            childAspectRatio: 1.0,
-            children: kShopPrefs.map((pref) {
-              final label = pref['label']!;
-              final isActive = _shopPrefs.contains(label);
-              return GestureDetector(
-                onTap: () => setState(() {
-                  if (isActive) {
-                    _shopPrefs.remove(label);
-                  } else {
-                    _shopPrefs.add(label);
-                  }
-                  // Determine body gender based on current selection
-                  final hasWomen = _shopPrefs.contains('Women');
-                  final hasMen = _shopPrefs.contains('Men');
-                  if (hasWomen && hasMen) {
-                    _bodyGender = 'both';
-                    _selectedBodyShape = kBodyShapes['women']!.first['name']!;
-                  } else if (hasWomen) {
-                    _bodyGender = 'women';
-                    _selectedBodyShape = kBodyShapes['women']!.first['name']!;
-                  } else if (hasMen) {
-                    _bodyGender = 'men';
-                    _selectedBodyShape = kBodyShapes['men']!.first['name']!;
-                  }
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isActive ? accent : cardBorder,
-                      width: isActive ? 1.5 : 1,
-                    ),
-                    color: isActive
-                        ? const Color(0x226B91FF)
-                        : panel,
+          Row(
+            children: List.generate(_shopPrefCards.length, (index) {
+              final pref    = _shopPrefCards[index];
+              final label   = pref['label']!;
+              final isActive = isCardActive(label);
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left:  index == 0 ? 0 : 5,
+                    right: index == _shopPrefCards.length - 1 ? 0 : 5,
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.asset(
-                          pref['img']!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const SizedBox(),
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _shopPrefs.clear();
+                      if (label == 'Both') {
+                        _shopPrefs.addAll(['Women', 'Men']);
+                        _bodyGender = 'both';
+                        _selectedBodyShape = kBodyShapes['women']!.first['name']!;
+                      } else if (label == 'Women') {
+                        _shopPrefs.add('Women');
+                        _bodyGender = 'women';
+                        _selectedBodyShape = kBodyShapes['women']!.first['name']!;
+                      } else {
+                        _shopPrefs.add('Men');
+                        _bodyGender = 'men';
+                        _selectedBodyShape = kBodyShapes['men']!.first['name']!;
+                      }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      height: 160,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isActive ? accent : cardBorder,
+                          width: isActive ? 1.5 : 1,
                         ),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.black.withOpacity(0.6),
-                              ],
+                        color: isActive ? const Color(0x226B91FF) : panel,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(11),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              pref['img']!,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
+                              errorBuilder: (_, _, _) => const SizedBox(),
                             ),
-                          ),
-                        ),
-                        Align(
-                          alignment: Alignment.bottomLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Row(
-                              children: [
-                                if (isActive)
-                                  const Padding(
-                                    padding: EdgeInsets.only(right: 4),
-                                    child: Icon(Icons.check_circle,
-                                        color: accent, size: 13),
-                                  ),
-                                Text(
-                                  label,
-                                  style: const TextStyle(
-                                    color: textColor, fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    fontFamily: 'DM Sans',
-                                  ),
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.65),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
+                            Align(
+                              alignment: Alignment.bottomLeft,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Row(
+                                  children: [
+                                    if (isActive)
+                                      const Padding(
+                                        padding: EdgeInsets.only(right: 4),
+                                        child: Icon(Icons.check_circle,
+                                            color: accent, size: 13),
+                                      ),
+                                    Text(
+                                      label,
+                                      style: const TextStyle(
+                                        color: textColor, fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        fontFamily: 'DM Sans',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ),
         ],
       ),

@@ -72,5 +72,7 @@
     <string>Photo library access is needed to select outfit photos</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
     <string>Your location is used to show nearby stores.</string>
+	<key>NSCameraUsageDescription</key>
+    <string>Camera access for photos</string>    
 </dict>
 </plist>

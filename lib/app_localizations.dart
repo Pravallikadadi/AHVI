@@ -44,8 +44,8 @@ class AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      // ✅ 7 languages support
-      ['en', 'te', 'ta', 'kn', 'ml', 'bn', 'mr']
+      // ✅ 8 languages support
+      ['en', 'hi', 'te', 'ta', 'kn', 'ml', 'bn', 'mr']
           .contains(locale.languageCode);
 
   @override

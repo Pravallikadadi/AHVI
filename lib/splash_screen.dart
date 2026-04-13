@@ -321,64 +321,50 @@ class _SplashScreenState extends State<SplashScreen>
           ],
         ),
         const SizedBox(height: 20),
-        // White-pill subtitle: "Your personal AI assistant"
+        // Subtitle: "Your personal AI assistant" — no background
         SlideTransition(
           position: _subSlide,
           child: Opacity(
             opacity: _subFade.value,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: _C.accent.withValues(alpha: 0.18),
-                    blurRadius: 18,
-                    offset: const Offset(0, 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Your personal ',
+                  style: TextStyle(
+                    color: _C.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Your personal ',
+                ),
+                ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (b) => const LinearGradient(
+                    colors: [_C.accent, _C.accent2],
+                  ).createShader(b),
+                  child: const Text(
+                    'AI',
                     style: TextStyle(
-                      color: Color(0xFF0E1535),
+                      color: Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 0.1,
                     ),
                   ),
-                  ShaderMask(
-                    blendMode: BlendMode.srcIn,
-                    shaderCallback: (b) => const LinearGradient(
-                      colors: [_C.accent, _C.accent2],
-                    ).createShader(b),
-                    child: const Text(
-                      'AI',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.1,
-                      ),
-                    ),
+                ),
+                const Icon(Icons.auto_awesome_rounded,
+                    color: _C.accent2, size: 9),
+                const Text(
+                  ' assistant',
+                  style: TextStyle(
+                    color: _C.text,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
                   ),
-                  const Icon(Icons.auto_awesome_rounded,
-                      color: _C.accent2, size: 9),
-                  const Text(
-                    ' assistant',
-                    style: TextStyle(
-                      color: Color(0xFF0E1535),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.1,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -393,39 +379,14 @@ class _SplashScreenState extends State<SplashScreen>
         opacity: _tagFade.value,
         child: Column(
           children: [
-            // Muted label above
+            // Tagline: "Style. Prep. Plan." — no background, white text
             const Text(
-              'Style that understands you ·',
+              'Style. Prep. Plan.',
               style: TextStyle(
-                color: _C.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 1.6,
-              ),
-            ),
-            const SizedBox(height: 14),
-            // White-pill tagline: "Style. Prep. Plan."
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: _C.accent.withValues(alpha: 0.20),
-                    blurRadius: 24,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: const Text(
-                'Style. Prep. Plan.',
-                style: TextStyle(
-                  color: Color(0xFF0E1535),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
+                color: _C.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
               ),
             ),
             const SizedBox(height: 28),

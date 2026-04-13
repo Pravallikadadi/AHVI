@@ -10,7 +10,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
-import 'package:myapp/widgets/ahvi_lens_sheet.dart';
+import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/Ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 
 enum _TryOnStage { preview, loading, camera, captured }
 
@@ -61,6 +62,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   bool _tryOnOpen = false;
   final PageController _pageController = PageController();
   final TextEditingController _chatController = TextEditingController();
+  final ChatPlusButtonController _plusCtrl = ChatPlusButtonController();
   final ScrollController _chatScrollController = ScrollController();
 
   late final Map<String, bool> _savedCarouselById;
@@ -80,6 +82,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   final GlobalKey<ScaffoldState> _chatScaffoldKey = GlobalKey<ScaffoldState>();
 
   int? _speakingMessageId;
+
+  // ── Plus button ───────────────────────────────────────────────────────────
 
   String _liveDay = 'THU';
   String _liveDate = 'FEB 19';
@@ -217,6 +221,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late Animation<double> _micPulseScale;
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
+
 
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
@@ -655,11 +660,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _restartOptionCardAnimations();
   }
 
+  void _removeOverlay() {
+    try {
+      _toastEntry?.remove();
+    } catch (_) {}
+    _toastEntry = null;
+  }
+
+  void _showOverlay(BuildContext context, ChatPlusButtonController ctrl) {
+    _removeOverlay();
+    final entry = OverlayEntry(
+      builder: (_) => GestureDetector(
+        onTap: () {
+          ctrl.closeMenu();
+          _removeOverlay();
+        },
+        behavior: HitTestBehavior.translucent,
+        child: const SizedBox.expand(),
+      ),
+    );
+    _toastEntry = entry;
+    Overlay.of(context).insert(entry);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
+
   @override
   void dispose() {
-    _pageController.removeListener(_onPageScroll);
     _pageController.dispose();
     _chatController.dispose();
+    _plusCtrl.dispose();
+    _removeOverlay();
     _chatScrollController.dispose();
     _fabEntryCtrl.dispose();
     _fabPulseCtrl.dispose();
@@ -896,14 +927,19 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _sendMessage(String text) {
+    final att = _plusCtrl.pendingAttachment;
     final trimmed = text.trim();
-    if (trimmed.isEmpty || _isTyping) return;
+    if (trimmed.isEmpty && att == null || _isTyping) return;
+    final displayText = trimmed.isNotEmpty
+        ? (att != null ? '$trimmed\n📎 ${att.label}' : trimmed)
+        : '📎 ${att!.label}';
     _chatController.clear();
+    _plusCtrl.clearPendingAttachment();
     setState(() {
       _messages.add(
         _ChatMessage(
           id: DateTime.now().microsecondsSinceEpoch,
-          text: trimmed,
+          text: displayText,
           isUser: true,
           createdAt: DateTime.now(),
         ),
@@ -912,7 +948,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _quickPromptsVisible = false;
     });
     _scrollChatToBottom();
-    _callAnthropicApi(trimmed);
+    _callAnthropicApi(displayText);
   }
 
   Future<void> _callAnthropicApi(String userText) async {
@@ -1302,42 +1338,26 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         final backBtn = GestureDetector(
           onTap: () => Navigator.of(context).pop(),
           child: Container(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: panelColor,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: cardBorderColor),
             ),
-            child: Icon(Icons.chevron_left_rounded, color: textColor, size: 22),
+            child: Icon(Icons.chevron_left_rounded, color: textColor, size: 18),
           ),
         );
         final leftBlock = Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.t(context, 'daily_wear_title'),
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                    letterSpacing: -0.3,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  AppLocalizations.t(context, 'daily_wear_curated_today'),
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    color: mutedColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-              ],
+            Text(
+              'Daily Wear',
+              style: TextStyle(
+                fontSize: 22.0,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         );
@@ -2369,27 +2389,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.t(context, 'daily_wear_ahvi_stylist'),
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                AppLocalizations.t(context, 'daily_wear_ai_stylist_sub'),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: mutedColor,
-                ),
-              ),
-            ],
+          child: AhviHomeText(
+            color: textColor,
+            fontSize: 28.0,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
           ),
         ),
         _PressScaleButton(
@@ -2418,51 +2422,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Widget _chatMessages() {
     final showEmptyState = _messages.isEmpty;
-    final itemCount =
-        (showEmptyState ? 1 : _messages.length) + (_isTyping ? 1 : 0);
+    final itemCount = _messages.length + (_isTyping ? 1 : 0);
     return ListView.builder(
       controller: _chatScrollController,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       itemCount: itemCount,
       itemBuilder: (context, i) {
         if (showEmptyState) {
-          if (i == 0) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 34,
-                    backgroundColor: accentColor,
-                    child: Text(
-                      '*',
-                      style: TextStyle(fontSize: 28, color: tileTextColor),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    AppLocalizations.t(context, 'daily_wear_hello_ahvi'),
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    AppLocalizations.t(context, 'daily_wear_empty_desc'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: mutedColor,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-          return const _TypingBubble();
+          return const SizedBox.shrink();
         }
 
         if (_isTyping && i == _messages.length) {
@@ -2517,24 +2484,39 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         color: phoneShellInnerColor,
         border: Border(top: BorderSide(color: cardBorderColor)),
       ),
-      child: AhviChatPromptBar(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        controller: _chatController,
-        focusNode: _chatFocusNode,
-        hintText: AppLocalizations.t(context, 'daily_wear_chat_hint'),
-        hasTextListenable: _chatController,
-        surface: phoneShellInnerColor,
-        border: cardBorderColor,
-        accent: accentColor,
-        accentSecondary: accent2Color,
-        textHeading: textColor,
-        textMuted: mutedColor,
-        shadowMedium: bgColor.withValues(alpha: 0.20),
-        onAccent: tileTextColor,
-        onSubmitted: _sendMessage,
-        onSend: () => _sendMessage(_chatController.text),
-        onEmptySend: () {},
-        onAddTap: () => showAhviLensSheet(context, t: context.themeTokens),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Attachment preview chip — shown when a file / image / web search is pending
+          ChatAttachmentChip(controller: _plusCtrl),
+          AhviChatPromptBar(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            controller: _chatController,
+            focusNode: _chatFocusNode,
+            hintText: AppLocalizations.t(context, 'daily_wear_chat_hint'),
+            hasTextListenable: _chatController,
+            surface: phoneShellInnerColor,
+            border: cardBorderColor,
+            accent: accentColor,
+            accentSecondary: accent2Color,
+            textHeading: textColor,
+            textMuted: mutedColor,
+            shadowMedium: bgColor.withValues(alpha: 0.20),
+            onAccent: tileTextColor,
+            onSubmitted: _sendMessage,
+            onSend: () => _sendMessage(_chatController.text),
+            onEmptySend: () => _plusCtrl.pendingAttachment != null
+                ? _sendMessage('')
+                : null,
+            plusButton: ChatPlusButton(
+              controller: _plusCtrl,
+              accentColor: accentColor,
+              panelColor: phoneShellInnerColor.withValues(alpha: 1.0),
+              borderColor: cardBorderColor,
+              textColor: textColor,
+            ),
+          ),
+        ],
       ),
     );
   }

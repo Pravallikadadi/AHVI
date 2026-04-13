@@ -15,23 +15,24 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/chat.dart'; // 🚀 Added Chat Screen Integration
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
+import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
 // ─── Colors ──────────────────────────────────────────────
 
 // 🆕 Nav items are now built dynamically in _buildBottomNav() using localization
 // _homeNavItems icons only — labels come from JSON
 const _homeNavIcons = <IconData>[
-  Icons.chat_bubble_outline_rounded,
-  Icons.dry_cleaning_outlined,
   Icons.search_rounded,
+  Icons.dry_cleaning_outlined,
+  Icons.chat_bubble_outline_rounded,
   Icons.grid_view_rounded,
   Icons.explore_outlined,
 ];
 // Keep original for fallback / non-localized usage
 const _homeNavItems = <({IconData icon, String label})>[
-  (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
-  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
   (icon: Icons.search_rounded, label: 'Lens'),
+  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
+  (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
   (icon: Icons.grid_view_rounded, label: 'Planner'),
   (icon: Icons.explore_outlined, label: 'Explore'),
 ];
@@ -148,8 +149,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   Timer? _suggestionTimer;
 
   bool _lensSheetOpen = false;
-  late AnimationController _lensSheetCtrl;
-
   // ── Plus menu (ChatGPT-style) ──────────────────────────────────────────────
   bool _plusMenuOpen = false;
   late AnimationController _plusMenuCtrl;
@@ -284,11 +283,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     _seeAllCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 360),
-    );
-
-    _lensSheetCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 420),
     );
 
     _plusMenuCtrl = AnimationController(
@@ -462,7 +456,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       c.dispose();
     }
     _seeAllCtrl.dispose();
-    _lensSheetCtrl.dispose();
     _plusMenuCtrl.dispose();
     for (final c in _navRiseCtrls) {
       c.dispose();
@@ -498,7 +491,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   // 🚀 FIXED: Chat Navigation logic for the Bottom Nav Bar
   void _handleNavTap(int idx) {
     if (idx == 0) {
-      _openNavScreen(const ChatScreen());
+      _openLensSheet();
       return;
     }
     if (idx == 1) {
@@ -510,7 +503,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       return;
     }
     if (idx == 2) {
-      _openLensSheet();
+      _openNavScreen(const ChatScreen());
       return;
     }
     if (idx == 3) {
@@ -541,17 +534,20 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
   void _openLensSheet() {
     setState(() => _lensSheetOpen = true);
-    _lensSheetCtrl.animateTo(
-      1.0,
-      duration: const Duration(milliseconds: 420),
-      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-    );
+    showModalBottomSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => AhviLensSheet(t: _t),
+    ).whenComplete(() {
+      if (mounted) setState(() => _lensSheetOpen = false);
+    });
   }
 
   void _closeLensSheet() {
-    _lensSheetCtrl.reverse().then((_) {
-      if (mounted) setState(() => _lensSheetOpen = false);
-    });
+    Navigator.of(context, rootNavigator: true).maybePop();
+    if (mounted) setState(() => _lensSheetOpen = false);
   }
 
   void _openPlusMenu() {
@@ -995,7 +991,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   // Fixed const layout values — no dynamic screen calculations
                   const double heroHFinal = 240.0;
                   const double heroGap = 10.0;
-                  const double secondaryRowH = 76.0;
+                  const double secondaryRowH = 90.0;
                   const double hPad = 20.0;
                   // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 2
                   final safeBottom2 = MediaQuery.of(context).padding.bottom;
@@ -1077,7 +1073,7 @@ Builder(builder: (ctx) {
             }),
 
           if (_seeAllOpen) _buildSeeAllPanel(),
-          if (_lensSheetOpen) _buildLensSheet(),
+
           _buildComingSoonToast(),
         ],
       ),
@@ -1170,11 +1166,19 @@ Builder(builder: (ctx) {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          AhviHomeText(
-            color: _textHeading,
-            fontSize: logoFontSize,
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w400,
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              if (_lensSheetOpen) _closeLensSheet();
+              if (_seeAllOpen) _closeSeeAll();
+              if (_overlayState != _OverlayState.idle) _dismissOverlay();
+            },
+            child: AhviHomeText(
+              color: _textHeading,
+              fontSize: logoFontSize,
+              letterSpacing: 3.2,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           _buildProfileAvatar(),
         ],
@@ -1816,6 +1820,7 @@ Builder(builder: (ctx) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2275,7 +2280,7 @@ Builder(builder: (ctx) {
   Widget _buildBottomNav() {
     // 🆕 Nav labels localized
     final navLabelKeys = [
-      'nav_chat', 'nav_wardrobe', 'nav_lens', 'nav_planner', 'nav_explore',
+      'nav_lens', 'nav_wardrobe', 'nav_chat', 'nav_planner', 'nav_explore',
     ];
     final items = _homeNavItems;
     final screenH = MediaQuery.of(context).size.height;
@@ -4074,312 +4079,6 @@ Builder(builder: (ctx) {
       },
     );
   }
-
-  Widget _buildLensSheet() {
-    return GestureDetector(
-      onTap: _closeLensSheet,
-      child: AnimatedBuilder(
-        animation: _lensSheetCtrl,
-        builder: (context, _) {
-          return Stack(
-            children: [
-              Positioned.fill(
-                child: Container(
-                  color: _accent.withValues(alpha: 0.15 * _lensSheetCtrl.value),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - _lensSheetCtrl.value) * 400),
-                  child: GestureDetector(
-                    onTap: () {},
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [_surface, _bgSecondary],
-                        ),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                        border: Border.all(
-                          color: _accent.withValues(alpha: 0.15),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _accent.withValues(alpha: 0.15),
-                            blurRadius: 48,
-                            offset: const Offset(0, -12),
-                          ),
-                        ],
-                      ),
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.of(context).padding.bottom),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 4,
-                            margin: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _accent.withValues(alpha: 0.30),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 2,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: _accent.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(9),
-                                        border: Border.all(
-                                          color: _accent.withValues(
-                                            alpha: 0.25,
-                                          ),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.search,
-                                        color: _accent,
-                                        size: 17,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      AppLocalizations.t(context, 'lens_title'), // 🆕
-                                      style: TextStyle(
-                                        color: _textHeading,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                GestureDetector(
-                                  onTap: _closeLensSheet,
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _accent.withValues(alpha: 0.08),
-                                      border: Border.all(
-                                        color: _accent.withValues(alpha: 0.20),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.close,
-                                      color: _textMuted,
-                                      size: 14,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: _panel,
-                              border: Border.all(
-                                color: _accent.withValues(alpha: 0.15),
-                                width: 1,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Row(
-                              children: [
-                                AnimatedBuilder(
-                                  animation: _aurora1Ctrl,
-                                  builder: (context, _) {
-                                    return Transform.rotate(
-                                      angle: _aurora1Ctrl.value * math.pi * 2,
-                                      child: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: _accent.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            width: 2,
-                                          ),
-                                          color: _accent.withValues(
-                                            alpha: 0.08,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.circle,
-                                          color: _accent,
-                                          size: 12,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.t(context, 'lens_visual_ai_search'), // 🆕
-                                        style: TextStyle(
-                                          color: _textHeading,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      SizedBox(height: 2),
-                                      Text(
-                                        AppLocalizations.t(context, 'lens_visual_ai_desc'), // 🆕
-                                        style: TextStyle(
-                                          color: _textMuted,
-                                          fontSize: 11.5,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ...[
-                            (
-                              Icons.search,
-                              AppLocalizations.t(context, 'lens_find_similar'), // 🆕
-                              AppLocalizations.t(context, 'lens_find_similar_desc'), // 🆕
-                              _accent,
-                              'find',
-                            ),
-                            (
-                              Icons.add_photo_alternate_outlined,
-                              AppLocalizations.t(context, 'lens_add_wardrobe'), // 🆕
-                              AppLocalizations.t(context, 'lens_add_wardrobe_desc'), // 🆕
-                              _accentSecondary,
-                              'add',
-                            ),
-                          ].map(
-                            (opt) => _buildLensOption(
-                              opt.$1,
-                              opt.$2,
-                              opt.$3,
-                              opt.$4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildLensOption(
-    IconData icon,
-    String name,
-    String desc,
-    Color color,
-  ) {
-    return _AnimatedPressable(
-      scalePressed: 0.98,
-      onTap: () {},
-      builder: (isHovered, isPressed) {
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: isHovered ? color.withValues(alpha: 0.08) : _panel,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isHovered
-                  ? color.withValues(alpha: 0.30)
-                  : _accent.withValues(alpha: 0.12),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: color.withValues(alpha: 0.25),
-                    width: 1,
-                  ),
-                ),
-                child: Icon(icon, color: color, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        color: _textHeading,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      desc,
-                      style: TextStyle(color: _textMuted, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                transform: Matrix4.translationValues(
-                  isHovered ? 3.0 : 0.0,
-                  0,
-                  0,
-                ),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  color: isHovered ? color : _textMuted,
-                  size: 20,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildComingSoonToast() {
     final screenH = MediaQuery.of(context).size.height;
     return Positioned(
@@ -4803,7 +4502,7 @@ class _EntryFadeSlide extends StatefulWidget {
     super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 400),
-    this.curve = Curves.easeOut,
+    this.curve = Curves.easeOutCubic,
     this.dy = 24.0,
     this.delay = Duration.zero,
   });
@@ -4861,7 +4560,7 @@ class _CardPressable extends StatefulWidget {
   const _CardPressable({
     required this.builder,
     this.onTap,
-    this.pressedScale = 0.97,
+    this.pressedScale = 0.96,
     this.pressedOffset = Offset.zero,
   });
 

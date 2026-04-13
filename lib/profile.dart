@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -729,12 +730,12 @@ const List<Color> kSkinTones = [
 ];
 
 const List<Map<String, String>> kStyleCards = [
-  {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.jpg'},
-  {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.jpg'},
-  {'label': 'Street Cool',   'img': 'assets/styles/street_cool.jpg'},
-  {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.jpeg'},
-  {'label': 'Party Glam',    'img': 'assets/styles/party_galm.jpg'},
-  {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.jpg'},
+  {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.png'},
+  {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.png'},
+  {'label': 'Street Cool',   'img': 'assets/styles/street_cool.png'},
+  {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.png'},
+  {'label': 'Party Glam',    'img': 'assets/styles/party_galm.png'},
+  {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.png'},
 ];
 
 const List<Map<String, String>> kShopPrefs = [
@@ -746,19 +747,18 @@ const List<Map<String, String>> kShopPrefs = [
 
 const Map<String, List<Map<String, String>>> kBodyShapes = {
   'women': [
-    {'name': 'Hourglass', 'img': 'assets/body_shapes/women_hourglass.jpg'},
-    {'name': 'Apple',     'img': 'assets/body_shapes/women_apple.jpg'},
-    {'name': 'Traingle',  'img': 'assets/body_shapes/women_traingle.jpg'},
-    {'name': 'Rectangle', 'img': 'assets/body_shapes/women_rectangle.jpg'},
-    {'name': 'Inverted',  'img': 'assets/body_shapes/women_inverted.jpg'},
-    {'name': 'Pear',      'img': 'assets/body_shapes/women_pear.jpg'},
+    {'name': 'Hourglass', 'img': 'assets/body_shapes/women_hourglass.jpeg'},
+    {'name': 'Apple',     'img': 'assets/body_shapes/women_apple.jpeg'},
+    {'name': 'Rectangle', 'img': 'assets/body_shapes/women_rectangle.jpeg'},
+    {'name': 'Inverted',  'img': 'assets/body_shapes/women_inverted.jpeg'},
+    {'name': 'Pear',      'img': 'assets/body_shapes/women_pear.jpeg'},
   ],
   'men': [
-    {'name': 'Traingle',  'img': 'assets/body_shapes/men_traingle.jpg'},
-    {'name': 'Rectangle', 'img': 'assets/body_shapes/men_rectangle.jpg'},
-    {'name': 'Oval',      'img': 'assets/body_shapes/men_oval.jpg'},
-    {'name': 'Inverted',  'img': 'assets/body_shapes/men_inverted.jpg'},
-    {'name': 'Trapezoid', 'img': 'assets/body_shapes/men_trapezoid.jpg'},
+    {'name': 'Traingle',  'img': 'assets/body_shapes/men_traingle.jpeg'},
+    {'name': 'Rectangle', 'img': 'assets/body_shapes/men_rectangle.jpeg'},
+    {'name': 'Oval',      'img': 'assets/body_shapes/men_oval.jpeg'},
+    {'name': 'Inverted',  'img': 'assets/body_shapes/men_inverted.jpeg'},
+    {'name': 'Trapezoid', 'img': 'assets/body_shapes/men_trapezoid.jpeg'},
   ],
 };
 
@@ -850,7 +850,7 @@ class ProfileController extends ChangeNotifier {
 
     // Derive a username from the display name if still at the placeholder
     final resolvedUsername = _state.username == '@username' && resolvedName != 'New User'
-        ? '@\${resolvedName.toLowerCase().replaceAll(' ', '_')}'
+        ? '@${resolvedName.toLowerCase().replaceAll(' ', '_')}'
         : _state.username;
 
     _state = _state.copyWith(
@@ -1457,6 +1457,55 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   bool _tryOnEnabled = false;
   String _bodyGender = 'women'; // tracks which gender tab is selected in Body Shape
 
+  // ── Country code picker state (mirrors onboarding1) ──
+  String _selectedCountryCode = '+91';
+  String _selectedCountryFlag = '🇮🇳';
+  int _selectedCountryMaxDigits = 10;
+  OverlayEntry? _countryDropdownOverlay;
+  final LayerLink _countryLayerLink = LayerLink();
+
+  // ── DOB state (mirrors onboarding1) ──
+  String? _dobDay;
+  String? _dobMonth;
+  String? _dobYear;
+
+  // ── Gender pill press states ──
+  final List<bool> _genderPillPressed = [false, false, false];
+
+  static const List<Map<String, dynamic>> _countries = [
+    {'flag': '🇮🇳', 'name': 'India',          'code': '+91',  'digits': 10},
+    {'flag': '🇺🇸', 'name': 'United States',   'code': '+1',   'digits': 10},
+    {'flag': '🇬🇧', 'name': 'United Kingdom',  'code': '+44',  'digits': 10},
+    {'flag': '🇦🇺', 'name': 'Australia',       'code': '+61',  'digits': 9},
+    {'flag': '🇨🇦', 'name': 'Canada',          'code': '+1',   'digits': 10},
+    {'flag': '🇩🇪', 'name': 'Germany',         'code': '+49',  'digits': 11},
+    {'flag': '🇫🇷', 'name': 'France',          'code': '+33',  'digits': 9},
+    {'flag': '🇯🇵', 'name': 'Japan',           'code': '+81',  'digits': 10},
+    {'flag': '🇨🇳', 'name': 'China',           'code': '+86',  'digits': 11},
+    {'flag': '🇧🇷', 'name': 'Brazil',          'code': '+55',  'digits': 11},
+    {'flag': '🇸🇬', 'name': 'Singapore',       'code': '+65',  'digits': 8},
+    {'flag': '🇦🇪', 'name': 'UAE',             'code': '+971', 'digits': 9},
+    {'flag': '🇵🇰', 'name': 'Pakistan',        'code': '+92',  'digits': 10},
+    {'flag': '🇧🇩', 'name': 'Bangladesh',      'code': '+880', 'digits': 10},
+    {'flag': '🇱🇰', 'name': 'Sri Lanka',       'code': '+94',  'digits': 9},
+    {'flag': '🇳🇵', 'name': 'Nepal',           'code': '+977', 'digits': 10},
+    {'flag': '🇲🇾', 'name': 'Malaysia',        'code': '+60',  'digits': 10},
+    {'flag': '🇹🇭', 'name': 'Thailand',        'code': '+66',  'digits': 9},
+    {'flag': '🇰🇷', 'name': 'South Korea',     'code': '+82',  'digits': 10},
+    {'flag': '🇳🇬', 'name': 'Nigeria',         'code': '+234', 'digits': 10},
+    {'flag': '🇿🇦', 'name': 'South Africa',    'code': '+27',  'digits': 9},
+    {'flag': '🇷🇺', 'name': 'Russia',          'code': '+7',   'digits': 10},
+    {'flag': '🇰🇪', 'name': 'Kenya',           'code': '+254', 'digits': 9},
+    {'flag': '🇵🇭', 'name': 'Philippines',     'code': '+63',  'digits': 10},
+    {'flag': '🇮🇩', 'name': 'Indonesia',       'code': '+62',  'digits': 11},
+    {'flag': '🇻🇳', 'name': 'Vietnam',         'code': '+84',  'digits': 10},
+    {'flag': '🇹🇷', 'name': 'Turkey',          'code': '+90',  'digits': 10},
+    {'flag': '🇮🇱', 'name': 'Israel',          'code': '+972', 'digits': 9},
+    {'flag': '🇪🇬', 'name': 'Egypt',           'code': '+20',  'digits': 10},
+    {'flag': '🇲🇦', 'name': 'Morocco',         'code': '+212', 'digits': 9},
+    {'flag': '🇳🇿', 'name': 'New Zealand',     'code': '+64',  'digits': 9},
+  ];
+
   ThemeColors get c => widget.colors;
   AppStrings get _t => AppStrings.of(_draft.lang);
   Color get _bg => widget.bg;
@@ -1476,12 +1525,53 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     _nameCtrl = TextEditingController(text: widget.state.name);
     _usernameCtrl = TextEditingController(text: widget.state.username.replaceAll('@', ''));
     _emailCtrl = TextEditingController(text: widget.state.email);
-    _phoneCtrl = TextEditingController(text: widget.state.phone);
     _dobCtrl = TextEditingController(text: widget.state.dob);
+
+    // ── Parse existing phone into country code + number ──
+    final phone = widget.state.phone;
+    if (phone.isNotEmpty) {
+      // Try to split "CODE NUMBER" e.g. "+91 9876543210"
+      final spaceIdx = phone.indexOf(' ');
+      if (spaceIdx > 0) {
+        final code = phone.substring(0, spaceIdx);
+        final number = phone.substring(spaceIdx + 1);
+        final match = _countries.firstWhere(
+          (c) => c['code'] == code,
+          orElse: () => _countries.first,
+        );
+        _selectedCountryCode = match['code'] as String;
+        _selectedCountryFlag = match['flag'] as String;
+        _selectedCountryMaxDigits = match['digits'] as int;
+        _phoneCtrl = TextEditingController(text: number);
+      } else {
+        _phoneCtrl = TextEditingController(text: phone);
+      }
+    } else {
+      _phoneCtrl = TextEditingController();
+    }
+
+    // ── Parse existing DOB "DD MMMM YYYY" ──
+    final dob = widget.state.dob;
+    if (dob.isNotEmpty) {
+      final parts = dob.split(' ');
+      if (parts.length == 3) {
+        _dobDay   = parts[0];
+        _dobMonth = parts[1];
+        _dobYear  = parts[2];
+      }
+    }
+
+    // ── Sync bodyGender from existing shopPrefs ──
+    if (widget.state.shopPrefs.contains('Men') && !widget.state.shopPrefs.contains('Women')) {
+      _bodyGender = 'men';
+    } else {
+      _bodyGender = 'women';
+    }
   }
 
   @override
   void dispose() {
+    _countryDropdownOverlay?.remove();
     _tabController.dispose();
     _nameCtrl.dispose();
     _usernameCtrl.dispose();
@@ -1492,6 +1582,181 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   }
 
   void _markDirty() => setState(() => _isDirty = true);
+
+  Widget _buildBodyShapeCard(Map<String, String> shape, bool isActive, ThemeColors colors) {
+    return GestureDetector(
+      onTap: () => setState(() {
+        _draft = _draft.copyWith(bodyShape: shape['name']!);
+        _markDirty();
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive ? colors.accent1 : _cardBorder,
+            width: isActive ? 2 : 1,
+          ),
+          color: isActive ? colors.accent1.withOpacity(0.1) : _panel,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
+                child: Image.asset(
+                  shape['img']!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  errorBuilder: (_, _, _) => Icon(Icons.person, color: _textMuted, size: 36),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(
+                shape['name']!,
+                style: TextStyle(
+                  color: isActive ? colors.accent1 : _textMuted,
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCountryPicker() {
+    if (_countryDropdownOverlay != null) {
+      _removeCountryDropdown();
+      return;
+    }
+    final overlay = Overlay.of(context);
+    _countryDropdownOverlay = OverlayEntry(
+      builder: (_) => _ProfileCountryDropdown(
+        link: _countryLayerLink,
+        countries: _countries,
+        selectedCode: _selectedCountryCode,
+        selectedFlag: _selectedCountryFlag,
+        cardBg: widget.bg2,
+        cardBorder: _cardBorder,
+        textPrimary: _textPrimary,
+        textMuted: _textMuted,
+        accentColor: c.accent1,
+        onSelected: (country) {
+          setState(() {
+            _selectedCountryCode = country['code'] as String;
+            _selectedCountryFlag = country['flag'] as String;
+            _selectedCountryMaxDigits = country['digits'] as int;
+            _phoneCtrl.clear();
+          });
+          _removeCountryDropdown();
+          _markDirty();
+        },
+        onDismiss: _removeCountryDropdown,
+      ),
+    );
+    overlay.insert(_countryDropdownOverlay!);
+  }
+
+  void _removeCountryDropdown() {
+    _countryDropdownOverlay?.remove();
+    _countryDropdownOverlay = null;
+  }
+
+  void _showDobPicker(String title, List<String> options, ValueChanged<String?> onChanged) {
+    int tempIndex = 0;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: widget.bg2,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SizedBox(
+        height: 280,
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: _cardBorder,
+                borderRadius: BorderRadius.circular(100),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: TextStyle(color: _textMuted, fontSize: 13)),
+                  GestureDetector(
+                    onTap: () {
+                      onChanged(options[tempIndex]);
+                      Navigator.pop(context);
+                    },
+                    child: Text('Done',
+                        style: TextStyle(color: c.accent1, fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: CupertinoPicker(
+                backgroundColor: Colors.transparent,
+                itemExtent: 36,
+                onSelectedItemChanged: (i) => tempIndex = i,
+                children: options.map((o) => Center(
+                  child: Text(o, style: TextStyle(color: _textPrimary, fontSize: 15)),
+                )).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDobDropdown(String hint, String? value, List<String> options, ValueChanged<String?> onChanged) {
+    final isSelected = value != null;
+    return GestureDetector(
+      onTap: () => _showDobPicker(hint, options, onChanged),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+        decoration: BoxDecoration(
+          color: isSelected ? _panel.withOpacity(0.8) : _panel,
+          border: Border.all(
+            color: isSelected ? c.accent1 : _cardBorder,
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: isSelected
+              ? [BoxShadow(color: c.accent1.withOpacity(0.15), blurRadius: 12, spreadRadius: 3)]
+              : [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                value ?? hint,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isSelected ? _textPrimary : _textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
@@ -1516,12 +1781,19 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   void _save() {
     final name = _nameCtrl.text.trim().isEmpty ? 'New User' : _nameCtrl.text.trim();
     final username = _usernameCtrl.text.trim();
+    // Build phone string "CODE NUMBER" matching onboarding1 format
+    final phoneNumber = _phoneCtrl.text.trim();
+    final phone = phoneNumber.isNotEmpty ? '$_selectedCountryCode $phoneNumber' : '';
+    // Build DOB string "DD MMMM YYYY" matching onboarding1 format
+    final dob = (_dobDay != null && _dobMonth != null && _dobYear != null)
+        ? '$_dobDay $_dobMonth $_dobYear'
+        : _dobCtrl.text.trim();
     widget.onSave(_draft.copyWith(
       name: name,
       username: username.isEmpty ? '' : '@${username.replaceAll('@', '')}',
       email: _emailCtrl.text.trim(),
-      phone: _phoneCtrl.text.trim(),
-      dob: _dobCtrl.text.trim(),
+      phone: phone,
+      dob: dob,
     ));
   }
 
@@ -1632,18 +1904,21 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Full Name ──
                       _FieldLabel(text: _t.fullName, textMuted: _textMuted),
                       _FieldInput(ctrl: _nameCtrl, hint: _t.yourName,
                           panel: _panel, cardBorder: _cardBorder,
                           textPrimary: _textPrimary, textMuted: _textMuted,
                           accentColor: c.accent1, onChanged: (_) => _markDirty()),
 
+                      // ── Username ──
                       _FieldLabel(text: _t.username, textMuted: _textMuted),
                       _FieldInput(ctrl: _usernameCtrl, hint: '@username',
                           panel: _panel, cardBorder: _cardBorder,
                           textPrimary: _textPrimary, textMuted: _textMuted,
                           accentColor: c.accent1, onChanged: (_) => _markDirty()),
 
+                      // ── Email ──
                       _FieldLabel(text: _t.email, textMuted: _textMuted),
                       _FieldInput(ctrl: _emailCtrl, hint: 'email@example.com',
                           keyboardType: TextInputType.emailAddress,
@@ -1651,45 +1926,122 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                           textPrimary: _textPrimary, textMuted: _textMuted,
                           accentColor: c.accent1, onChanged: (_) => _markDirty()),
 
+                      // ── Phone — country code picker (onboarding1 style) ──
                       _FieldLabel(text: _t.phone, textMuted: _textMuted),
-                      _FieldInput(ctrl: _phoneCtrl, hint: '+91 XXXXX XXXXX',
-                          keyboardType: TextInputType.phone,
-                          panel: _panel, cardBorder: _cardBorder,
-                          textPrimary: _textPrimary, textMuted: _textMuted,
-                          accentColor: c.accent1, onChanged: (_) => _markDirty()),
-
-                      _FieldLabel(text: _t.dateOfBirth, textMuted: _textMuted),
-                      _FieldInput(ctrl: _dobCtrl, hint: 'YYYY-MM-DD',
-                          keyboardType: TextInputType.datetime,
-                          panel: _panel, cardBorder: _cardBorder,
-                          textPrimary: _textPrimary, textMuted: _textMuted,
-                          accentColor: c.accent1, onChanged: (_) => _markDirty()),
-
-                      _FieldLabel(text: _t.gender, textMuted: _textMuted),
-                      Wrap(
-                        spacing: 8, runSpacing: 8,
-                        children: ['Female', 'Male', 'Non-binary', 'Other'].map((g) {
-                          final val = g == 'Other' ? 'Prefer not to say' : g;
-                          final active = _draft.gender == val;
-                          return GestureDetector(
-                            onTap: () => setState(() {
-                              _draft = _draft.copyWith(gender: val);
-                              _markDirty();
-                            }),
-                            child: _Chip(
-                              label: g, active: active,
-                              panel: _panel, cardBorder: _cardBorder,
-                              textMuted: _textMuted,
-                              accentDim: c.accent1.withOpacity(0.12),
-                              accentBorder: c.accent1.withOpacity(0.28),
-                              accentColor: c.accent1,
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Country code button
+                          CompositedTransformTarget(
+                            link: _countryLayerLink,
+                            child: GestureDetector(
+                              onTap: _showCountryPicker,
+                              child: Container(
+                                height: 50,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: _panel,
+                                  border: Border.all(color: _cardBorder, width: 1.5),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(_selectedCountryFlag, style: const TextStyle(fontSize: 20)),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _selectedCountryCode,
+                                      style: TextStyle(
+                                        fontSize: 14.5, fontWeight: FontWeight.w500,
+                                        color: _textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Icon(Icons.keyboard_arrow_down_rounded, color: _textMuted, size: 16),
+                                  ],
+                                ),
+                              ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                          const SizedBox(width: 8),
+                          // Number input
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: TextField(
+                                controller: _phoneCtrl,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(_selectedCountryMaxDigits),
+                                ],
+                                style: TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w400,
+                                  color: _textPrimary,
+                                ),
+                                onChanged: (_) => _markDirty(),
+                                decoration: InputDecoration(
+                                  hintText: '00000 00000',
+                                  hintStyle: TextStyle(color: _textMuted, fontSize: 15),
+                                  filled: true,
+                                  fillColor: _panel,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(color: _cardBorder, width: 1.5),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(color: c.accent1, width: 1.5),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 14),
 
+                      // ── Date of Birth — 3 dropdowns with CupertinoPicker (onboarding1 style) ──
+                      _FieldLabel(text: _t.dateOfBirth, textMuted: _textMuted),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDobDropdown(
+                              'Day', _dobDay,
+                              List.generate(31, (i) => '${i + 1}'),
+                              (val) => setState(() { _dobDay = val; _markDirty(); }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildDobDropdown(
+                              'Month', _dobMonth,
+                              const [
+                                'January','February','March','April',
+                                'May','June','July','August',
+                                'September','October','November','December',
+                              ],
+                              (val) => setState(() { _dobMonth = val; _markDirty(); }),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildDobDropdown(
+                              'Year', _dobYear,
+                              List.generate(100, (i) => '${DateTime.now().year - 13 - i}'),
+                              (val) => setState(() { _dobYear = val; _markDirty(); }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // ── Skin Tone ──
                       _FieldLabel(text: _t.skinTone, textMuted: _textMuted),
+                      const SizedBox(height: 6),
                       Row(
                         children: List.generate(kSkinTones.length, (i) {
                           final active = _draft.skinTone == i + 1;
@@ -1718,46 +2070,119 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                       ),
                       const SizedBox(height: 14),
 
+                      // ── Shop Preferences — Women / Men / Both (onboarding1 exact logic) ──
                       _FieldLabel(text: _t.shopPreferences, textMuted: _textMuted),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 10, mainAxisSpacing: 10,
-                        children: kShopPrefs.map((pref) {
-                          final label = pref['label']!;
-                          final isActive = _draft.shopPrefs.contains(label);
-                          return _PrefCard(
-                            label: label,
-                            imgUrl: pref['img']!,
-                            active: isActive,
-                            colors: c,
-                            cardBorder: _cardBorder,
-                            panel: _panel,
-                            onTap: () => setState(() {
-                              final updated = Set<String>.from(_draft.shopPrefs);
-                              if (isActive) {
-                                updated.remove(label);
-                              } else {
-                                updated.add(label);
-                              }
-                              _draft = _draft.copyWith(shopPrefs: updated);
+                      const SizedBox(height: 6),
+                      () {
+                        final bool womenSelected = _draft.shopPrefs.length == 1 && _draft.shopPrefs.contains('Women');
+                        final bool menSelected   = _draft.shopPrefs.length == 1 && _draft.shopPrefs.contains('Men');
+                        final bool bothSelected  = _draft.shopPrefs.contains('Women') && _draft.shopPrefs.contains('Men');
+                        bool isCardActive(String label) {
+                          if (label == 'Women') return womenSelected;
+                          if (label == 'Men')   return menSelected;
+                          return bothSelected;
+                        }
+                        const shopCards = [
+                          {'label': 'Women', 'img': 'assets/shop/women.jpg'},
+                          {'label': 'Men',   'img': 'assets/shop/men.jpg'},
+                          {'label': 'Both',  'img': 'assets/shop/both.jpeg'},
+                        ];
+                        return Row(
+                          children: List.generate(shopCards.length, (index) {
+                            final pref    = shopCards[index];
+                            final label   = pref['label']!;
+                            final isActive = isCardActive(label);
+                            return Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  left:  index == 0 ? 0 : 5,
+                                  right: index == shopCards.length - 1 ? 0 : 5,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    if (label == 'Both') {
+                                      _draft = _draft.copyWith(shopPrefs: {'Women', 'Men'});
+                                      _bodyGender = 'both';
+                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['women']!.first['name']!);
+                                    } else if (label == 'Women') {
+                                      _draft = _draft.copyWith(shopPrefs: {'Women'});
+                                      _bodyGender = 'women';
+                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['women']!.first['name']!);
+                                    } else {
+                                      _draft = _draft.copyWith(shopPrefs: {'Men'});
+                                      _bodyGender = 'men';
+                                      _draft = _draft.copyWith(bodyShape: kBodyShapes['men']!.first['name']!);
+                                    }
+                                    _markDirty();
+                                  }),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    height: 160,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isActive ? c.accent1 : _cardBorder,
+                                        width: isActive ? 1.5 : 1,
+                                      ),
+                                      color: isActive ? c.accent1.withOpacity(0.13) : _panel,
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(11),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Image.asset(
+                                            pref['img']!,
+                                            fit: BoxFit.cover,
+                                            alignment: Alignment.topCenter,
+                                            errorBuilder: (_, _, _) => const SizedBox(),
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  Colors.black.withOpacity(0.65),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Align(
+                                            alignment: Alignment.bottomLeft,
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8),
+                                              child: Row(
+                                                children: [
+                                                  if (isActive)
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(right: 4),
+                                                      child: Icon(Icons.check_circle, color: c.accent1, size: 13),
+                                                    ),
+                                                  Text(
+                                                    label,
+                                                    style: const TextStyle(
+                                                      color: Colors.white, fontSize: 12,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        );
+                      }(),
 
-                              // Auto-switch body shape gender based on shop pref selection
-                              if (label == 'Women' && !isActive) {
-                                _bodyGender = 'women';
-                                _draft = _draft.copyWith(bodyShape: kBodyShapes['women']!.first['name']!);
-                              } else if (label == 'Men' && !isActive) {
-                                _bodyGender = 'men';
-                                _draft = _draft.copyWith(bodyShape: kBodyShapes['men']!.first['name']!);
-                              }
-
-                              _markDirty();
-                            }),
-                          );
-                        }).toList(),
-                      ),
-                      // Body Shape — animates in only when Women or Men is selected
+                      // ── Body Shape — onboarding1 exact: both → Women+Men sections separately ──
                       _ProfileBodyShapeReveal(
                         visible: _draft.shopPrefs.contains('Women') || _draft.shopPrefs.contains('Men'),
                         child: Column(
@@ -1765,59 +2190,56 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                           children: [
                             const SizedBox(height: 14),
                             _FieldLabel(text: _t.bodyShape, textMuted: _textMuted),
-                            GridView.count(
-                              crossAxisCount: 3,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisSpacing: 10, mainAxisSpacing: 10,
-                              childAspectRatio: 0.65,
-                              children: kBodyShapes[_bodyGender]!.map((shape) {
-                                final isActive = _draft.bodyShape == shape['name'];
-                                return GestureDetector(
-                                  onTap: () => setState(() {
-                                    _draft = _draft.copyWith(bodyShape: shape['name']!);
-                                    _markDirty();
-                                  }),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: isActive ? c.accent1 : _cardBorder,
-                                        width: isActive ? 2 : 1,
-                                      ),
-                                      color: isActive ? c.accent1.withOpacity(0.1) : _panel,
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Expanded(
-                                          child: ClipRRect(
-                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
-                                            child: Image.asset(
-                                              shape['img']!,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              errorBuilder: (_, _, _) => const Icon(Icons.person, size: 40),
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(vertical: 6),
-                                          child: Text(
-                                            shape['name']!,
-                                            style: TextStyle(
-                                              color: isActive ? c.accent1 : _textPrimary,
-                                              fontSize: 11,
-                                              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
+                            if (_bodyGender == 'both') ...[
+                              // Women section
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text('Women',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                    color: c.accent1, letterSpacing: 0.5)),
+                              ),
+                              GridView.count(
+                                crossAxisCount: 3,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                childAspectRatio: 0.65,
+                                children: kBodyShapes['women']!.map((shape) {
+                                  final isActive = _draft.bodyShape == shape['name'];
+                                  return _buildBodyShapeCard(shape, isActive, c);
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 16),
+                              // Men section
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text('Men',
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                                    color: c.accent2, letterSpacing: 0.5)),
+                              ),
+                              GridView.count(
+                                crossAxisCount: 3,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                childAspectRatio: 0.65,
+                                children: kBodyShapes['men']!.map((shape) {
+                                  final isActive = _draft.bodyShape == shape['name'];
+                                  return _buildBodyShapeCard(shape, isActive, c);
+                                }).toList(),
+                              ),
+                            ] else
+                              GridView.count(
+                                crossAxisCount: 3,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                crossAxisSpacing: 10, mainAxisSpacing: 10,
+                                childAspectRatio: 0.65,
+                                children: kBodyShapes[_bodyGender == 'both' ? 'women' : _bodyGender]!.map((shape) {
+                                  final isActive = _draft.bodyShape == shape['name'];
+                                  return _buildBodyShapeCard(shape, isActive, c);
+                                }).toList(),
+                              ),
                           ],
                         ),
                       ),
@@ -3080,6 +3502,175 @@ class _ConfirmSheet extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COUNTRY DROPDOWN OVERLAY  (used by profile edit Basics tab phone field)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ProfileCountryDropdown extends StatefulWidget {
+  final LayerLink link;
+  final List<Map<String, dynamic>> countries;
+  final String selectedCode;
+  final String selectedFlag;
+  final Color cardBg, cardBorder, textPrimary, textMuted, accentColor;
+  final void Function(Map<String, dynamic>) onSelected;
+  final VoidCallback onDismiss;
+
+  const _ProfileCountryDropdown({
+    required this.link,
+    required this.countries,
+    required this.selectedCode,
+    required this.selectedFlag,
+    required this.cardBg,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textMuted,
+    required this.accentColor,
+    required this.onSelected,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_ProfileCountryDropdown> createState() => _ProfileCountryDropdownState();
+}
+
+class _ProfileCountryDropdownState extends State<_ProfileCountryDropdown> {
+  String _search = '';
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = widget.countries.where((c) {
+      final name = (c['name'] as String).toLowerCase();
+      final code = c['code'] as String;
+      final q = _search.toLowerCase();
+      return name.contains(q) || code.contains(q);
+    }).toList();
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: widget.onDismiss,
+            behavior: HitTestBehavior.translucent,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        CompositedTransformFollower(
+          link: widget.link,
+          showWhenUnlinked: false,
+          offset: const Offset(0, 54),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 260,
+              constraints: const BoxConstraints(maxHeight: 320),
+              decoration: BoxDecoration(
+                color: widget.cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: widget.cardBorder, width: 1.2),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x4D000000), blurRadius: 24, offset: Offset(0, 8)),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      autofocus: true,
+                      onChanged: (v) => setState(() => _search = v),
+                      style: TextStyle(fontSize: 13, color: widget.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: 'Search…',
+                        hintStyle: TextStyle(color: widget.textMuted, fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, color: widget.textMuted, size: 17),
+                        filled: true,
+                        fillColor: widget.cardBorder.withOpacity(0.15),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        isDense: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: widget.cardBorder, width: 1),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: widget.accentColor, width: 1.2),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final country = filtered[i];
+                        final isSelected = country['code'] == widget.selectedCode &&
+                            country['flag'] == widget.selectedFlag;
+                        return GestureDetector(
+                          onTap: () => widget.onSelected(country),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? widget.accentColor.withOpacity(0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(country['flag'] as String,
+                                    style: const TextStyle(fontSize: 18)),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    country['name'] as String,
+                                    style: TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w400,
+                                      color: widget.textPrimary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  country['code'] as String,
+                                  style: TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.w500,
+                                    color: widget.textMuted,
+                                  ),
+                                ),
+                                if (isSelected) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(Icons.check_rounded,
+                                      color: widget.accentColor, size: 15),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

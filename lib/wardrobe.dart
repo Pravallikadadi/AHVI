@@ -318,7 +318,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     final t = context.themeTokens;
     final fabBg = t.accent.primary;
     return GestureDetector(
-      onTap: () => showAhviStylistChatSheet(context),
+      onTap: () => showAhviStylistChatSheet(context, moduleContext: 'wardrobe'),
       child: Container(
         padding: const EdgeInsets.fromLTRB(10, 10, 22, 10),
         decoration: BoxDecoration(
@@ -1258,6 +1258,27 @@ class _AddItemModalState extends State<_AddItemModal>
     _initCamera();
   }
 
+  /// Re-runs AI detection on the already-captured image(s) without going
+  /// back to camera. Used by the "Try Again" button on the error banner
+  /// and the "Retake Photo" button on the empty-results state.
+  Future<void> _tryAgain() async {
+    if (_capturedBytes == null && _galleryImages.isEmpty) {
+      // No image in memory — fall back to full retake
+      _retake();
+      return;
+    }
+    setState(() {
+      _step = _ModalStep.detecting;
+      _detectError = null;
+      _detected = [];
+    });
+    if (_isGalleryPick && _galleryImages.length > 1) {
+      await _runDetectionMulti(_galleryImages);
+    } else {
+      await _runDetection(_capturedBytes!);
+    }
+  }
+
   void _editItem(int index) {
     final item = _detected[index];
     _nameCtrl.text = item.name;
@@ -1742,7 +1763,7 @@ class _AddItemModalState extends State<_AddItemModal>
               ]),
               const SizedBox(height: 10),
               GestureDetector(
-                onTap: _retake,
+                onTap: _tryAgain,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
@@ -1901,7 +1922,7 @@ class _AddItemModalState extends State<_AddItemModal>
                   style: TextStyle(fontFamily: GoogleFonts.inter().fontFamily, fontSize: 12, color: t.mutedText)),
               const SizedBox(height: 16),
               GestureDetector(
-                onTap: _retake,
+                onTap: _tryAgain,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
                   decoration: BoxDecoration(

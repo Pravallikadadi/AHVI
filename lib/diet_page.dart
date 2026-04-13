@@ -7,6 +7,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 // Update this path to match your project structure, e.g.:
 // import 'package:your_app/theme/theme_tokens.dart';
 import 'theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
+import 'package:myapp/widgets/ahvi_home_text.dart';
 
 // ─── THEME COLORS ────────────────────────────────────────────────────────────
 // NOTE: kAccent and meal-type colors remain constant (not theme-dependent)
@@ -908,10 +910,17 @@ class ChatScreen extends StatefulWidget {
 }
 class _ChatScreenState extends State<ChatScreen> {
   final _msgCtrl = TextEditingController();
+  final _plusCtrl = ChatPlusButtonController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
+  OverlayEntry? _overlay;
+
+  void _removeOverlay() {
+    _overlay?.remove();
+    _overlay = null;
+  }
 
   // ── Voice ──────────────────────────────────────────────────────────
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -979,6 +988,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _speech.stop();
     _msgCtrl.dispose();
+    _plusCtrl.dispose();
+    _removeOverlay();
     super.dispose();
   }
   // Detect plan type from user message
@@ -1069,9 +1080,15 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _send() async {
-    final t = _msgCtrl.text.trim(); if (t.isEmpty) return;
+    final t = _msgCtrl.text.trim();
+    final att = _plusCtrl.pendingAttachment;
+    if (t.isEmpty && att == null) return;
+    final displayText = t.isNotEmpty
+        ? (att != null ? '$t\n📎 ${att.label}' : t)
+        : '📎 ${att!.label}';
     _msgCtrl.clear();
-    setState(() { _messages.add(ChatMessage(text: t, isBot: false)); _isTyping = true; });
+    _plusCtrl.clearPendingAttachment();
+    setState(() { _messages.add(ChatMessage(text: displayText, isBot: false)); _isTyping = true; });
     await Future.delayed(const Duration(seconds: 1));
 
     final lower = t.toLowerCase();
@@ -1142,11 +1159,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: context.dText),
               ),
             ),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(AppLocalizations.t(context, 'diet_ahvi_ai'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              Text(AppLocalizations.t(context, 'diet_meal_planning_assistant'), style: TextStyle(fontSize: 12, color: context.dMuted)),
-            ])),
-            // Chat History button
+            AhviHomeText(
+              color: context.dText,
+              fontSize: 30.0,
+              letterSpacing: 3.2,
+              fontWeight: FontWeight.w400,
+            ),
+            const Spacer(),
             GestureDetector(
               onTap: () => _scaffoldKey.currentState?.openDrawer(),
               child: Container(
@@ -1206,94 +1225,91 @@ class _ChatScreenState extends State<ChatScreen> {
         })),
         // ── Input Bar ───────────────────────────────────────────────────
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           color: context.dSurface,
-          child: Container(
-            decoration: BoxDecoration(
-              color: context.dSurface2,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.dBorder, width: 1),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(children: [
-              // Lens button
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => const _DietLensActionSheet(),
-                  );
-                },
-                child: SizedBox(
-                  width: 26, height: 26,
-                  child: Center(child: Icon(Icons.search_rounded, color: context.dAccent, size: 20)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Text field
-              Expanded(
-                child: TextField(
-                  controller: _msgCtrl,
-                  onSubmitted: (_) => _send(),
-                  style: TextStyle(color: context.dText, fontSize: 13.5),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                    border: InputBorder.none,
-                    hintText: AppLocalizations.t(context, 'diet_chat_hint'),
-                    hintStyle: TextStyle(fontSize: 13.5, color: context.dMuted),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // Mic button
-              GestureDetector(
-                onTap: _toggleListening,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  width: 38, height: 38,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Attachment preview chip (shown when file/image/search is pending)
+              ChatAttachmentChip(controller: _plusCtrl),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Container(
                   decoration: BoxDecoration(
-                    gradient: _isListening
-                        ? const LinearGradient(colors: [Colors.redAccent, Color(0xFFB71C1C)])
-                        : LinearGradient(colors: [context.dAccent.withValues(alpha: 0.18), context.dAccent.withValues(alpha: 0.18)]),
-                    borderRadius: BorderRadius.circular(13),
-                    boxShadow: _isListening
-                        ? [BoxShadow(color: Colors.redAccent.withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 4))]
-                        : [],
+                    color: context.dSurface2,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: context.dBorder, width: 1),
                   ),
-                  child: _isListening
-                      ? const _DietPulsingMicIcon()
-                      : Icon(Icons.mic_none_rounded, color: context.dAccent, size: 18),
-                ),
-              ),
-              const SizedBox(width: 6),
-              // Send button
-              GestureDetector(
-                onTap: _send,
-                child: ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _msgCtrl,
-                  builder: (context, value, _) {
-                    final hasText = value.text.trim().isNotEmpty;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 38, height: 38,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: hasText
-                              ? [context.dAccent, context.dAccent2]
-                              : [context.dAccent.withValues(alpha: 0.35), context.dAccent.withValues(alpha: 0.35)],
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(children: [
+                    // ChatPlusButton — Camera, Photo Library, Files, Web Search
+                    ChatPlusButton(controller: _plusCtrl),
+                    const SizedBox(width: 8),
+                    // Text field
+                    Expanded(
+                      child: TextField(
+                        controller: _msgCtrl,
+                        onSubmitted: (_) => _send(),
+                        style: TextStyle(color: context.dText, fontSize: 13.5),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          border: InputBorder.none,
+                          hintText: AppLocalizations.t(context, 'diet_chat_hint'),
+                          hintStyle: TextStyle(fontSize: 13.5, color: context.dMuted),
                         ),
-                        borderRadius: BorderRadius.circular(13),
                       ),
-                      child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                    );
-                  },
-                ),
-              ),
-            ]),
-          ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Mic button
+                    GestureDetector(
+                      onTap: _toggleListening,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          gradient: _isListening
+                              ? const LinearGradient(colors: [Colors.redAccent, Color(0xFFB71C1C)])
+                              : LinearGradient(colors: [context.dAccent.withValues(alpha: 0.18), context.dAccent.withValues(alpha: 0.18)]),
+                          borderRadius: BorderRadius.circular(13),
+                          boxShadow: _isListening
+                              ? [BoxShadow(color: Colors.redAccent.withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 4))]
+                              : [],
+                        ),
+                        child: _isListening
+                            ? const _DietPulsingMicIcon()
+                            : Icon(Icons.mic_none_rounded, color: context.dAccent, size: 18),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Send button
+                    GestureDetector(
+                      onTap: _send,
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _msgCtrl,
+                        builder: (context, value, _) {
+                          final hasText = value.text.trim().isNotEmpty;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 38, height: 38,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: hasText
+                                    ? [context.dAccent, context.dAccent2]
+                                    : [context.dAccent.withValues(alpha: 0.35), context.dAccent.withValues(alpha: 0.35)],
+                              ),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                          );
+                        },
+                      ),
+                    ),
+                  ]),
+                ),   // inner Container (decorated row)
+              ),     // Padding
+            ],
+          ),         // Column
         ),
         const SizedBox(height: 8),
       ]))
@@ -1566,6 +1582,167 @@ class _MealImage extends StatelessWidget {
           },
           errorBuilder: (_, _, _) => Container(color: context.dSurface2, child: Center(child: Text(emoji, style: TextStyle(fontSize: size * 0.5)))),
         ),
+      ),
+    );
+  }
+}
+
+// ─── CHATGPT-STYLE PLUS BUTTON FOR DIET ─────────────────────────────────────
+class _DietPlusButton extends StatefulWidget {
+  final VoidCallback? onCameraSelected;
+  const _DietPlusButton({this.onCameraSelected});
+  @override
+  State<_DietPlusButton> createState() => _DietPlusButtonState();
+}
+
+class _DietPlusButtonState extends State<_DietPlusButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _rotateAnim;
+  bool _menuOpen = false;
+  OverlayEntry? _overlay;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _rotateAnim = Tween<double>(begin: 0.0, end: 0.125)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _closeMenu();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _openMenu() {
+    if (_menuOpen) { _closeMenu(); return; }
+    setState(() => _menuOpen = true);
+    _ctrl.forward();
+    final renderBox = context.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final size = renderBox.size;
+
+    final actions = [
+      (Icons.camera_alt_outlined, 'Camera', const Color(0xFFFF6B6B)),
+      (Icons.photo_library_outlined, 'Photos', const Color(0xFF4ECDC4)),
+      (Icons.attach_file_rounded, 'Files', const Color(0xFF45B7D1)),
+      (Icons.search_rounded, 'Search Food', const Color(0xFF96CEB4)),
+    ];
+
+    _overlay = OverlayEntry(builder: (_) {
+      return GestureDetector(
+        onTap: _closeMenu,
+        behavior: HitTestBehavior.translucent,
+        child: Stack(children: [
+          Positioned(
+            left: offset.dx - 10,
+            bottom: MediaQuery.of(context).size.height - offset.dy + 8,
+            child: GestureDetector(
+              onTap: () {},
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 190,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: context.dSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.dBorder, width: 1),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 24, offset: const Offset(0, 8))],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: actions.map((a) => _DietMenuRow(
+                      icon: a.$1,
+                      label: a.$2,
+                      color: a.$3,
+                      onTap: () {
+                        _closeMenu();
+                        if (a.$2 == 'Camera' || a.$2 == 'Search Food') widget.onCameraSelected?.call();
+                      },
+                    )).toList(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ]),
+      );
+    });
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _closeMenu() {
+    _overlay?.remove();
+    _overlay = null;
+    _ctrl.reverse();
+    if (mounted) setState(() => _menuOpen = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openMenu,
+      child: AnimatedBuilder(
+        animation: _rotateAnim,
+        builder: (_, child) => Transform.rotate(
+          angle: _rotateAnim.value * 2 * 3.14159,
+          child: child,
+        ),
+        child: Container(
+          width: 34, height: 34,
+          decoration: BoxDecoration(
+            color: _menuOpen ? context.dAccent.withValues(alpha: 0.15) : context.dSurface2,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _menuOpen ? context.dAccent.withValues(alpha: 0.5) : context.dBorder, width: 1.5),
+          ),
+          child: Icon(Icons.add_rounded, color: context.dAccent, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
+class _DietMenuRow extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _DietMenuRow({required this.icon, required this.label, required this.color, required this.onTap});
+  @override
+  State<_DietMenuRow> createState() => _DietMenuRowState();
+}
+
+class _DietMenuRowState extends State<_DietMenuRow> {
+  bool _hovered = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _hovered = true),
+      onTapUp: (_) { setState(() => _hovered = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _hovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: _hovered ? widget.color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(color: widget.color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(9)),
+            child: Icon(widget.icon, color: widget.color, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Text(widget.label, style: TextStyle(color: context.dText, fontSize: 13, fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }

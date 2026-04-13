@@ -190,7 +190,7 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell>
     with TickerProviderStateMixin {
-  int _currentIndex = 0;
+  int _currentIndex = -1;
   bool _lensSheetOpen = false;
   bool _toastVisible = false;
   Timer? _toastTimer;
@@ -209,11 +209,11 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     _lensSheetCtrl = AnimationController(vsync: this, duration: _A.sheet);
 
     _navRiseCtrls = List.generate(
-      5, // Home, Chat, Wardrobe, Planner, Explore
+      5,
       (i) => AnimationController(
         vsync: this,
         duration: _A.normal,
-        value: i == _currentIndex ? 1.0 : 0.0,
+        value: 0.0,
       ),
     );
   }
@@ -231,15 +231,17 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   // ── Tab switching ──────────────────────────────────────────────────────────
   void _switchToIndex(int index, {bool addToHistory = true}) {
     if (index == _currentIndex) return;
-    if (addToHistory) {
+    if (addToHistory && _currentIndex != -1) {
       _tabHistory.remove(index);
       _tabHistory.add(_currentIndex);
     }
     HapticFeedback.selectionClick();
-    _navRiseCtrls[_currentIndex].animateTo(
-      0.0,
-      curve: const Cubic(0.4, 0.0, 0.2, 1.0),
-    );
+    if (_currentIndex != -1) {
+      _navRiseCtrls[_currentIndex].animateTo(
+        0.0,
+        curve: const Cubic(0.4, 0.0, 0.2, 1.0),
+      );
+    }
     _navRiseCtrls[index].animateTo(1.0, curve: _A.spring);
     setState(() => _currentIndex = index);
   }
@@ -258,6 +260,16 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   }
 
   void _handleNavTap(int idx) {
+    if (idx == 0) {
+      if (_currentIndex != 0) {
+        _switchToIndex(0);
+      }
+      // Small delay so the page switch renders before sheet opens
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (mounted) _openLensSheet();
+      });
+      return;
+    }
     if (idx == 4) {
       _showComingSoon();
       return;
@@ -269,7 +281,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   void _openLensSheet() {
     HapticFeedback.lightImpact();
     setState(() => _lensSheetOpen = true);
-    _lensSheetCtrl.animateTo(1.0, duration: _A.sheet, curve: _A.sheetIn);
+    _lensSheetCtrl.animateTo(1.0, curve: _A.sheetIn);
   }
 
   void _closeLensSheet() {
@@ -297,16 +309,16 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     // ✅ Built here so locale changes rebuild nav labels automatically
     final l = AppLocalizations.of(context);
     final navItems = <({IconData icon, String label})>[
-      (icon: Icons.home_outlined,               label: l?.translate('home') ?? 'Home'),
-      (icon: Icons.chat_bubble_outline_rounded, label: l?.translate('chat') ?? 'Chat'),
-      (icon: Icons.dry_cleaning_outlined,       label: l?.translate('wardrobe') ?? 'Wardrobe'),
-      (icon: Icons.grid_view_rounded,           label: l?.translate('planner') ?? 'Planner'),
-      (icon: Icons.explore_outlined,            label: l?.translate('explore') ?? 'Explore'),
+      (icon: Icons.search_rounded,               label: l?.translate('lens') ?? 'Lens'),
+      (icon: Icons.chat_bubble_outline_rounded,  label: l?.translate('chat') ?? 'Chat'),
+      (icon: Icons.dry_cleaning_outlined,        label: l?.translate('wardrobe') ?? 'Wardrobe'),
+      (icon: Icons.grid_view_rounded,            label: l?.translate('planner') ?? 'Planner'),
+      (icon: Icons.explore_outlined,             label: l?.translate('explore') ?? 'Explore'),
     ];
 
     // ✅ Built here so locale changes cause a full rebuild of all screens
     final pages = <Widget>[
-      _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _switchToIndex),
+      _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _handleNavTap),
       const ChatScreen(key: PageStorageKey('chat'), showBackButton: false),
       const WardrobeScreen(key: PageStorageKey('wardrobe')),
       const BoardsScreen(key: PageStorageKey('boards')),
@@ -328,7 +340,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               // Page content
               Positioned.fill(
                 child: IndexedStack(
-                  index: _currentIndex,
+                  index: _currentIndex == -1 ? 0 : _currentIndex,
                   children: List<Widget>.generate(navItems.length, (index) {
                     return TickerMode(
                       enabled: index == _currentIndex,
@@ -371,7 +383,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         animation: Listenable.merge(_navRiseCtrls),
         builder: (context, child) {
           final activeIdx = _currentIndex;
-          final bulgeT = _navRiseCtrls[activeIdx].value;
+          final bulgeT = activeIdx == -1 ? 0.0 : _navRiseCtrls[activeIdx].value;
 
           return Stack(
             clipBehavior: Clip.none,
@@ -385,7 +397,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 height: totalH,
                 child: CustomPaint(
                   painter: _NavPillPainter(
-                    activeIdx: activeIdx,
+                    activeIdx: activeIdx == -1 ? 0 : activeIdx,
                     itemCount: navItems.length,
                     bulgeT: bulgeT,
                     pillH: pillH,
@@ -1119,8 +1131,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Replace the entire stack so the user cannot pop back to the splash.
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => destination,
-        transitionsBuilder: (_, animation, _, child) => FadeTransition(
+        pageBuilder: (_, __, ___) => destination,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
           child: child,
         ),

@@ -24,12 +24,12 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
   final Set<String> selected = {'Casual', 'Minimalist'};
 
   final List<Map<String, String>> styles = [
-    {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.jpg'},
-    {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.jpg'},
-    {'label': 'Street Cool',   'img': 'assets/styles/street_cool.jpg'},
-    {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.jpeg'},
-    {'label': 'Party Glam',    'img': 'assets/styles/party_galm.jpg'},
-    {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.jpg'},
+    {'label': 'Clean Minimal', 'img': 'assets/styles/clean_minimal.png'},
+    {'label': 'Soft Elegant',  'img': 'assets/styles/soft_elegant.png'},
+    {'label': 'Street Cool',   'img': 'assets/styles/street_cool.png'},
+    {'label': 'Boho Artisanal','img': 'assets/styles/boho_artisinal.png'},
+    {'label': 'Party Glam',    'img': 'assets/styles/party_galm.png'},
+    {'label': 'Formal Chic',   'img': 'assets/styles/formal_chic.png'},
   ];
 
   @override

@@ -19,10 +19,10 @@ class AhviChatPromptBar extends StatelessWidget {
   final VoidCallback onSend;
   final VoidCallback onEmptySend;
   final ValueChanged<String> onSubmitted;
-  final VoidCallback? onAddTap;
+  final Widget? plusButton; // AhviPlusMenuButton() pass చేయండి
+  final VoidCallback? onAddTap;  // plus button tap callback (plusButton కి alternative)
   final VoidCallback? onVoiceTap;
   final bool isListening;
-  final bool isMenuOpen;
   final VoidCallback? onFieldTap;
 
   const AhviChatPromptBar({
@@ -43,10 +43,10 @@ class AhviChatPromptBar extends StatelessWidget {
     required this.onSend,
     required this.onEmptySend,
     required this.onSubmitted,
+    this.plusButton,
     this.onAddTap,
     this.onVoiceTap,
     this.isListening = false,
-    this.isMenuOpen = false,
     this.onFieldTap,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
   });
@@ -85,41 +85,29 @@ class AhviChatPromptBar extends StatelessWidget {
             final compact = constraints.maxWidth < 320;
             return Row(
               children: [
-                if (!compact) ...[
-                  _ChatPromptPressable(
-                    scalePressed: 0.88,
-                    onTap: onAddTap ?? () {},
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutCubic,
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: isMenuOpen
-                            ? accent.withValues(alpha: 0.20)
-                            : accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(11),
-                        border: Border.all(
-                          color: isMenuOpen
-                              ? accent.withValues(alpha: 0.45)
-                              : accent.withValues(alpha: 0.25),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: Center(
-                        child: AnimatedRotation(
-                          turns: isMenuOpen ? 0.125 : 0.0,
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutBack,
-                          child: Icon(
-                            Icons.add_rounded,
-                            color: accent,
-                            size: 20,
+                if (!compact && (plusButton != null || onAddTap != null)) ...[
+                  plusButton != null
+                      ? plusButton!
+                      : _ChatPromptPressable(
+                          scalePressed: 0.88,
+                          onTap: onAddTap,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  accent.withValues(alpha: 0.18),
+                                  accentSecondary.withValues(alpha: 0.18),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: Icon(Icons.add_rounded, color: accent, size: 20),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
                   const SizedBox(width: 8),
                 ],
                 Expanded(
@@ -268,6 +256,7 @@ class _ChatPromptPressable extends StatefulWidget {
   final Widget? child;
   final Widget Function(bool isHovered, bool isPressed)? builder;
   final VoidCallback? onTap;
+  final VoidCallback? onTapDown;
   final double liftY;
   final double scaleHover;
   final double scalePressed;
@@ -276,8 +265,9 @@ class _ChatPromptPressable extends StatefulWidget {
     this.child,
     this.builder,
     this.onTap,
+    this.onTapDown,
     this.liftY = 0.0,
-    this.scaleHover = 1.0,
+    this.scaleHover = 1.04,
     this.scalePressed = 0.97,
   }) : assert(child != null || builder != null);
 
@@ -308,7 +298,10 @@ class _ChatPromptPressableState extends State<_ChatPromptPressable> {
       }),
       child: GestureDetector(
         onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) {
+          widget.onTapDown?.call();
+          setState(() => _isPressed = true);
+        },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         child: AnimatedContainer(

@@ -2161,7 +2161,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
 
   Widget _buildChatFab() {
     return GestureDetector(
-      onTap: () => showAhviStylistChatSheet(context),
+      onTap: () => showAhviStylistChatSheet(context, moduleContext: 'medi'),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
