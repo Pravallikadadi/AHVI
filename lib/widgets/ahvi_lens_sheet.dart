@@ -21,11 +21,10 @@ void showAhviLensSheet(
   VoidCallback? onFindSimilar,
   VoidCallback? onAddToWardrobe,
 }) {
-  showModalBottomSheet<void>(
+  showDialog<void>(
     context: context,
-    useRootNavigator: true,        // ← root navigator వాడతాం, tab navigator కాదు
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,      // ← sheet పూర్తిగా కనిపిస్తుంది
+    useRootNavigator: true,
+    barrierColor: Colors.black.withValues(alpha: 0.55),
     builder: (_) => AhviLensSheet(
       t: t,
       onVisualSearch: onVisualSearch,
@@ -60,37 +59,30 @@ class AhviLensSheet extends StatelessWidget {
     final surface = t.phoneShellInner;
     final bgSecondary = t.backgroundSecondary;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [surface, bgSecondary],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: accent.withValues(alpha: 0.15), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.15),
-            blurRadius: 48,
-            offset: const Offset(0, -12),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [surface, bgSecondary],
           ),
-        ],
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // drag handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.30),
-              borderRadius: BorderRadius.circular(2),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: accent.withValues(alpha: 0.15), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.20),
+              blurRadius: 48,
+              offset: const Offset(0, 8),
             ),
-          ),
+          ],
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // header
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
@@ -234,6 +226,7 @@ class AhviLensSheet extends StatelessWidget {
             },
           ),
         ],
+        ),
       ),
     );
   }
