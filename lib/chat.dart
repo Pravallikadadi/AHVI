@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:myapp/bills_page.dart' as bills_page;
@@ -8,12 +9,12 @@ import 'package:myapp/calendar.dart' as calendar_page;
 import 'package:myapp/daily_wear.dart' as daily_wear_page;
 import 'package:myapp/medi_tracker.dart' as medi_tracker_page;
 import 'package:myapp/app_localizations.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
 import 'package:myapp/theme/theme_tokens.dart';
-import 'package:myapp/widgets/Ahvi_plus_button.dart';
 import 'package:provider/provider.dart';
 
 Map<String, List<String>> _getChipsByModule(BuildContext context) => {
@@ -79,7 +80,10 @@ class _Outfit {
   final String name;
   final List<String> tags;
   final String image;
-  const _Outfit(this.name, this.tags, this.image);
+  final String description;
+  bool saved;
+  _Outfit(this.name, this.tags, this.image,
+      {this.description = '', this.saved = false});
 }
 
 class _Plan {
@@ -105,7 +109,7 @@ class _CardRow {
   const _CardRow(this.done, this.main, this.sub, this.tag);
 }
 
-const _local = <String, _LocalResponse>{
+final _local = <String, _LocalResponse>{
   'What should I wear today?': _LocalResponse(
     type: _RespType.outfits,
     intro:
@@ -115,16 +119,19 @@ const _local = <String, _LocalResponse>{
         'Layered Minimal',
         ['Casual', 'Today'],
         'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'A light knit layered over a crisp tee with slim trousers. Comfortable yet polished for a cool day.',
       ),
       _Outfit(
         'Smart Casual',
         ['Office', 'Versatile'],
         'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'Tailored chinos paired with a structured shirt. Effortless transition from desk to dinner.',
       ),
       _Outfit(
         'Street Edit',
         ['Urban', 'Fresh'],
         'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'Wide-leg joggers with an oversized graphic tee and clean sneakers. Relaxed city energy.',
       ),
     ],
   ),
@@ -137,16 +144,19 @@ const _local = <String, _LocalResponse>{
         'Evening Glow',
         ['Party', 'Night'],
         'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'A sleek satin slip dress with strappy heels. Warm-toned accessories complete the golden-hour vibe.',
       ),
       _Outfit(
         'Rooftop Chic',
         ['Elevated', 'Cool'],
         'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'Tailored wide-leg trousers with a cropped blazer. Sharp, confident and built for the skyline.',
       ),
       _Outfit(
         'Bold Statement',
         ['Trendy', 'Standout'],
         'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'A vibrant co-ord set that commands attention. Minimal jewellery lets the colour do the talking.',
       ),
     ],
   ),
@@ -159,16 +169,19 @@ const _local = <String, _LocalResponse>{
         'Quiet Luxury',
         ['Trending', 'Minimal'],
         'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'Cream wide-leg trousers with a fine-knit cardigan. Understated elegance that speaks volumes.',
       ),
       _Outfit(
         'Soft Tones',
         ['Casual', 'Neutral'],
         'https://images.unsplash.com/photo-1594938298603-c8148c4b9c2b?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'Dusty beige linen set with white sneakers. Easy, breathable and endlessly wearable.',
       ),
       _Outfit(
         'Classic Ease',
         ['Everyday', 'Fresh'],
         'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=220&h=260&fit=crop&crop=top&auto=format',
+        description: 'A white oversized button-down tucked into straight jeans. The perfect no-fuss uniform.',
       ),
     ],
   ),
@@ -445,9 +458,6 @@ class _ChatScreenState extends State<ChatScreen>
   final Map<String, List<List<String>>> _checklistItemsByTitle = {};
   final Map<String, List<TextEditingController>> _checklistAddCtrlsByTitle = {};
   final Map<String, bool> _checklistSavedByTitle = {};
-
-  // ── Plus button ────────────────────────────────────────────────────────────
-  final ChatPlusButtonController _plusController = ChatPlusButtonController();
 
   // ── Voice ──────────────────────────────────────────────────────────────────
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -752,7 +762,6 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void dispose() {
     _speech.stop();
-    _plusController.dispose();
     _chatController.dispose();
     _chatFocusNode.dispose();
     _scrollController.dispose();
@@ -1037,71 +1046,150 @@ class _ChatScreenState extends State<ChatScreen>
     if (r.type == _RespType.outfits) {
       final screenW = MediaQuery.of(context).size.width;
       final screenH = MediaQuery.of(context).size.height;
-      final outfitCardW = (screenW * 0.22).clamp(80.0, 110.0);
-      final outfitStripH = (screenH * 0.20).clamp(140.0, 175.0);
+      final outfitCardW = (screenW * 0.30).clamp(100.0, 140.0);
+      final outfitStripH = (screenH * 0.22).clamp(155.0, 195.0);
       final outfitImgH = outfitStripH * 0.62;
       return SizedBox(
         height: outfitStripH,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: r.outfits.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8),
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
           itemBuilder: (context, i) {
             final o = r.outfits[i];
-            return Container(
-              width: outfitCardW,
-              decoration: BoxDecoration(
-                color: t.card,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: t.cardBorder),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: outfitImgH,
-                    child: Image.network(
-                      o.image,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      cacheWidth: 260,
-                      cacheHeight: 288,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: t.accent.primary.withValues(alpha: 0.1),
+            final heroTag = 'outfit_hero_${o.name}_$i';
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.of(context).push(
+                  PageRouteBuilder<void>(
+                    opaque: false,
+                    barrierColor: Colors.transparent,
+                    transitionDuration: const Duration(milliseconds: 420),
+                    reverseTransitionDuration: const Duration(milliseconds: 320),
+                    pageBuilder: (ctx, animation, _) => FadeTransition(
+                      opacity: CurvedAnimation(
+                        parent: animation,
+                        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+                      ),
+                      child: _OutfitDetailPage(
+                        outfit: o,
+                        heroTag: heroTag,
+                        t: t,
+                        onSaveChanged: (saved) =>
+                            setState(() => o.saved = saved),
                       ),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(7, 5, 7, 6),
+                );
+              },
+              child: Hero(
+                tag: heroTag,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: outfitCardW,
+                    decoration: BoxDecoration(
+                      color: t.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: t.cardBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: t.backgroundPrimary.withValues(alpha: 0.20),
+                          blurRadius: 14,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          o.name,
-                          style: TextStyle(
-                            color: t.textPrimary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: 2),
-                        Wrap(
-                          spacing: 3,
-                          runSpacing: 2,
-                          children: o.tags.take(2)
-                              .map(
-                                (tag) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 5,
-                                    vertical: 1,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: t.accent.primary.withValues(
-                                      alpha: 0.10,
+                        // Image
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                o.image,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                cacheWidth: 280,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: t.accent.primary.withValues(alpha: 0.1),
+                                  child: Icon(Icons.image_outlined,
+                                      color: t.mutedText, size: 28),
+                                ),
+                              ),
+                              // Saved badge
+                              if (o.saved)
+                                Positioned(
+                                  top: 7,
+                                  right: 7,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: t.accent.primary
+                                          .withValues(alpha: 0.88),
                                     ),
+                                    child: Icon(Icons.bookmark_rounded,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                        size: 10),
+                                  ),
+                                ),
+                              // Bottom gradient
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: 32,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        t.backgroundPrimary
+                                            .withValues(alpha: 0.40),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Label
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(9, 7, 9, 9),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                o.name,
+                                style: TextStyle(
+                                  color: t.textPrimary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.1,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 3,
+                                children: o.tags.take(2).map((tag) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: t.accent.primary
+                                        .withValues(alpha: 0.10),
                                     borderRadius: BorderRadius.circular(100),
                                   ),
                                   child: Text(
@@ -1112,14 +1200,15 @@ class _ChatScreenState extends State<ChatScreen>
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                ),
-                              )
-                              .toList(),
+                                )).toList(),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
             );
           },
@@ -1833,130 +1922,35 @@ class _ChatScreenState extends State<ChatScreen>
   );
 
   Widget _input(AppThemeTokens t) {
-    final grad = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [t.accent.primary, t.accent.secondary],
-    );
-
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _chips(t),
-        // ── Input bar ────────────────────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              color: t.phoneShellInner.withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: t.cardBorder, width: 1),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-            child: Row(
-              children: [
-                // ── Plus button (skincare-style overlay popup) ───────────────
-                ChatPlusButton(
-                  controller: _plusController,
-                  accentColor: t.accent.primary,
-                  panelColor: t.panel.withValues(alpha: 1.0),
-                  borderColor: t.cardBorder,
-                  textColor: t.textPrimary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _chatController,
-                    focusNode: _chatFocusNode,
-                    style: TextStyle(color: t.textPrimary, fontSize: 14.5),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      border: InputBorder.none,
-                      hintText: AppLocalizations.t(context, 'chat_hint'),
-                      hintStyle: TextStyle(color: t.mutedText, fontSize: 14.5),
-                    ),
-                    onSubmitted: (v) {
-                      if (v.trim().isNotEmpty) _sendMessage(v.trim());
-                    },
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // ── Voice button ─────────────────────────────────────────────
-                GestureDetector(
-                  onTap: _toggleListening,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: _isListening
-                          ? LinearGradient(
-                              colors: [Colors.redAccent, Colors.red.shade700],
-                            )
-                          : LinearGradient(
-                              colors: [
-                                t.accent.primary.withValues(alpha: 0.18),
-                                t.accent.secondary.withValues(alpha: 0.18),
-                              ],
-                            ),
-                      borderRadius: BorderRadius.circular(13),
-                      boxShadow: _isListening
-                          ? [
-                              BoxShadow(
-                                color: Colors.redAccent.withValues(alpha: 0.45),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: _isListening
-                        ? const _PulsingMicIcon()
-                        : Icon(
-                            Icons.mic_none_rounded,
-                            color: t.accent.primary,
-                            size: 18,
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // ── Send button ──────────────────────────────────────────────
-                GestureDetector(
-                  onTap: () => _sendMessage(),
-                  child: ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _chatController,
-                    builder: (context, value, _) {
-                      final hasText = value.text.trim().isNotEmpty;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          gradient: hasText
-                              ? grad
-                              : LinearGradient(
-                                  colors: [
-                                    t.accent.primary.withValues(alpha: 0.35),
-                                    t.accent.secondary.withValues(alpha: 0.35),
-                                  ],
-                                ),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          size: 16,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+        AhviChatPromptBar(
+          controller: _chatController,
+          focusNode: _chatFocusNode,
+          hintText: AppLocalizations.t(context, 'chat_hint'),
+          hasTextListenable: _chatController,
+          surface: t.phoneShellInner,
+          border: t.cardBorder,
+          accent: t.accent.primary,
+          accentSecondary: t.accent.secondary,
+          textHeading: t.textPrimary,
+          textMuted: t.mutedText,
+          shadowMedium: t.backgroundPrimary.withValues(alpha: 0.20),
+          onAccent: Colors.white,
+          themeTokens: t,
+          onVoiceTap: _toggleListening,
+          isListening: _isListening,
+          onSubmitted: (v) {
+            if (v.trim().isNotEmpty) _sendMessage(v.trim());
+          },
+          onSend: () => _sendMessage(),
+          onEmptySend: () {},
+          // ── Lens sheet actions ──────────────────────────────────────
+          onVisualSearch: () => _sendMessage('Visual search'),
+          onFindSimilar: () => _sendMessage('Find similar items'),
+          onAddToWardrobe: () => _sendMessage('Add to my wardrobe'),
         ),
         const SizedBox(height: 8),
       ],
@@ -1964,6 +1958,345 @@ class _ChatScreenState extends State<ChatScreen>
   }
 }
 
+
+// ── Outfit Detail Page (Hero expand destination) ───────────────────────────
+
+class _OutfitDetailPage extends StatefulWidget {
+  final _Outfit outfit;
+  final String heroTag;
+  final AppThemeTokens t;
+  final ValueChanged<bool> onSaveChanged;
+
+  const _OutfitDetailPage({
+    required this.outfit,
+    required this.heroTag,
+    required this.t,
+    required this.onSaveChanged,
+  });
+
+  @override
+  State<_OutfitDetailPage> createState() => _OutfitDetailPageState();
+}
+
+class _OutfitDetailPageState extends State<_OutfitDetailPage>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _contentCtrl;
+  late Animation<double> _contentFade;
+  late Animation<Offset> _contentSlide;
+  late bool _saved;
+
+  @override
+  void initState() {
+    super.initState();
+    _saved = widget.outfit.saved;
+    _contentCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _contentFade = CurvedAnimation(
+      parent: _contentCtrl,
+      curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+    );
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.10),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _contentCtrl,
+      curve: const Interval(0.2, 1.0, curve: Cubic(0.16, 1.0, 0.3, 1.0)),
+    ));
+    Future.delayed(const Duration(milliseconds: 170), () {
+      if (mounted) _contentCtrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _contentCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    final screenH = MediaQuery.of(context).size.height;
+    final screenW = MediaQuery.of(context).size.width;
+    final accent = t.accent.primary;
+    final accentTertiary = t.accent.tertiary;
+    final bg = t.backgroundPrimary;
+    final surface = t.phoneShellInner;
+    final onAccent = Theme.of(context).colorScheme.onPrimary;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: GestureDetector(
+        onTap: () => Navigator.of(context).pop(),
+        child: Container(
+          color: bg.withValues(alpha: 0.82),
+          child: Center(
+            child: GestureDetector(
+              onTap: () {}, // prevent tap-through
+              child: Hero(
+                tag: widget.heroTag,
+                flightShuttleBuilder: (_, animation, __, ___, toCtx) =>
+                    AnimatedBuilder(
+                      animation: animation,
+                      builder: (_, __) => toCtx.widget,
+                    ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: screenW * 0.88,
+                    constraints: BoxConstraints(maxHeight: screenH * 0.82),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: accent.withValues(alpha: 0.22),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: bg.withValues(alpha: 0.50),
+                          blurRadius: 60,
+                          offset: const Offset(0, 20),
+                        ),
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.10),
+                          blurRadius: 30,
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Large image ───────────────────────────────────
+                        SizedBox(
+                          height: screenH * 0.42,
+                          width: double.infinity,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                widget.outfit.image,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: accent.withValues(alpha: 0.10),
+                                  child: Icon(Icons.image_outlined,
+                                      color: t.mutedText, size: 48),
+                                ),
+                              ),
+                              // Bottom fade
+                              Positioned(
+                                left: 0, right: 0, bottom: 0, height: 80,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [Colors.transparent, surface],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Top shimmer line
+                              Positioned(
+                                top: 0, left: 0, right: 0, height: 1,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        accent.withValues(alpha: 0.55),
+                                        accentTertiary.withValues(alpha: 0.45),
+                                        Colors.transparent,
+                                      ],
+                                      stops: const [0.0, 0.35, 0.65, 1.0],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Close button
+                              Positioned(
+                                top: 14, right: 14,
+                                child: GestureDetector(
+                                  onTap: () => Navigator.of(context).pop(),
+                                  child: Container(
+                                    width: 32, height: 32,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: bg.withValues(alpha: 0.55),
+                                      border: Border.all(
+                                          color: t.cardBorder, width: 1),
+                                    ),
+                                    child: Icon(Icons.close_rounded,
+                                        color: t.textPrimary, size: 16),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // ── Content ───────────────────────────────────────
+                        FadeTransition(
+                          opacity: _contentFade,
+                          child: SlideTransition(
+                            position: _contentSlide,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(22, 6, 22, 26),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Tags
+                                  Wrap(
+                                    spacing: 6,
+                                    children: widget.outfit.tags.map((tag) =>
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: accent.withValues(alpha: 0.10),
+                                          borderRadius:
+                                              BorderRadius.circular(100),
+                                          border: Border.all(
+                                              color: accent
+                                                  .withValues(alpha: 0.20)),
+                                        ),
+                                        child: Text(tag,
+                                          style: TextStyle(
+                                            color: accent,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w600,
+                                          )),
+                                      ),
+                                    ).toList(),
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Name
+                                  Text(
+                                    widget.outfit.name,
+                                    style: TextStyle(
+                                      color: t.textPrimary,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.5,
+                                      height: 1.15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // 2-line description
+                                  Text(
+                                    widget.outfit.description.isNotEmpty
+                                        ? widget.outfit.description
+                                        : 'A curated look styled just for you.',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: t.mutedText,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.55,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Save button
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() => _saved = !_saved);
+                                      widget.onSaveChanged(_saved);
+                                      if (_saved) HapticFeedback.lightImpact();
+                                    },
+                                    child: AnimatedContainer(
+                                      duration:
+                                          const Duration(milliseconds: 260),
+                                      curve:
+                                          const Cubic(0.34, 1.56, 0.64, 1.0),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 14),
+                                      decoration: BoxDecoration(
+                                        gradient: _saved
+                                            ? null
+                                            : LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [
+                                                  accent,
+                                                  accentTertiary,
+                                                ],
+                                              ),
+                                        color: _saved ? t.panel : null,
+                                        borderRadius:
+                                            BorderRadius.circular(16),
+                                        border: _saved
+                                            ? Border.all(
+                                                color: accent
+                                                    .withValues(alpha: 0.30),
+                                                width: 1)
+                                            : null,
+                                        boxShadow: _saved
+                                            ? []
+                                            : [
+                                                BoxShadow(
+                                                  color: accent
+                                                      .withValues(alpha: 0.30),
+                                                  blurRadius: 18,
+                                                  offset: const Offset(0, 6),
+                                                ),
+                                              ],
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            _saved
+                                                ? Icons.bookmark_rounded
+                                                : Icons.bookmark_border_rounded,
+                                            color: _saved ? accent : onAccent,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _saved
+                                                ? 'Saved to Wardrobe'
+                                                : 'Save Outfit',
+                                            style: TextStyle(
+                                              color:
+                                                  _saved ? accent : onAccent,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 // ── Pulsing mic animation when listening ────────────────────────────────────
 class _PulsingMicIcon extends StatefulWidget {

@@ -191,12 +191,10 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell>
     with TickerProviderStateMixin {
   int _currentIndex = -1;
-  bool _lensSheetOpen = false;
   bool _toastVisible = false;
   Timer? _toastTimer;
   final List<int> _tabHistory = <int>[];
 
-  late final AnimationController _lensSheetCtrl;
   late final List<AnimationController> _navRiseCtrls;
 
   // Pages are built in build() so locale changes trigger proper rebuilds.
@@ -205,8 +203,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   @override
   void initState() {
     super.initState();
-
-    _lensSheetCtrl = AnimationController(vsync: this, duration: _A.sheet);
 
     _navRiseCtrls = List.generate(
       5,
@@ -220,7 +216,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
   @override
   void dispose() {
-    _lensSheetCtrl.dispose();
     for (final ctrl in _navRiseCtrls) {
       ctrl.dispose();
     }
@@ -247,10 +242,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   }
 
   bool _handleShellBack() {
-    if (_lensSheetOpen) {
-      _closeLensSheet();
-      return true;
-    }
     if (_tabHistory.isNotEmpty) {
       final previousIndex = _tabHistory.removeLast();
       _switchToIndex(previousIndex, addToHistory: false);
@@ -260,37 +251,11 @@ class _MainNavigationShellState extends State<MainNavigationShell>
   }
 
   void _handleNavTap(int idx) {
-    if (idx == 0) {
-      if (_currentIndex != 0) {
-        _switchToIndex(0);
-      }
-      // Small delay so the page switch renders before sheet opens
-      Future.delayed(const Duration(milliseconds: 50), () {
-        if (mounted) _openLensSheet();
-      });
-      return;
-    }
     if (idx == 4) {
       _showComingSoon();
       return;
     }
     _switchToIndex(idx);
-  }
-
-  // ── Lens sheet ─────────────────────────────────────────────────────────────
-  void _openLensSheet() {
-    HapticFeedback.lightImpact();
-    setState(() => _lensSheetOpen = true);
-    _lensSheetCtrl.animateTo(1.0, curve: _A.sheetIn);
-  }
-
-  void _closeLensSheet() {
-    HapticFeedback.lightImpact();
-    _lensSheetCtrl.animateBack(0.0, duration: _A.normal, curve: _A.ease).then((
-      _,
-    ) {
-      if (mounted) setState(() => _lensSheetOpen = false);
-    });
   }
 
   // ── Coming-soon toast ──────────────────────────────────────────────────────
@@ -309,7 +274,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     // ✅ Built here so locale changes rebuild nav labels automatically
     final l = AppLocalizations.of(context);
     final navItems = <({IconData icon, String label})>[
-      (icon: Icons.search_rounded,               label: l?.translate('lens') ?? 'Lens'),
+      (icon: Icons.home_outlined,                label: l?.translate('home') ?? 'Home'),
       (icon: Icons.chat_bubble_outline_rounded,  label: l?.translate('chat') ?? 'Chat'),
       (icon: Icons.dry_cleaning_outlined,        label: l?.translate('wardrobe') ?? 'Wardrobe'),
       (icon: Icons.grid_view_rounded,            label: l?.translate('planner') ?? 'Planner'),
@@ -318,7 +283,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
     // ✅ Built here so locale changes cause a full rebuild of all screens
     final pages = <Widget>[
-      _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _handleNavTap),
+      _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _switchToIndex),
       const ChatScreen(key: PageStorageKey('chat'), showBackButton: false),
       const WardrobeScreen(key: PageStorageKey('wardrobe')),
       const BoardsScreen(key: PageStorageKey('boards')),
@@ -327,7 +292,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     return NotificationListener<ShellBackNavigationNotification>(
       onNotification: (notification) => _handleShellBack(),
       child: PopScope(
-        canPop: !_lensSheetOpen && _tabHistory.isEmpty,
+        canPop: _tabHistory.isEmpty,
         onPopInvokedWithResult: (didPop, result) {
           if (!didPop) {
             _handleShellBack();
@@ -357,9 +322,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 bottom: _S.base,
                 child: _buildBottomNav(navItems),
               ),
-
-              // Lens sheet (conditionally rendered)
-              if (_lensSheetOpen) _buildLensSheet(),
 
               // Coming-soon toast
               _buildComingSoonToast(),
@@ -495,44 +457,6 @@ class _MainNavigationShellState extends State<MainNavigationShell>
           );
         },
       ),
-    );
-  }
-
-  // ── Lens sheet ─────────────────────────────────────────────────────────────
-  Widget _buildLensSheet() {
-    final t = context.themeTokens;
-    return AnimatedBuilder(
-      animation: _lensSheetCtrl,
-      builder: (context, child) {
-        final v = _lensSheetCtrl.value;
-        return Stack(
-          children: [
-            // Backdrop — tap to dismiss
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _closeLensSheet,
-                child: Container(
-                  color: t.accent.primary.withValues(alpha: 0.15 * v),
-                ),
-              ),
-            ),
-
-            // Sheet itself — does NOT propagate taps to backdrop
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: GestureDetector(
-                onTap: () {}, // absorb taps, prevent backdrop dismiss
-                child: Transform.translate(
-                  offset: Offset(0, (1.0 - v) * 400),
-                  child: _LensSheetContent(t: t, onClose: _closeLensSheet),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -776,15 +700,7 @@ class _LensSheetContent extends StatelessWidget {
             textColor: t.textPrimary,
             mutedColor: t.mutedText,
           ),
-          _LensOption(
-            icon: Icons.chat_bubble_outline_rounded,
-            name: 'Ask AHVI',
-            desc: 'Get personalised styling tips',
-            color: t.accent.tertiary,
-            panelColor: t.panel,
-            textColor: t.textPrimary,
-            mutedColor: t.mutedText,
-          ),
+
         ],
       ),
     );
@@ -1131,8 +1047,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Replace the entire stack so the user cannot pop back to the splash.
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => destination,
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+        pageBuilder: (_, _, _) => destination,
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
           opacity: animation,
           child: child,
         ),

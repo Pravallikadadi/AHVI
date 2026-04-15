@@ -178,14 +178,14 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   late Animation<double> _pillBounceScale;
   int _lastTappedGender = -1;
 
-  static const Color bg = Color(0xFF08111F);
+  static const Color bg = Color(0xFFEEF3FF);
 
-  static const Color panel = Color(0x14FFFFFF);
-  static const Color panel2 = Color(0x1FFFFFFF);
-  static const Color card = Color(0x14FFFFFF);
-  static const Color cardBorder = Color(0x1FFFFFFF);
-  static const Color textColor = Color(0xFFF5F7FF);
-  static const Color muted = Color(0xB8E6EBFF);
+  static const Color panel = Color(0xA8FFFFFF);
+  static const Color panel2 = Color(0xE0FFFFFF);
+  static const Color card = Color(0xE0FFFFFF);
+  static const Color cardBorder = Color(0xFFE5E9F7);
+  static const Color textColor = Color(0xFF1A1D26);
+  static const Color muted = Color(0xFF66708A);
   static const Color accent = Color(0xFF6B91FF);
   static const Color accent2 = Color(0xFF8D7DFF);
   static const Color accent5 = Color(0xFFFFD86E);
@@ -355,7 +355,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                 gradient: RadialGradient(
                   center: Alignment(-1.0, -1.0),
                   radius: 1.2,
-                  colors: [Color(0x2E14CACD), Color(0x0014CACD)],
+                  colors: [Color(0x1814CACD), Color(0x0014CACD)],
                   stops: [0.0, 0.65],
                 ),
               ),
@@ -367,7 +367,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                 gradient: RadialGradient(
                   center: Alignment(1.0, 1.0),
                   radius: 1.2,
-                  colors: [Color(0x2E14CACD), Color(0x0014CACD)],
+                  colors: [Color(0x1814CACD), Color(0x0014CACD)],
                   stops: [0.0, 0.65],
                 ),
               ),
@@ -516,9 +516,9 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(16),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x2E000000), blurRadius: 24, offset: Offset(0, 8)),
+                color: Color(0x14000000), blurRadius: 24, offset: Offset(0, 8)),
             BoxShadow(
-                color: Color(0x1F000000), blurRadius: 6, offset: Offset(0, 2)),
+                color: Color(0x0A000000), blurRadius: 6, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
@@ -613,11 +613,11 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x38000000),
+                color: Color(0x18000000),
                 blurRadius: 40,
                 offset: Offset(0, 12)),
             BoxShadow(
-                color: Color(0x24000000),
+                color: Color(0x0F000000),
                 blurRadius: 10,
                 offset: Offset(0, 3)),
           ],
@@ -1105,7 +1105,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
     int tempIndex = 0;
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0F1A2D),
+      backgroundColor: const Color(0xFFFFFFFF),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1119,7 +1119,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: panel2,
+                color: const Color(0xFFCDD4E8),
                 borderRadius: BorderRadius.circular(100),
               ),
             ),
@@ -1610,7 +1610,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
                       width: isActive ? 22 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: isActive ? accent2 : panel2,
+                        color: isActive ? accent2 : const Color(0xFFCDD4E8),
                         borderRadius:
                         BorderRadius.circular(isActive ? 3 : 50),
                       ),
@@ -1633,7 +1633,7 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
         width: 130,
         height: 5,
         decoration: BoxDecoration(
-          color: panel2,
+          color: const Color(0xFFCDD4E8),
           borderRadius: BorderRadius.circular(100),
         ),
       ),
@@ -1777,11 +1777,11 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    const sheetBg  = Color(0xFF0D1826);
-    const itemBg   = Color(0x14FFFFFF);
-    const borderCol = Color(0x1FFFFFFF);
-    const labelCol  = Color(0xB8E6EBFF);
-    const textCol   = Color(0xFFF5F7FF);
+    const sheetBg  = Color(0xFFFFFFFF);
+    const itemBg   = Color(0xFFF0F4FF);
+    const borderCol = Color(0xFFE5E9F7);
+    const labelCol  = Color(0xFF66708A);
+    const textCol   = Color(0xFF1A1D26);
     const accentCol = Color(0xFF6B91FF);
 
     final filtered = widget.countries.where((c) {
@@ -1816,7 +1816,7 @@ class _CountryDropdownOverlayState extends State<_CountryDropdownOverlay> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderCol, width: 1.2),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x4D000000), blurRadius: 24, offset: Offset(0, 8)),
+                  BoxShadow(color: Color(0x18000000), blurRadius: 24, offset: Offset(0, 8)),
                 ],
               ),
               child: Column(

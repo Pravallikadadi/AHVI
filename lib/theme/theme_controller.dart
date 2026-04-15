@@ -5,20 +5,20 @@ import 'profile_theme.dart';
 import 'theme_storage.dart';
 
 class ThemeController extends ChangeNotifier {
-  bool isDarkMode = true;
+  bool isDarkMode = false;
   ProfileTheme currentTheme = ProfileTheme.coolBlue;
 
   // ── NEW: ThemeMode (system / light / dark) ──
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
 
   Future<void> loadTheme() async {
     currentTheme = await ThemeStorage.loadTheme();
     isDarkMode = await ThemeStorage.loadMode();
 
-    // ── NEW: load saved ThemeMode (default = system = index 0) ──
+    // load saved ThemeMode (default = light)
     final prefs = await SharedPreferences.getInstance();
-    final index = prefs.getInt('themeMode') ?? 0;
+    final index = prefs.getInt('themeMode') ?? ThemeMode.light.index;
     _themeMode = ThemeMode.values[index];
 
     // Keep isDarkMode in sync for any existing code that uses it
@@ -30,6 +30,7 @@ class ThemeController extends ChangeNotifier {
 
   // ── NEW: set system / light / dark and persist it ──
   Future<void> setThemeMode(ThemeMode mode) async {
+    if (mode == ThemeMode.system) return; // system mode disabled
     _themeMode = mode;
     if (mode == ThemeMode.dark) {
       isDarkMode = true;

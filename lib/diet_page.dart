@@ -7,8 +7,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 // Update this path to match your project structure, e.g.:
 // import 'package:your_app/theme/theme_tokens.dart';
 import 'theme/theme_tokens.dart';
-import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 
 // ─── THEME COLORS ────────────────────────────────────────────────────────────
 // NOTE: kAccent and meal-type colors remain constant (not theme-dependent)
@@ -303,11 +303,11 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           AnimatedPositioned(
-            duration: const Duration(milliseconds: 350),
+            duration: const Duration(milliseconds: 380),
             curve: Curves.easeInOutCubic,
-            left: _isChatOpen ? 0 : MediaQuery.of(context).size.width,
-            right: _isChatOpen ? 0 : -MediaQuery.of(context).size.width,
-            top: 0, bottom: 0,
+            left: 0, right: 0,
+            top: _isChatOpen ? 0 : MediaQuery.of(context).size.height,
+            bottom: _isChatOpen ? 0 : -MediaQuery.of(context).size.height,
             child: ChatScreen(
               onSavePlan: (p) {
                 _savePlanFromChat(p);
@@ -910,7 +910,7 @@ class ChatScreen extends StatefulWidget {
 }
 class _ChatScreenState extends State<ChatScreen> {
   final _msgCtrl = TextEditingController();
-  final _plusCtrl = ChatPlusButtonController();
+  final _msgFocus = FocusNode();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
   final List<ChatMessage> _messages = [];
@@ -988,7 +988,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _speech.stop();
     _msgCtrl.dispose();
-    _plusCtrl.dispose();
+    _msgFocus.dispose();
     _removeOverlay();
     super.dispose();
   }
@@ -1081,13 +1081,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _send() async {
     final t = _msgCtrl.text.trim();
-    final att = _plusCtrl.pendingAttachment;
-    if (t.isEmpty && att == null) return;
-    final displayText = t.isNotEmpty
-        ? (att != null ? '$t\n📎 ${att.label}' : t)
-        : '📎 ${att!.label}';
+    if (t.isEmpty) return;
+    final displayText = t;
     _msgCtrl.clear();
-    _plusCtrl.clearPendingAttachment();
     setState(() { _messages.add(ChatMessage(text: displayText, isBot: false)); _isTyping = true; });
     await Future.delayed(const Duration(seconds: 1));
 
@@ -1224,94 +1220,30 @@ class _ChatScreenState extends State<ChatScreen> {
           ]);
         })),
         // ── Input Bar ───────────────────────────────────────────────────
-        Container(
-          color: context.dSurface,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Attachment preview chip (shown when file/image/search is pending)
-              ChatAttachmentChip(controller: _plusCtrl),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: context.dSurface2,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.dBorder, width: 1),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(children: [
-                    // ChatPlusButton — Camera, Photo Library, Files, Web Search
-                    ChatPlusButton(controller: _plusCtrl),
-                    const SizedBox(width: 8),
-                    // Text field
-                    Expanded(
-                      child: TextField(
-                        controller: _msgCtrl,
-                        onSubmitted: (_) => _send(),
-                        style: TextStyle(color: context.dText, fontSize: 13.5),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          border: InputBorder.none,
-                          hintText: AppLocalizations.t(context, 'diet_chat_hint'),
-                          hintStyle: TextStyle(fontSize: 13.5, color: context.dMuted),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    // Mic button
-                    GestureDetector(
-                      onTap: _toggleListening,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutCubic,
-                        width: 38, height: 38,
-                        decoration: BoxDecoration(
-                          gradient: _isListening
-                              ? const LinearGradient(colors: [Colors.redAccent, Color(0xFFB71C1C)])
-                              : LinearGradient(colors: [context.dAccent.withValues(alpha: 0.18), context.dAccent.withValues(alpha: 0.18)]),
-                          borderRadius: BorderRadius.circular(13),
-                          boxShadow: _isListening
-                              ? [BoxShadow(color: Colors.redAccent.withValues(alpha: 0.45), blurRadius: 16, offset: const Offset(0, 4))]
-                              : [],
-                        ),
-                        child: _isListening
-                            ? const _DietPulsingMicIcon()
-                            : Icon(Icons.mic_none_rounded, color: context.dAccent, size: 18),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    // Send button
-                    GestureDetector(
-                      onTap: _send,
-                      child: ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _msgCtrl,
-                        builder: (context, value, _) {
-                          final hasText = value.text.trim().isNotEmpty;
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 38, height: 38,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: hasText
-                                    ? [context.dAccent, context.dAccent2]
-                                    : [context.dAccent.withValues(alpha: 0.35), context.dAccent.withValues(alpha: 0.35)],
-                              ),
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
-                          );
-                        },
-                      ),
-                    ),
-                  ]),
-                ),   // inner Container (decorated row)
-              ),     // Padding
-            ],
-          ),         // Column
+        AhviChatPromptBar(
+          controller: _msgCtrl,
+          focusNode: _msgFocus,
+          hintText: AppLocalizations.t(context, 'diet_chat_hint'),
+          surface: context.dSurface,
+          border: context.dBorder,
+          accent: context.dAccent,
+          accentSecondary: context.dAccent2,
+          textHeading: context.dText,
+          textMuted: context.dMuted,
+          shadowMedium: Colors.black.withValues(alpha: 0.06),
+          onAccent: Colors.white,
+          onSend: _send,
+          onEmptySend: () => _msgFocus.requestFocus(),
+          onSubmitted: (_) => _send(),
+          themeTokens: Theme.of(context).extension<AppThemeTokens>()!,
+          onVoiceTap: _toggleListening,
+          isListening: _isListening,
+          onVisualSearch: () => showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (_) => const _DietLensActionSheet(),
+          ),
         ),
-        const SizedBox(height: 8),
       ]))
     ));
   }

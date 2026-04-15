@@ -11,7 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
-import 'package:myapp/widgets/Ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 
 enum _TryOnStage { preview, loading, camera, captured }
 
@@ -62,7 +61,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   bool _tryOnOpen = false;
   final PageController _pageController = PageController();
   final TextEditingController _chatController = TextEditingController();
-  final ChatPlusButtonController _plusCtrl = ChatPlusButtonController();
   final ScrollController _chatScrollController = ScrollController();
 
   late final Map<String, bool> _savedCarouselById;
@@ -667,21 +665,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _toastEntry = null;
   }
 
-  void _showOverlay(BuildContext context, ChatPlusButtonController ctrl) {
-    _removeOverlay();
-    final entry = OverlayEntry(
-      builder: (_) => GestureDetector(
-        onTap: () {
-          ctrl.closeMenu();
-          _removeOverlay();
-        },
-        behavior: HitTestBehavior.translucent,
-        child: const SizedBox.expand(),
-      ),
-    );
-    _toastEntry = entry;
-    Overlay.of(context).insert(entry);
-  }
+
 
   // ──────────────────────────────────────────────────────────────────────
 
@@ -689,7 +673,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void dispose() {
     _pageController.dispose();
     _chatController.dispose();
-    _plusCtrl.dispose();
     _removeOverlay();
     _chatScrollController.dispose();
     _fabEntryCtrl.dispose();
@@ -927,14 +910,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _sendMessage(String text) {
-    final att = _plusCtrl.pendingAttachment;
     final trimmed = text.trim();
-    if (trimmed.isEmpty && att == null || _isTyping) return;
-    final displayText = trimmed.isNotEmpty
-        ? (att != null ? '$trimmed\n📎 ${att.label}' : trimmed)
-        : '📎 ${att!.label}';
+    if (trimmed.isEmpty || _isTyping) return;
+    final displayText = trimmed;
     _chatController.clear();
-    _plusCtrl.clearPendingAttachment();
     setState(() {
       _messages.add(
         _ChatMessage(
@@ -2488,7 +2467,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Attachment preview chip — shown when a file / image / web search is pending
-          ChatAttachmentChip(controller: _plusCtrl),
           AhviChatPromptBar(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             controller: _chatController,
@@ -2505,16 +2483,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             onAccent: tileTextColor,
             onSubmitted: _sendMessage,
             onSend: () => _sendMessage(_chatController.text),
-            onEmptySend: () => _plusCtrl.pendingAttachment != null
-                ? _sendMessage('')
-                : null,
-            plusButton: ChatPlusButton(
-              controller: _plusCtrl,
-              accentColor: accentColor,
-              panelColor: phoneShellInnerColor.withValues(alpha: 1.0),
-              borderColor: cardBorderColor,
-              textColor: textColor,
-            ),
+            onEmptySend: () {},
+            themeTokens: context.themeTokens,
+            onVisualSearch: null,
+            onFindSimilar: null,
+            onAddToWardrobe: null,
           ),
         ],
       ),

@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
-import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 
 // ── PALETTE (1:1 from CSS :root) ────────────────────────────────────
 Color kBg = Color(0xFF08111F);
@@ -130,7 +129,6 @@ class _BillsScreenState extends State<BillsScreen>
     },
   ];
   final TextEditingController _chatInputCtrl = TextEditingController();
-  final ChatPlusButtonController _plusCtrl = ChatPlusButtonController();
   OverlayEntry? _overlay;
 
   // ── DB DATA LISTS ──────────────────────────────────────────────────
@@ -537,7 +535,6 @@ class _BillsScreenState extends State<BillsScreen>
     _sheetCtrl.dispose();
     _toastAnim.dispose();
     _chatInputCtrl.dispose();
-    _plusCtrl.dispose();
     _removeOverlay();
     super.dispose();
   }
@@ -1297,12 +1294,10 @@ class _BillsScreenState extends State<BillsScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // ── Attachment chip (shown above input row when file/search picked) ──
-                  ChatAttachmentChip(controller: _plusCtrl),
                   Padding(
                     padding: EdgeInsets.fromLTRB(10, 8, 10, 12),
                     child: Row(
                 children: [
-                  ChatPlusButton(controller: _plusCtrl),
                   SizedBox(width: 8),
                   Container(
                     width: 32,
@@ -1373,24 +1368,15 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   void _sendChatMsg(String text) {
-    final att = _plusCtrl.pendingAttachment;
-    if (text.trim().isEmpty && att == null) return;
-
-    final displayText = text.trim().isNotEmpty
-        ? (att != null ? '${text.trim()}\n📎 ${att.label}' : text.trim())
-        : '📎 ${att!.label}';
-
+    if (text.trim().isEmpty) return;
     setState(() {
-      _chatMessages.add({'from': 'user', 'text': displayText});
+      _chatMessages.add({'from': 'user', 'text': text.trim()});
       _chatMessages.add({
         'from': 'ahvi',
-        'text': att != null
-            ? 'Got it! I\'m reviewing your attachment now… ✦'
-            : 'Got it! I\'m reviewing your bills now… ✦',
+        'text': 'Got it! I\'m reviewing your bills now… ✦',
       });
     });
     _chatInputCtrl.clear();
-    _plusCtrl.clearPendingAttachment();
   }
 
 

@@ -82,7 +82,7 @@ class ProfileState {
     this.bodyShape = 'Rectangle',
     Set<String>? styles,
     Set<String>? shopPrefs,
-    this.isDark = true,
+    this.isDark = false,
     this.theme = AppTheme.coolBlue,
     this.lang = 'English',
     this.avatarPath,
@@ -894,13 +894,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final themeCtrl = Provider.of<ThemeController>(context, listen: false);
 
-      // Dark/Light mode sync — only sync if not already on system mode
+      // Dark/Light mode sync
       if (newState.isDark != oldState.isDark) {
-        if (themeCtrl.themeMode != ThemeMode.system) {
-          themeCtrl.setThemeMode(
-            newState.isDark ? ThemeMode.dark : ThemeMode.light,
-          );
-        }
+        themeCtrl.setThemeMode(
+          newState.isDark ? ThemeMode.dark : ThemeMode.light,
+        );
       }
 
       // Accent theme sync — AppTheme → ProfileTheme convert చేసి set చేయి
@@ -1164,11 +1162,6 @@ class _ProfileView extends StatelessWidget {
                                 ),
                                 segments: const [
                                   ButtonSegment(
-                                    value: ThemeMode.system,
-                                    label: Text('System', style: TextStyle(fontSize: 12)),
-                                    icon: Icon(Icons.brightness_auto, size: 15),
-                                  ),
-                                  ButtonSegment(
                                     value: ThemeMode.light,
                                     label: Text('Light', style: TextStyle(fontSize: 12)),
                                     icon: Icon(Icons.light_mode, size: 15),
@@ -1189,10 +1182,6 @@ class _ProfileView extends StatelessWidget {
                                   } else if (mode == ThemeMode.light) {
                                     onStateChange(state.copyWith(isDark: false));
                                     onToast('☀️ Light mode on');
-                                  } else {
-                                    final systemDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-                                    onStateChange(state.copyWith(isDark: systemDark));
-                                    onToast('⚙️ Following system theme');
                                   }
                                 },
                               );

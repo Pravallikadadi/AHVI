@@ -91,7 +91,7 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1A2D),
+      backgroundColor: const Color(0xFFEEF3FF),
       body: Stack(
         children: [
           Positioned.fill(child: CustomPaint(painter: _BgPainter())),
@@ -117,7 +117,7 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                           const Text(
                             'Choose styles that match your vibe ✨',
                             style: TextStyle(
-                              color: Color(0xB8E6EBFF),
+                              color: Color(0xFF66708A),
                               fontSize: 13,
                               fontWeight: FontWeight.w400,
                             ),
@@ -129,7 +129,7 @@ class _Screen2State extends State<Screen2> with TickerProviderStateMixin {
                           const Text(
                             'Tap to select multiple',
                             style: TextStyle(
-                              color: Color(0x80E6EBFF),
+                              color: Color(0x99667080),
                               fontSize: 10.5,
                             ),
                           ),
@@ -209,21 +209,21 @@ class _BgPainter extends CustomPainter {
       );
     }
 
-    r(Offset(w * .5, h * .32), w * .46, h * .30, const Color(0x0FF5F7FF));
+    r(Offset(w * .5, h * .32), w * .46, h * .30, const Color(0x0A1A1D26));
     r(Offset(w * -.14, h * -.08), w * .90, h * .68,
-        const Color(0x476B91FF));
+        const Color(0x206B91FF));
     r(Offset(w * 1.14, h * .32), w * .62, h * .52,
-        const Color(0x388D7DFF));
+        const Color(0x188D7DFF));
     r(Offset(w * 1.18, h * 1.12), w * .82, h * .68,
-        const Color(0x2E04D7C8));
-    r(Offset(w * .5, h * .92), w * .72, h * .52, const Color(0x24FF8EC7));
+        const Color(0x1204D7C8));
+    r(Offset(w * .5, h * .92), w * .72, h * .52, const Color(0x10FF8EC7));
     r(Offset(w * -.16, h * .72), w * .64, h * .74,
-        const Color(0xCC0F1A2D));
-    r(Offset(w * .04, h * 1.0), w * .52, h * .46, const Color(0x1F6B91FF));
+        const Color(0x40EEF3FF));
+    r(Offset(w * .04, h * 1.0), w * .52, h * .46, const Color(0x0F6B91FF));
     r(Offset(w * 1.02, h * .02), w * .44, h * .36,
-        const Color(0x1404D7C8));
-    r(Offset(w * .90, h * .58), w * .40, h * .34, const Color(0x0FFFD86E));
-    r(Offset(w * .5, h * 0), w * .50, h * .30, const Color(0x298D7DFF));
+        const Color(0x0A04D7C8));
+    r(Offset(w * .90, h * .58), w * .40, h * .34, const Color(0x08FFD86E));
+    r(Offset(w * .5, h * 0), w * .50, h * .30, const Color(0x148D7DFF));
   }
 
   @override
@@ -249,9 +249,9 @@ class _Header extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.fromLTRB(9, 5, 13, 5),
             decoration: BoxDecoration(
-              color: const Color(0x14FFFFFF),
+              color: const Color(0x1F8D7DFF),
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: const Color(0x1FFFFFFF)),
+              border: Border.all(color: const Color(0x388D7DFF)),
               boxShadow: const [
                 BoxShadow(
                     color: Color(0x1F6B91FF),
@@ -302,7 +302,7 @@ class _Header extends StatelessWidget {
               style: TextStyle(
                 fontSize: 36,
                 fontWeight: FontWeight.w400,
-                color: Color(0xFFF5F7FF),
+                color: Color(0xFF1A1D26),
                 letterSpacing: -0.936,
                 height: 1.06,
               ),
@@ -325,7 +325,7 @@ class _Header extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w300,
-              color: Color(0xB8E6EBFF),
+              color: Color(0xFF66708A),
               height: 1.5,
             ),
           ),
@@ -345,9 +345,9 @@ class _TabBarWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0x14FFFFFF),
+        color: const Color(0xA8FFFFFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1FFFFFFF)),
+        border: Border.all(color: const Color(0xFFE5E9F7)),
         boxShadow: const [
           BoxShadow(
               color: Color(0x1A6B91FF),
@@ -409,7 +409,7 @@ class _Tab extends StatelessWidget {
               isActive ? FontWeight.w600 : FontWeight.w500,
               color: isActive
                   ? const Color(0xFFF5F7FF)
-                  : const Color(0xB8E6EBFF),
+                  : const Color(0xFF66708A),
             )),
       ),
     );
@@ -513,7 +513,7 @@ class _StyleCard extends StatelessWidget {
             border: Border.all(
               color: isSelected
                   ? const Color(0xBF6B91FF)
-                  : const Color(0x1FFFFFFF),
+                  : const Color(0xFFE5E9F7),
               width: 2,
             ),
             boxShadow: isSelected
@@ -537,7 +537,7 @@ class _StyleCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 alignment: Alignment.topCenter,
                 errorBuilder: (_, _, _) =>
-                    Container(color: const Color(0xFF192131)),
+                    Container(color: const Color(0xFFDFE7FB)),
               ),
             ),
             // Bottom gradient overlay
@@ -551,8 +551,8 @@ class _StyleCard extends StatelessWidget {
                     colors: [
                       Colors.transparent,
                       Colors.transparent,
-                      Color(0x8508111F),
-                      Color(0xEB08111F),
+                      Color(0x701A1D26),
+                      Color(0xD81A1D26),
                     ],
                   ),
                 ),
@@ -751,16 +751,16 @@ class _CtaSectionState extends State<_CtaSection>
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: const Color(0x1FFFFFFF),
+              color: const Color(0xA8FFFFFF),
               borderRadius: BorderRadius.circular(17),
-              border: Border.all(color: const Color(0x1FFFFFFF)),
+              border: Border.all(color: const Color(0xFFE5E9F7)),
               boxShadow: const [
                 BoxShadow(
-                    color: Color(0x6608111F),
+                    color: Color(0x14000000),
                     blurRadius: 26,
                     offset: Offset(0, 8)),
                 BoxShadow(
-                    color: Color(0x1AFFFFFF),
+                    color: Color(0x40FFFFFF),
                     blurRadius: 0,
                     offset: Offset(0, 1)),
               ],
@@ -858,7 +858,7 @@ class _BackArrowP extends CustomPainter {
         ..lineTo(s.width * .333, s.height * .5)
         ..lineTo(s.width * .611, s.height * .778),
       Paint()
-        ..color = const Color(0xB8E6EBFF)
+        ..color = const Color(0xFF66708A)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0
         ..strokeCap = StrokeCap.round

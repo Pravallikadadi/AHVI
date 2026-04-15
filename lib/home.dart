@@ -15,14 +15,13 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/chat.dart'; // 🚀 Added Chat Screen Integration
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
-import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
 // ─── Colors ──────────────────────────────────────────────
 
 // 🆕 Nav items are now built dynamically in _buildBottomNav() using localization
 // _homeNavItems icons only — labels come from JSON
 const _homeNavIcons = <IconData>[
-  Icons.search_rounded,
+  Icons.home_outlined,
   Icons.dry_cleaning_outlined,
   Icons.chat_bubble_outline_rounded,
   Icons.grid_view_rounded,
@@ -30,7 +29,7 @@ const _homeNavIcons = <IconData>[
 ];
 // Keep original for fallback / non-localized usage
 const _homeNavItems = <({IconData icon, String label})>[
-  (icon: Icons.search_rounded, label: 'Lens'),
+  (icon: Icons.home_outlined, label: 'Home'),
   (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
   (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
   (icon: Icons.grid_view_rounded, label: 'Planner'),
@@ -148,7 +147,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       ValueNotifier<_SuggestionState>((index: 0, opacity: 1.0));
   Timer? _suggestionTimer;
 
-  bool _lensSheetOpen = false;
   // ── Plus menu (ChatGPT-style) ──────────────────────────────────────────────
   bool _plusMenuOpen = false;
   late AnimationController _plusMenuCtrl;
@@ -491,18 +489,34 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   // 🚀 FIXED: Chat Navigation logic for the Bottom Nav Bar
   void _handleNavTap(int idx) {
     if (idx == 0) {
-      _openLensSheet();
+      // Home tab — already here, just ensure active
+      if (_activeNavIdx != 0) {
+        _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
+        _navRiseCtrls[0].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
+        setState(() => _activeNavIdx = 0);
+      }
+      if (widget.onShellNavTap != null) widget.onShellNavTap!(0);
       return;
     }
+
+    // Highlight the tapped tab immediately before navigating
+    void _activateTab(int i) {
+      _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
+      _navRiseCtrls[i].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
+      setState(() => _activeNavIdx = i);
+    }
+
     if (idx == 1) {
       if (widget.onShellNavTap != null) {
         widget.onShellNavTap!(1);
         return;
       }
+      _activateTab(1);
       _openNavScreen(const WardrobeScreen());
       return;
     }
     if (idx == 2) {
+      _activateTab(2);
       _openNavScreen(const ChatScreen());
       return;
     }
@@ -511,6 +525,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
         widget.onShellNavTap!(3);
         return;
       }
+      _activateTab(3);
       _openNavScreen(const BoardsScreen());
       return;
     }
@@ -520,34 +535,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     }
     if (idx == _activeNavIdx) return;
 
-    _navRiseCtrls[_activeNavIdx].animateTo(
-      0.0,
-      curve: const Cubic(0.4, 0.0, 0.2, 1.0),
-    );
-    _navRiseCtrls[idx].animateTo(
-      1.0,
-      curve: const Cubic(0.34, 1.56, 0.64, 1.0),
-    );
-
+    _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
+    _navRiseCtrls[idx].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
     setState(() => _activeNavIdx = idx);
-  }
-
-  void _openLensSheet() {
-    setState(() => _lensSheetOpen = true);
-    showModalBottomSheet<void>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => AhviLensSheet(t: _t),
-    ).whenComplete(() {
-      if (mounted) setState(() => _lensSheetOpen = false);
-    });
-  }
-
-  void _closeLensSheet() {
-    Navigator.of(context, rootNavigator: true).maybePop();
-    if (mounted) setState(() => _lensSheetOpen = false);
   }
 
   void _openPlusMenu() {
@@ -593,7 +583,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           );
         },
       ),
-    );
+    ).then((_) {
+      // Back వచ్చినప్పుడు Home tab active గా reset చేయి
+      if (!mounted) return;
+      final prevIdx = _activeNavIdx;
+      if (prevIdx != 0) {
+        _navRiseCtrls[prevIdx].animateTo(
+          0.0,
+          curve: const Cubic(0.4, 0.0, 0.2, 1.0),
+        );
+      }
+      _navRiseCtrls[0].animateTo(
+        1.0,
+        curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+      );
+      setState(() => _activeNavIdx = 0);
+    });
   }
 
   void _openModuleChat(String moduleKey) {
@@ -922,13 +927,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   bool get _hasTransientUi =>
-      _lensSheetOpen || _seeAllOpen || _overlayState != _OverlayState.idle;
+      _seeAllOpen || _overlayState != _OverlayState.idle;
 
   void _handleBackNavigation() {
-    if (_lensSheetOpen) {
-      _closeLensSheet();
-      return;
-    }
     if (_seeAllOpen) {
       _closeSeeAll();
       return;
@@ -1169,7 +1170,6 @@ Builder(builder: (ctx) {
           GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
-              if (_lensSheetOpen) _closeLensSheet();
               if (_seeAllOpen) _closeSeeAll();
               if (_overlayState != _OverlayState.idle) _dismissOverlay();
             },
@@ -2181,7 +2181,10 @@ Builder(builder: (ctx) {
         }
       },
       onEmptySend: () => _submitQuery(''),
-      onAddTap: _openPlusMenu,
+      themeTokens: _t,
+      onVisualSearch: null,
+      onFindSimilar: null,
+      onAddToWardrobe: null,
     );
   }
 
@@ -2280,7 +2283,7 @@ Builder(builder: (ctx) {
   Widget _buildBottomNav() {
     // 🆕 Nav labels localized
     final navLabelKeys = [
-      'nav_lens', 'nav_wardrobe', 'nav_chat', 'nav_planner', 'nav_explore',
+      'nav_home', 'nav_wardrobe', 'nav_chat', 'nav_planner', 'nav_explore',
     ];
     final items = _homeNavItems;
     final screenH = MediaQuery.of(context).size.height;
@@ -4502,7 +4505,7 @@ class _EntryFadeSlide extends StatefulWidget {
     super.key,
     required this.child,
     this.duration = const Duration(milliseconds: 400),
-    this.curve = Curves.easeOutCubic,
+    this.curve = Curves.easeOut,
     this.dy = 24.0,
     this.delay = Duration.zero,
   });
@@ -4560,7 +4563,7 @@ class _CardPressable extends StatefulWidget {
   const _CardPressable({
     required this.builder,
     this.onTap,
-    this.pressedScale = 0.96,
+    this.pressedScale = 0.97,
     this.pressedOffset = Offset.zero,
   });
 

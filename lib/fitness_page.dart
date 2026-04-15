@@ -4,8 +4,8 @@ import 'package:myapp/app_localizations.dart';
 import 'dart:ui';
 import 'package:image_picker/image_picker.dart';
 import 'theme/theme_tokens.dart';
-import 'package:myapp/widgets/ahvi_plus_button.dart'; // ChatPlusButtonController, ChatPlusButton, ChatAttachmentChip
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 // ─── DATA MODELS ──────────────────────────────────────────────────────────────
 class WorkoutCategory {
   final String id;
@@ -170,23 +170,28 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
           const _BgOrbs(),
           // Main View
           SafeArea(
-            child: IndexedStack(
-              index: _activePage == 'home' ? 0 : 1,
-              children: [
-                _HomeView(
-                  categories: _categories,
-                  outfits: _outfits,
-                  selectedTab: _selectedTab,
-                  onTabSelected: (id) => setState(() => _selectedTab = id),
-                  onShowPage: (name) => setState(() => _activePage = name),
-                  onAddOutfit: _addOutfit,
-                  onDeleteOutfit: _deleteOutfit,
-                  onAddCategory: _addCategory,
-                ),
-                _ChatView(
-                  onBack: () => setState(() => _activePage = 'home'),
-                ),
-              ],
+            child: _HomeView(
+              categories: _categories,
+              outfits: _outfits,
+              selectedTab: _selectedTab,
+              onTabSelected: (id) => setState(() => _selectedTab = id),
+              onShowPage: (name) => setState(() => _activePage = name),
+              onAddOutfit: _addOutfit,
+              onDeleteOutfit: _deleteOutfit,
+              onAddCategory: _addCategory,
+            ),
+          ),
+          // Chat view slides up from bottom
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 380),
+            curve: Curves.easeInOutCubic,
+            left: 0, right: 0,
+            top: _activePage == 'chat' ? 0 : MediaQuery.of(context).size.height,
+            bottom: _activePage == 'chat' ? 0 : -MediaQuery.of(context).size.height,
+            child: SafeArea(
+              child: _ChatView(
+                onBack: () => setState(() => _activePage = 'home'),
+              ),
             ),
           ),
           // FAB (only on home) — pinned bottom-right
@@ -1276,7 +1281,7 @@ class _FitnessSession {
 
 class _ChatViewState extends State<_ChatView> {
   final _inputController = TextEditingController();
-  final _plusCtrl = ChatPlusButtonController();
+  final _inputFocus = FocusNode();
   final _scrollController = ScrollController();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<ChatMessage> _messages = [];
@@ -1408,16 +1413,12 @@ class _ChatViewState extends State<_ChatView> {
   );
 
   void _sendMessage([String? text]) {
-    final att = _plusCtrl.pendingAttachment;
     final raw = text ?? _inputController.text.trim();
-    if (raw.isEmpty && att == null) return;
-    final msg = raw.isNotEmpty
-        ? (att != null ? '$raw\n📎 ${att.label}' : raw)
-        : '📎 ${att!.label}';
+    if (raw.isEmpty) return;
+    final msg = raw;
     setState(() {
       _messages.add(ChatMessage(text: msg, isBot: false));
       if (text == null) _inputController.clear();
-      _plusCtrl.clearPendingAttachment();
       _isTyping = true;
     });
     _scrollToBottom();
@@ -1535,7 +1536,7 @@ class _ChatViewState extends State<_ChatView> {
   @override
   void dispose() {
     _inputController.dispose();
-    _plusCtrl.dispose();
+    _inputFocus.dispose();
     _removeOverlay();
     _scrollController.dispose();
     super.dispose();
@@ -1615,11 +1616,25 @@ class _ChatViewState extends State<_ChatView> {
             ),
 
             // Input
-            _ChatInput(
+            AhviChatPromptBar(
               controller: _inputController,
-              onSend: _sendMessage,
-              plusCtrl: _plusCtrl,
-              onMicTap: () => setState(() => _showVoiceOverlay = true),
+              focusNode: _inputFocus,
+              hintText: AppLocalizations.t(context, 'fitness_chat_hint'),
+              surface: context.fSurface,
+              border: context.fBorder,
+              accent: context.fAccent,
+              accentSecondary: context.fAccent2,
+              textHeading: context.fText,
+              textMuted: context.fMuted,
+              shadowMedium: Colors.black.withValues(alpha: 0.06),
+              onAccent: Colors.white,
+              onSend: () => _sendMessage(),
+              onEmptySend: () => _inputFocus.requestFocus(),
+              onSubmitted: (text) => _sendMessage(text),
+              themeTokens: Theme.of(context).extension<AppThemeTokens>()!,
+              onVoiceTap: () => setState(() => _showVoiceOverlay = true),
+              isListening: false,
+              onVisualSearch: _showLensSheet,
             ),
           ],
         ),
@@ -1875,12 +1890,10 @@ class _SuggestionChip extends StatelessWidget {
 class _ChatInput extends StatelessWidget {
   final TextEditingController controller;
   final Function(String) onSend;
-  final ChatPlusButtonController plusCtrl;
   final VoidCallback onMicTap;
   const _ChatInput({
     required this.controller,
     required this.onSend,
-    required this.plusCtrl,
     required this.onMicTap,
   });
   @override
@@ -1895,7 +1908,6 @@ class _ChatInput extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Attachment preview chip (shown when file/image/search is pending)
-          ChatAttachmentChip(controller: plusCtrl),
           Container(
             decoration: BoxDecoration(
               color: context.fCard,
@@ -1908,8 +1920,6 @@ class _ChatInput extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
             child: Row(
               children: [
-                // ChatPlusButton — Camera, Photo Library, Files, Web Search
-                ChatPlusButton(controller: plusCtrl),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(

@@ -11,19 +11,20 @@ void main() {
 }
 
 
-// ── Color constants ────────────────────────────────────────────
-const Color _bg = Color(0xFF08111F);
-const Color _bg2 = Color(0xFF0F1A2D);
-const Color _panel = Color(0x14FFFFFF); // rgba(255,255,255,.08)
-const Color _panel2 = Color(0x1FFFFFFF); // rgba(255,255,255,.12)
-const Color _card = Color(0x14FFFFFF);
-const Color _cardBorder = Color(0x1FFFFFFF);
-const Color _text = Color(0xFFF5F7FF);
-const Color _muted = Color(0xB8E6EBFF); // rgba(230,235,255,.72)
+// ── Color constants (Light Mode) ───────────────────────────────────────────────
+const Color _bg  = Color(0xFFEEF3FF);
+const Color _bg2 = Color(0xFFFFFFFF);
+const Color _panel  = Color(0xA8FFFFFF); // rgba(255,255,255,.66)
+const Color _panel2 = Color(0x33C5CDED); // soft blue-grey tint
+const Color _card       = Color(0xE0FFFFFF); // rgba(255,255,255,.88)
+const Color _cardBorder = Color(0xFFE5E9F7);
+const Color _text  = Color(0xFF1A1D26);
+const Color _muted = Color(0xFF66708A);
 
-const Color _accent2 = Color(0xFF8D7DFF);
-const Color _accent3 = Color(0xFF04D7C8);
-const Color _accent4 = Color(0xFF14CACD);
+const Color _accent1 = Color(0xFF6B91FF); // blue
+const Color _accent2 = Color(0xFF8D7DFF); // purple
+const Color _accent3 = Color(0xFF04D7C8); // teal
+const Color _accent4 = Color(0xFF14CACD); // teal-alt
 
 class Screen3 extends StatefulWidget {
   const Screen3({super.key});
@@ -166,7 +167,7 @@ class _AtmosphericBackground extends StatelessWidget {
           gradient: RadialGradient(
             center: Alignment(-1.1, -1.0),
             radius: 1.4,
-            colors: [Color(0x476B91FF), Color(0x006B91FF)],
+            colors: [Color(0x256B91FF), Color(0x006B91FF)],
           ),
         ),
         child: Stack(
@@ -178,7 +179,7 @@ class _AtmosphericBackground extends StatelessWidget {
                   gradient: RadialGradient(
                     center: Alignment(1.16, -1.0),
                     radius: 1.3,
-                    colors: [Color(0x4C8D7DFF), Color(0x008D7DFF)],
+                    colors: [Color(0x228D7DFF), Color(0x008D7DFF)],
                   ),
                 ),
               ),
@@ -190,7 +191,7 @@ class _AtmosphericBackground extends StatelessWidget {
                   gradient: RadialGradient(
                     center: Alignment(-1.08, 1.1),
                     radius: 1.4,
-                    colors: [Color(0x3814CACD), Color(0x0014CACD)],
+                    colors: [Color(0x1814CACD), Color(0x0014CACD)],
                   ),
                 ),
               ),
@@ -202,7 +203,7 @@ class _AtmosphericBackground extends StatelessWidget {
                   gradient: RadialGradient(
                     center: Alignment(1.16, 1.1),
                     radius: 1.3,
-                    colors: [Color(0x336B91FF), Color(0x006B91FF)],
+                    colors: [Color(0x1A6B91FF), Color(0x006B91FF)],
                   ),
                 ),
               ),
@@ -232,8 +233,8 @@ class _Header extends StatelessWidget {
               borderRadius: BorderRadius.circular(100),
               border: Border.all(color: _cardBorder, width: 1),
               boxShadow: const [
-                BoxShadow(color: Color(0x1A6B91FF), blurRadius: 32, offset: Offset(0, 8)),
-                BoxShadow(color: Color(0x14FFFFFF), blurRadius: 0, spreadRadius: 0, offset: Offset(0, 1)),
+                BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
+                BoxShadow(color: Color(0x22FFFFFF), blurRadius: 0, spreadRadius: 0, offset: Offset(0, 1)),
               ],
             ),
             child: Row(
@@ -313,7 +314,7 @@ class _TabBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x1A6B91FF), blurRadius: 32, offset: Offset(0, 8)),
+          BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
         ],
       ),
       child: Row(
@@ -334,19 +335,17 @@ class _TabBar extends StatelessWidget {
                     end: Alignment.bottomRight,
                   )
                       : null,
-                  color: isTryOn ? null : _panel2,
+                  color: isTryOn ? null : const Color(0xFFEDF0FF),
                   borderRadius: BorderRadius.circular(11),
                   boxShadow: [
                     BoxShadow(
                         color: isTryOn
-                            ? const Color(0x4D6B91FF)
-                            : const Color(0x336B91FF),
-                        blurRadius: isTryOn ? 18 : 12,
-                        offset: Offset(0, isTryOn ? 4 : 3)),
+                            ? const Color(0x336B91FF)
+                            : const Color(0x1A6B91FF),
+                        blurRadius: isTryOn ? 14 : 8,
+                        offset: Offset(0, isTryOn ? 4 : 2)),
                     if (!isTryOn)
-                      const BoxShadow(color: Color(0x14FFFFFF), blurRadius: 0, offset: Offset(0, 1)),
-                    if (isTryOn)
-                      const BoxShadow(color: Color(0x2E6B91FF), blurRadius: 6, offset: Offset(0, 2)),
+                      const BoxShadow(color: Color(0x22FFFFFF), blurRadius: 0, offset: Offset(0, 1)),
                   ],
                 )
                     : null,
@@ -356,7 +355,7 @@ class _TabBar extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: (isActive || isTryOn) ? FontWeight.w600 : FontWeight.w500,
-                    color: (isActive || isTryOn) ? _text : _muted,
+                    color: isTryOn ? Colors.white : (isActive ? _accent1 : _muted),
                     letterSpacing: 0.065,
                   ),
                 ),
@@ -401,8 +400,8 @@ class _IntroCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x238D7DFF), blurRadius: 28, offset: Offset(0, 6)),
-          BoxShadow(color: Color(0x2E000000), blurRadius: 4, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x148D7DFF), blurRadius: 24, offset: Offset(0, 6)),
+          BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
         ],
       ),
       child: ClipRRect(
@@ -417,8 +416,8 @@ class _IntroCard extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Color(0x808D7DFF),
-                    Color(0x4D14CACD),
+                    Color(0x608D7DFF),
+                    Color(0x3814CACD),
                     Colors.transparent,
                   ],
                   stops: [0.0, 0.35, 0.65, 1.0],
@@ -441,12 +440,12 @@ class _IntroCard extends StatelessWidget {
                           gradient: const LinearGradient(
                             begin: Alignment(-0.6, -0.8),
                             end: Alignment(0.6, 0.8),
-                            colors: [Color(0x248D7DFF), Color(0x2E6B91FF)],
+                            colors: [Color(0x188D7DFF), Color(0x146B91FF)],
                           ),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0x388D7DFF), width: 1),
+                          border: Border.all(color: const Color(0x2A8D7DFF), width: 1),
                           boxShadow: const [
-                            BoxShadow(color: Color(0x248D7DFF), blurRadius: 8, offset: Offset(0, 2)),
+                            BoxShadow(color: Color(0x148D7DFF), blurRadius: 8, offset: Offset(0, 2)),
                           ],
                         ),
                         child: const Center(
@@ -491,9 +490,9 @@ class _IntroCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                     decoration: BoxDecoration(
-                      color: const Color(0x1204D7C8),
+                      color: const Color(0x0A04D7C8),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0x2E04D7C8), width: 1),
+                      border: Border.all(color: const Color(0x2204D7C8), width: 1),
                     ),
                     child: Row(
                       children: [
@@ -544,8 +543,8 @@ class _ToggleCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: _cardBorder, width: 1),
           boxShadow: const [
-            BoxShadow(color: Color(0x238D7DFF), blurRadius: 28, offset: Offset(0, 6)),
-            BoxShadow(color: Color(0x2E000000), blurRadius: 4, offset: Offset(0, 1)),
+            BoxShadow(color: Color(0x148D7DFF), blurRadius: 24, offset: Offset(0, 6)),
+            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
           ],
         ),
         child: Row(
@@ -586,9 +585,9 @@ class _ToggleCard extends StatelessWidget {
                 height: 31,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(100),
-                  color: enabled ? _accent2 : _panel2,
+                  color: enabled ? _accent2 : const Color(0xFFDDE2F0),
                   boxShadow: enabled
-                      ? const [BoxShadow(color: Color(0x388D7DFF), blurRadius: 0, spreadRadius: 3)]
+                      ? const [BoxShadow(color: Color(0x288D7DFF), blurRadius: 0, spreadRadius: 3)]
                       : null,
                   border: enabled ? null : Border.all(color: _cardBorder),
                 ),
@@ -603,11 +602,11 @@ class _ToggleCard extends StatelessWidget {
                         width: 25,
                         height: 25,
                         decoration: const BoxDecoration(
-                          color: _text,
+                          color: Colors.white,
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Color(0x59000000), blurRadius: 6, offset: Offset(0, 2)),
-                            BoxShadow(color: Color(0x33000000), blurRadius: 2, offset: Offset(0, 1)),
+                            BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 2)),
+                            BoxShadow(color: Color(0x22000000), blurRadius: 2, offset: Offset(0, 1)),
                           ],
                         ),
                       ),
@@ -634,7 +633,7 @@ class _OptionalBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: _cardBorder, width: 1),
         boxShadow: const [
-          BoxShadow(color: Color(0x26000000), blurRadius: 6, offset: Offset(0, 1)),
+          BoxShadow(color: Color(0x12000000), blurRadius: 6, offset: Offset(0, 1)),
         ],
       ),
       child: Row(
@@ -644,7 +643,7 @@ class _OptionalBadge extends StatelessWidget {
             width: 4,
             height: 4,
             decoration: BoxDecoration(
-              color: _muted.withValues(alpha: 0.5),
+              color: _muted.withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
           ),
@@ -662,7 +661,7 @@ class _OptionalBadge extends StatelessWidget {
             width: 4,
             height: 4,
             decoration: BoxDecoration(
-              color: _muted.withValues(alpha: 0.5),
+              color: _muted.withValues(alpha: 0.4),
               shape: BoxShape.circle,
             ),
           ),
@@ -733,22 +732,22 @@ class _UploadRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = uploaded ? const Color(0x668D7DFF) : _cardBorder;
-    final bgColor = uploaded ? _panel2 : _card;
-    final iconBgColor = uploaded ? const Color(0x1F8D7DFF) : _panel;
-    final iconBorderColor = uploaded ? const Color(0x478D7DFF) : _cardBorder;
+    final borderColor = uploaded ? const Color(0x448D7DFF) : _cardBorder;
+    final bgColor = uploaded ? const Color(0xFFF4F2FF) : _card;
+    final iconBgColor = uploaded ? const Color(0x128D7DFF) : _panel;
+    final iconBorderColor = uploaded ? const Color(0x338D7DFF) : _cardBorder;
 
     // Thumb gradient
     final thumbGradient = isFace
         ? const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0x408D7DFF), Color(0x2E6B91FF)],
+      colors: [Color(0x208D7DFF), Color(0x146B91FF)],
     )
         : const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0x3304D7C8), Color(0x2E6B91FF)],
+      colors: [Color(0x1A04D7C8), Color(0x146B91FF)],
     );
 
     return GestureDetector(
@@ -762,11 +761,11 @@ class _UploadRow extends StatelessWidget {
           border: Border.all(color: borderColor, width: 1),
           boxShadow: uploaded
               ? const [
-            BoxShadow(color: Color(0x298D7DFF), blurRadius: 28, offset: Offset(0, 6)),
-            BoxShadow(color: Color(0x1F000000), blurRadius: 4, offset: Offset(0, 1)),
+            BoxShadow(color: Color(0x188D7DFF), blurRadius: 20, offset: Offset(0, 5)),
+            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 1)),
           ]
               : const [
-            BoxShadow(color: Color(0x1A8D7DFF), blurRadius: 12, offset: Offset(0, 2)),
+            BoxShadow(color: Color(0x0E8D7DFF), blurRadius: 10, offset: Offset(0, 2)),
           ],
         ),
         child: Row(
@@ -842,10 +841,10 @@ class _UploadRow extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: uploaded ? const Color(0x298D7DFF) : _panel,
+                color: uploaded ? const Color(0x188D7DFF) : _panel,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: uploaded ? const Color(0x478D7DFF) : _cardBorder,
+                  color: uploaded ? const Color(0x338D7DFF) : _cardBorder,
                   width: 1,
                 ),
               ),
@@ -871,9 +870,9 @@ class _PrivacyBlock extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0x0F04D7C8),
+        color: const Color(0x0A04D7C8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x2904D7C8), width: 1),
+        border: Border.all(color: const Color(0x2204D7C8), width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -882,7 +881,7 @@ class _PrivacyBlock extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: const Color(0x1A04D7C8),
+              color: const Color(0x1204D7C8),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Center(
@@ -952,11 +951,11 @@ class _CtaSection extends StatelessWidget {
             width: 54,
             height: 54,
             decoration: BoxDecoration(
-              color: _panel,
+              color: _card,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: _cardBorder, width: 1),
               boxShadow: const [
-                BoxShadow(color: Color(0x1A6B91FF), blurRadius: 32, offset: Offset(0, 8)),
+                BoxShadow(color: Color(0x126B91FF), blurRadius: 24, offset: Offset(0, 6)),
               ],
             ),
             child: const Center(
@@ -974,12 +973,11 @@ class _CtaSection extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xE114CACD), Color(0xEB8D7DFF)],
+                colors: [Color(0xFF14CACD), Color(0xFF8D7DFF)],
               ),
               boxShadow: const [
-                BoxShadow(color: Color(0x4714CACD), blurRadius: 28, offset: Offset(0, 8)),
-                BoxShadow(color: Color(0x388D7DFF), blurRadius: 10, offset: Offset(0, 3)),
-                BoxShadow(color: Color(0x1FFFFFFF), blurRadius: 0, spreadRadius: 0, offset: Offset(0, 1)),
+                BoxShadow(color: Color(0x3314CACD), blurRadius: 24, offset: Offset(0, 8)),
+                BoxShadow(color: Color(0x288D7DFF), blurRadius: 10, offset: Offset(0, 3)),
               ],
             ),
             child: Material(
@@ -995,12 +993,12 @@ class _CtaSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: _text,
+                        color: Colors.white,
                         letterSpacing: 0.15,
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(Icons.arrow_forward, color: _text, size: 16),
+                    Icon(Icons.arrow_forward, color: Colors.white, size: 16),
                   ],
                 ),
               ),
@@ -1057,7 +1055,7 @@ class _ProgressDots extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-              color: Color(0x808D7DFF),
+              color: Color(0x608D7DFF),
               shape: BoxShape.circle,
             ),
           ),
@@ -1067,7 +1065,7 @@ class _ProgressDots extends StatelessWidget {
             width: 6,
             height: 6,
             decoration: const BoxDecoration(
-              color: Color(0x808D7DFF),
+              color: Color(0x608D7DFF),
               shape: BoxShape.circle,
             ),
           ),
@@ -1082,7 +1080,7 @@ class _ProgressDots extends StatelessWidget {
                 colors: [_accent2, _accent4],
               ),
               boxShadow: const [
-                BoxShadow(color: Color(0x598D7DFF), blurRadius: 6, offset: Offset(0, 2)),
+                BoxShadow(color: Color(0x408D7DFF), blurRadius: 6, offset: Offset(0, 2)),
               ],
             ),
           ),
@@ -1103,7 +1101,7 @@ class _HomeIndicator extends StatelessWidget {
           width: 134,
           height: 5,
           decoration: BoxDecoration(
-            color: _panel2,
+            color: _cardBorder,
             borderRadius: BorderRadius.circular(100),
           ),
         ),

@@ -231,7 +231,7 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
           ),
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.white.withOpacity(0.55),
               child: const Center(
                 child: CircularProgressIndicator(
                   color: Color(0xFF8D7DFF),
@@ -254,10 +254,10 @@ class _AnimatedAppBackground extends StatelessWidget {
       children: [
         Container(
           decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0, 0),
-              radius: 1.2,
-              colors: [Color(0xFF0F1A2D), Color(0xFF08111F)],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFFFFF), Color(0xFFEEF3FF)],
             ),
           ),
         ),
@@ -266,7 +266,7 @@ class _AnimatedAppBackground extends StatelessWidget {
             gradient: RadialGradient(
               center: const Alignment(-1.0, -1.0),
               radius: 0.9,
-              colors: [const Color(0xFF6297FA).withOpacity(0.35), Colors.transparent],
+              colors: [const Color(0xFF6B91FF).withOpacity(0.18), Colors.transparent],
             ),
           ),
         ),
@@ -287,14 +287,14 @@ class _GlassCard extends StatelessWidget {
         width: double.infinity,
         constraints: const BoxConstraints(maxWidth: 420),
         decoration: BoxDecoration(
-          color: const Color(0xB80F1A2D),
+          color: const Color(0xF5FFFFFF),
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0x1FFFFFFF), width: 1),
+          border: Border.all(color: const Color(0xFFE5E9F7), width: 1),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x66000000), blurRadius: 48, offset: Offset(0, 16)),
+                color: Color(0x18000000), blurRadius: 48, offset: Offset(0, 16)),
             BoxShadow(
-                color: Color(0x40000000), blurRadius: 8, offset: Offset(0, 2)),
+                color: Color(0x0A000000), blurRadius: 8, offset: Offset(0, 2)),
           ],
         ),
         child: Stack(
@@ -306,7 +306,7 @@ class _GlassCard extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment(-0.6, -1),
                     end: Alignment(0.6, 0.5),
-                    colors: [Color(0x1EFFFFFF), Colors.transparent],
+                    colors: [Color(0x18A0B0FF), Colors.transparent],
                   ),
                 ),
               ),
@@ -337,7 +337,7 @@ class _IntroPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 52,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFF5F7FF),
+              color: Color(0xFF1A1D26),
               letterSpacing: -0.03 * 52,
               height: 1,
             ),
@@ -348,7 +348,7 @@ class _IntroPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: Color(0xB8E6EBFF),
+              color: Color(0xFF66708A),
               letterSpacing: 0.08 * 13,
             ),
           ),
@@ -359,7 +359,7 @@ class _IntroPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w400,
-              color: Color(0xB8E6EBFF),
+              color: Color(0xFF66708A),
               height: 1.75,
             ),
           ),
@@ -394,7 +394,7 @@ class _SignUpPage extends StatelessWidget {
               style: GoogleFonts.anton(
                 fontSize: 52,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFFF5F7FF),
+                color: const Color(0xFF1A1D26),
                 letterSpacing: 3.2,
                 height: 1,
               ),
@@ -414,7 +414,7 @@ class _SignUpPage extends StatelessWidget {
           _SocialButton(
             icon: const Text(
               '',
-              style: TextStyle(fontSize: 17, color: Color(0xFFF5F7FF)),
+              style: TextStyle(fontSize: 17, color: Color(0xFF1A1D26)),
             ),
             label: 'Continue with Apple',
             onTap: onAppleTap,
@@ -524,7 +524,7 @@ class _AnimatedForgotPasswordState extends State<_AnimatedForgotPassword> {
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w400,
-            color: _hovered ? const Color(0xFF6B91FF) : const Color(0xB8E6EBFF),
+            color: _hovered ? const Color(0xFF4B6FE0) : const Color(0xFF66708A),
           ),
           child: const Text('Forgot password?'),
         ),
@@ -601,29 +601,29 @@ class _AnimatedInputFieldState extends State<_AnimatedInputField> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
-        color: _focused ? const Color(0x1FFFFFFF) : const Color(0x14FFFFFF),
+        color: _focused ? const Color(0xFFFFFFFF) : const Color(0xFFF5F8FF),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: _focused
-              ? const Color(0x806B91FF)
-              : const Color(0x1FFFFFFF),
+              ? const Color(0xFF6B91FF)
+              : const Color(0xFFD0D8F0),
         ),
         boxShadow: _focused
             ? [
           const BoxShadow(
-            color: Color(0x2D6B91FF),
+            color: Color(0x206B91FF),
             blurRadius: 0,
             spreadRadius: 3,
           ),
           const BoxShadow(
-            color: Color(0x26000000),
+            color: Color(0x0A000000),
             blurRadius: 4,
             offset: Offset(0, 1),
           ),
         ]
             : const [
           BoxShadow(
-              color: Color(0x26000000),
+              color: Color(0x0A000000),
               blurRadius: 4,
               offset: Offset(0, 1)),
         ],
@@ -638,11 +638,11 @@ class _AnimatedInputFieldState extends State<_AnimatedInputField> {
         style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w400,
-          color: Color(0xFFF5F7FF),
+          color: Color(0xFF1A1D26),
         ),
         decoration: InputDecoration(
           hintText: widget.placeholder,
-          hintStyle: const TextStyle(color: Color(0xB8E6EBFF)),
+          hintStyle: const TextStyle(color: Color(0xFF66708A)),
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 16, right: 8),
             child: Text(widget.icon, style: const TextStyle(fontSize: 16)),
@@ -780,20 +780,20 @@ class _SocialButtonState extends State<_SocialButton> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: _hovered
-                ? const Color(0x26FFFFFF)
-                : const Color(0x14FFFFFF),
+                ? const Color(0xFFE8EDFC)
+                : const Color(0xFFF0F4FF),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0x1FFFFFFF)),
+            border: Border.all(color: const Color(0xFFCDD5EF)),
             boxShadow: _hovered
                 ? [
               const BoxShadow(
-                  color: Color(0x4D000000),
+                  color: Color(0x1A000000),
                   blurRadius: 18,
                   offset: Offset(0, 6)),
             ]
                 : const [
               BoxShadow(
-                  color: Color(0x33000000),
+                  color: Color(0x0D000000),
                   blurRadius: 8,
                   offset: Offset(0, 2)),
             ],
@@ -814,7 +814,7 @@ class _SocialButtonState extends State<_SocialButton> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFF5F7FF),
+                    color: Color(0xFF1A1D26),
                   ),
                 ),
               ),
@@ -867,7 +867,7 @@ class _Divider extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Color(0x1EFFFFFF),
+                    Color(0x40A0AABF),
                     Colors.transparent
                   ],
                 ),
@@ -881,7 +881,7 @@ class _Divider extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: Color(0xB8E6EBFF),
+                color: Color(0xFF66708A),
                 letterSpacing: 0.04 * 12,
               ),
             ),
@@ -893,7 +893,7 @@ class _Divider extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    Color(0x1EFFFFFF),
+                    Color(0x40A0AABF),
                     Colors.transparent
                   ],
                 ),
@@ -918,14 +918,14 @@ class _LinkText extends StatelessWidget {
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: Color(0xB8E6EBFF),
+          color: Color(0xFF66708A),
         ),
         children: [
           TextSpan(text: prefix),
           TextSpan(
             text: highlight,
             style: const TextStyle(
-              color: Color(0xFF6B91FF),
+              color: Color(0xFF4B6FE0),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -949,7 +949,7 @@ class _SectionTitle extends StatelessWidget {
               fontSize: 30,
               fontWeight: FontWeight.w500,
               fontStyle: FontStyle.italic,
-              color: const Color(0xFFF5F7FF),
+              color: const Color(0xFF1A1D26),
               letterSpacing: -0.02 * 30,
               height: 1.25,
             )
@@ -957,7 +957,7 @@ class _SectionTitle extends StatelessWidget {
               fontFamily: 'Georgia',
               fontSize: 30,
               fontWeight: FontWeight.w400,
-              color: Color(0xFFF5F7FF),
+              color: Color(0xFF1A1D26),
               letterSpacing: -0.02 * 30,
               height: 1.25,
             );
@@ -993,7 +993,7 @@ class _SectionSub extends StatelessWidget {
       style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        color: Color(0xB8E6EBFF),
+        color: Color(0xFF66708A),
       ),
     );
   }

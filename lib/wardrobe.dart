@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/chat.dart';
+import 'package:myapp/home.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
@@ -2482,10 +2483,11 @@ class _AppHeader extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Navigator.of(context).push(
+                          Navigator.of(context).pushAndRemoveUntil(
                             MaterialPageRoute(
-                              builder: (_) => const ChatScreen(),
+                              builder: (_) => const Screen4(),
                             ),
+                            (route) => false,
                           );
                         },
                         child: Text(

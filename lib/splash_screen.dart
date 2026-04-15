@@ -4,19 +4,28 @@ import 'package:flutter/services.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  COLORS  (fixed palette)
+//  COLORS  (light-mode palette)
 // ─────────────────────────────────────────────────────────────────────────────
 class _C {
-  static const Color bg          = Color(0xFF06091A);
-  static const Color bgMid       = Color(0xFF0E1535);
-  static const Color bgEnd       = Color(0xFF1A1060);
-  static const Color text        = Color(0xFFF0F4FF);
-  static const Color muted       = Color(0xFFAAB8E0);
-  static const Color accent      = Color(0xFF7B9FFF);
-  static const Color accent2     = Color(0xFFB07DFF);
-  static const Color shimmerBase = Color(0xCCE8EEFF);
-  static const Color shimmerHi   = Color(0xFFFFFFFF);
-  static const Color orbInner    = Color(0x557B9FFF);
+  // Backgrounds — matches BaseTheme.lightBgPrimary / lightBgSecondary
+  static const Color bg          = Color(0xFFFFFFFF);
+  static const Color bgMid       = Color(0xFFF4F7FF);
+  static const Color bgEnd       = Color(0xFFEEF3FF);
+
+  // Text
+  static const Color text        = Color(0xFF1A1D26); // BaseTheme.lightText
+  static const Color muted       = Color(0xFF66708A); // BaseTheme.lightMuted
+
+  // Accent — coolBlue palette (AccentPalette)
+  static const Color accent      = Color(0xFF6B91FF); // AccentPalette.primary
+  static const Color accent2     = Color(0xFF8D7DFF); // AccentPalette.secondary
+
+  // Shimmer — dark on light is more readable
+  static const Color shimmerBase = Color(0xCC3A4A7A);
+  static const Color shimmerHi   = Color(0xFF1A1D26);
+
+  // Glow orb — soft accent tint, reduced alpha for light bg
+  static const Color orbInner    = Color(0x336B91FF);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +48,7 @@ List<_Particle> _buildParticles(int count, math.Random rng) =>
       speed:   0.06 + rng.nextDouble() * 0.10,
       phase:   rng.nextDouble() * math.pi * 2,
       drift:   0.02 + rng.nextDouble() * 0.04,
-      opacity: 0.2 + rng.nextDouble() * 0.5,
+      opacity: 0.15 + rng.nextDouble() * 0.35, // slightly lower on light bg
     ));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,7 +110,7 @@ class _RingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     for (int i = 0; i < 3; i++) {
       final radius = (80.0 + i * 38.0) + pulse * 10.0 * (i + 1);
-      final alpha  = (0.20 - i * 0.05) * fadeIn * (1.0 - pulse * 0.3);
+      final alpha  = (0.14 - i * 0.03) * fadeIn * (1.0 - pulse * 0.3); // softer on light bg
       canvas.drawCircle(center, radius,
         Paint()
           ..color = _C.accent.withValues(alpha: alpha.clamp(0.0, 1.0))
@@ -187,7 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
     _glowCtrl = AnimationController(vsync: this, duration: _glowDuration)..repeat(reverse: true);
     _glowScale = Tween<double>(begin: 1.0, end: 1.18).animate(
         CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut));
-    _glowOpacity = Tween<double>(begin: 0.18, end: 0.42).animate(
+    _glowOpacity = Tween<double>(begin: 0.12, end: 0.28).animate( // reduced for light bg
         CurvedAnimation(parent: _glowCtrl, curve: Curves.easeInOut));
 
     _shimmerCtrl = AnimationController(vsync: this, duration: _shimmerDuration)..repeat();
@@ -216,7 +225,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark, // dark icons on light status bar
       child: Scaffold(
         body: AnimatedBuilder(
           animation: Listenable.merge([
@@ -232,7 +241,7 @@ class _SplashScreenState extends State<SplashScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [_C.bg, _C.bgMid, _C.bgEnd],
+                  colors: [_C.bg, _C.bgMid, _C.bgEnd], // white → EEF3FF
                   stops: [0.0, 0.50, 1.0],
                 ),
               ),
@@ -311,7 +320,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: Transform.scale(
                 scale: _logoScale.value,
                 child: AhviHomeText(
-                  color: _C.text,
+                  color: _C.text, // dark text on light background
                   fontSize: 52,
                   letterSpacing: 10.0,
                   fontWeight: FontWeight.w400,
@@ -321,7 +330,7 @@ class _SplashScreenState extends State<SplashScreen>
           ],
         ),
         const SizedBox(height: 20),
-        // Subtitle: "Your personal AI assistant" — no background
+        // Subtitle: "Your personal AI assistant"
         SlideTransition(
           position: _subSlide,
           child: Opacity(
@@ -379,7 +388,7 @@ class _SplashScreenState extends State<SplashScreen>
         opacity: _tagFade.value,
         child: Column(
           children: [
-            // Tagline: "Style. Prep. Plan." — no background, white text
+            // Tagline: "Style. Prep. Plan."
             const Text(
               'Style. Prep. Plan.',
               style: TextStyle(
@@ -412,11 +421,11 @@ class _SplashScreenState extends State<SplashScreen>
             width: size, height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Color.lerp(_C.accent.withValues(alpha: 0.25),
+              color: Color.lerp(_C.accent.withValues(alpha: 0.30),
                   _C.accent2, glow),
               boxShadow: glow > 0.1 ? [
                 BoxShadow(
-                  color: _C.accent.withValues(alpha: glow * 0.7),
+                  color: _C.accent.withValues(alpha: glow * 0.5), // softer shadow on light bg
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),

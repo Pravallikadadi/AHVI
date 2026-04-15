@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
 class AhviChatPromptBar extends StatelessWidget {
   final TextEditingController controller;
@@ -19,8 +21,14 @@ class AhviChatPromptBar extends StatelessWidget {
   final VoidCallback onSend;
   final VoidCallback onEmptySend;
   final ValueChanged<String> onSubmitted;
-  final Widget? plusButton; // AhviPlusMenuButton() pass చేయండి
-  final VoidCallback? onAddTap;  // plus button tap callback (plusButton కి alternative)
+
+  // ── Lens sheet (plus button తో trigger అవుతుంది) ──────────────────────
+  final AppThemeTokens themeTokens;
+  final VoidCallback? onVisualSearch;
+  final VoidCallback? onFindSimilar;
+  final VoidCallback? onAddToWardrobe;
+
+  // ── Voice ─────────────────────────────────────────────────────────────
   final VoidCallback? onVoiceTap;
   final bool isListening;
   final VoidCallback? onFieldTap;
@@ -43,8 +51,10 @@ class AhviChatPromptBar extends StatelessWidget {
     required this.onSend,
     required this.onEmptySend,
     required this.onSubmitted,
-    this.plusButton,
-    this.onAddTap,
+    required this.themeTokens,
+    this.onVisualSearch,
+    this.onFindSimilar,
+    this.onAddToWardrobe,
     this.onVoiceTap,
     this.isListening = false,
     this.onFieldTap,
@@ -52,10 +62,20 @@ class AhviChatPromptBar extends StatelessWidget {
   });
 
   LinearGradient get _accentGradient2 => LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [accent, accentSecondary],
-  );
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [accent, accentSecondary],
+      );
+
+  void _openLensSheet(BuildContext context) {
+    showAhviLensSheet(
+      context,
+      t: themeTokens,
+      onVisualSearch: onVisualSearch,
+      onFindSimilar: onFindSimilar,
+      onAddToWardrobe: onAddToWardrobe,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,31 +105,31 @@ class AhviChatPromptBar extends StatelessWidget {
             final compact = constraints.maxWidth < 320;
             return Row(
               children: [
-                if (!compact && (plusButton != null || onAddTap != null)) ...[
-                  plusButton != null
-                      ? plusButton!
-                      : _ChatPromptPressable(
-                          scalePressed: 0.88,
-                          onTap: onAddTap,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOutCubic,
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  accent.withValues(alpha: 0.18),
-                                  accentSecondary.withValues(alpha: 0.18),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(13),
-                            ),
-                            child: Icon(Icons.add_rounded, color: accent, size: 20),
-                          ),
+                // ── Plus button → Lens sheet open చేస్తుంది ───────────
+                if (!compact) ...[
+                  _ChatPromptPressable(
+                    scalePressed: 0.88,
+                    onTap: () => _openLensSheet(context),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            accent.withValues(alpha: 0.18),
+                            accentSecondary.withValues(alpha: 0.18),
+                          ],
                         ),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Icon(Icons.add_rounded, color: accent, size: 20),
+                    ),
+                  ),
                   const SizedBox(width: 8),
                 ],
+                // ── Text field ────────────────────────────────────────
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -140,7 +160,7 @@ class AhviChatPromptBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                // ── Voice Button ──────────────────────────────────
+                // ── Voice button ──────────────────────────────────────
                 _ChatPromptPressable(
                   scalePressed: 0.90,
                   onTap: onVoiceTap,
@@ -181,6 +201,7 @@ class AhviChatPromptBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
+                // ── Send button ───────────────────────────────────────
                 _ChatPromptPressable(
                   liftY: -1.5,
                   scalePressed: 0.90,
@@ -197,11 +218,9 @@ class AhviChatPromptBar extends StatelessWidget {
                     builder: (context, value, _) {
                       final effectiveHasText =
                           hasText ?? value.text.trim().isNotEmpty;
-                      // Pick icon color that contrasts with the button bg
-                      // in both light and dark mode
                       final iconColor = accent.computeLuminance() > 0.4
-                          ? const Color(0xFF1A1A2E) // dark icon on light accent
-                          : Colors.white;            // white icon on dark accent
+                          ? const Color(0xFF1A1A2E)
+                          : Colors.white;
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
@@ -252,6 +271,7 @@ class AhviChatPromptBar extends StatelessWidget {
   }
 }
 
+// ── Pressable wrapper ──────────────────────────────────────────────────────
 class _ChatPromptPressable extends StatefulWidget {
   final Widget? child;
   final Widget Function(bool isHovered, bool isPressed)? builder;
@@ -267,7 +287,7 @@ class _ChatPromptPressable extends StatefulWidget {
     this.onTap,
     this.onTapDown,
     this.liftY = 0.0,
-    this.scaleHover = 1.04,
+    this.scaleHover = 1.0,
     this.scalePressed = 0.97,
   }) : assert(child != null || builder != null);
 
@@ -311,8 +331,9 @@ class _ChatPromptPressableState extends State<_ChatPromptPressable> {
           curve: _isPressed
               ? const Cubic(0.4, 0.0, 1.0, 1.0)
               : const Cubic(0.34, 1.40, 0.64, 1.0),
-          transform: Matrix4.translationValues(0.0, _isPressed ? 0.0 : dy, 0.0)
-            ..multiply(Matrix4.diagonal3Values(scale, scale, 1.0)),
+          transform:
+              Matrix4.translationValues(0.0, _isPressed ? 0.0 : dy, 0.0)
+                ..multiply(Matrix4.diagonal3Values(scale, scale, 1.0)),
           transformAlignment: Alignment.center,
           child: widget.builder != null
               ? widget.builder!(_isHovered, _isPressed)
@@ -323,7 +344,7 @@ class _ChatPromptPressableState extends State<_ChatPromptPressable> {
   }
 }
 
-// ── Pulsing mic icon when listening ─────────────────────────────────────────
+// ── Pulsing mic icon when listening ───────────────────────────────────────
 class _PulsingMicIcon extends StatefulWidget {
   const _PulsingMicIcon();
 
