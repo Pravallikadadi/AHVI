@@ -190,7 +190,7 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell>
     with TickerProviderStateMixin {
-  int _currentIndex = -1;
+  int _currentIndex = 0;
   bool _toastVisible = false;
   Timer? _toastTimer;
   final List<int> _tabHistory = <int>[];
@@ -212,6 +212,13 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         value: 0.0,
       ),
     );
+
+    // Home tab (index 0) active గా start చేయి
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _navRiseCtrls[0].animateTo(1.0, curve: _A.spring);
+      }
+    });
   }
 
   @override
@@ -282,6 +289,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     ];
 
     // ✅ Built here so locale changes cause a full rebuild of all screens
+    // Order must match navItems exactly: Home(0), Chat(1), Wardrobe(2), Planner(3), Explore(4)
     final pages = <Widget>[
       _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _switchToIndex),
       const ChatScreen(key: PageStorageKey('chat'), showBackButton: false),
@@ -305,7 +313,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
               // Page content
               Positioned.fill(
                 child: IndexedStack(
-                  index: _currentIndex == -1 ? 0 : _currentIndex,
+                  index: _currentIndex,
                   children: List<Widget>.generate(navItems.length, (index) {
                     return TickerMode(
                       enabled: index == _currentIndex,
@@ -345,7 +353,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         animation: Listenable.merge(_navRiseCtrls),
         builder: (context, child) {
           final activeIdx = _currentIndex;
-          final bulgeT = activeIdx == -1 ? 0.0 : _navRiseCtrls[activeIdx].value;
+          final bulgeT = _navRiseCtrls[activeIdx].value;
 
           return Stack(
             clipBehavior: Clip.none,
@@ -359,7 +367,7 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 height: totalH,
                 child: CustomPaint(
                   painter: _NavPillPainter(
-                    activeIdx: activeIdx == -1 ? 0 : activeIdx,
+                    activeIdx: activeIdx,
                     itemCount: navItems.length,
                     bulgeT: bulgeT,
                     pillH: pillH,

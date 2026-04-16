@@ -16,6 +16,7 @@ import 'package:myapp/app_localizations.dart';
 import 'package:myapp/chat.dart';
 import 'package:myapp/home.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
 // 🚀 Backend & Providers
@@ -2469,7 +2470,7 @@ class _AppHeader extends StatelessWidget {
         color: t.backgroundPrimary.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 52, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
       child: Column(
         children: [
           Padding(
@@ -2481,25 +2482,7 @@ class _AppHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(
-                              builder: (_) => const Screen4(),
-                            ),
-                            (route) => false,
-                          );
-                        },
-                        child: Text(
-                          'AHVI',
-                          style: GoogleFonts.anton(
-                            fontSize: 36,
-                            color: t.textPrimary,
-                            letterSpacing: 0.6,
-                            height: 1,
-                          ),
-                        ),
-                      ),
+                      const AhviHomeText(),
                       const SizedBox(height: 2),
                       Text(
                         title,

@@ -3,15 +3,13 @@ import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 
 // ── Convenience function ───────────────────────────────────────────────────
-/// Call this from any screen to show the AHVI Lens bottom sheet.
+/// Call this from any screen to show the AHVI Lens popup above the plus button.
 ///
+/// Usage:
 /// ```dart
-/// // Any chat screen లో:
-/// import 'package:myapp/widgets/ahvi_lens_sheet.dart';
-///
 /// GestureDetector(
 ///   onTap: () => showAhviLensSheet(context, t: themeTokens),
-///   child: Icon(Icons.search_rounded),
+///   child: Icon(Icons.add),
 /// )
 /// ```
 void showAhviLensSheet(
@@ -21,32 +19,154 @@ void showAhviLensSheet(
   VoidCallback? onFindSimilar,
   VoidCallback? onAddToWardrobe,
 }) {
-  showDialog<void>(
-    context: context,
-    useRootNavigator: true,
-    barrierColor: Colors.black.withValues(alpha: 0.55),
-    builder: (_) => AhviLensSheet(
+  // Get button's position on screen from its BuildContext
+  final renderBox = context.findRenderObject() as RenderBox;
+  final buttonPos = renderBox.localToGlobal(Offset.zero);
+  final buttonSize = renderBox.size;
+
+  final overlay = Overlay.of(context, rootOverlay: true);
+  late OverlayEntry entry;
+
+  entry = OverlayEntry(
+    builder: (ctx) => _AhviLensOverlay(
+      buttonPos: buttonPos,
+      buttonSize: buttonSize,
       t: t,
       onVisualSearch: onVisualSearch,
       onFindSimilar: onFindSimilar,
       onAddToWardrobe: onAddToWardrobe,
+      onDismiss: () => entry.remove(),
     ),
   );
+
+  overlay.insert(entry);
 }
 
-// ── Main sheet widget ──────────────────────────────────────────────────────
-class AhviLensSheet extends StatelessWidget {
+// ── Overlay wrapper ────────────────────────────────────────────────────────
+class _AhviLensOverlay extends StatefulWidget {
+  final Offset buttonPos;
+  final Size buttonSize;
   final AppThemeTokens t;
   final VoidCallback? onVisualSearch;
   final VoidCallback? onFindSimilar;
   final VoidCallback? onAddToWardrobe;
+  final VoidCallback onDismiss;
 
-  const AhviLensSheet({
-    super.key,
+  const _AhviLensOverlay({
+    required this.buttonPos,
+    required this.buttonSize,
     required this.t,
+    required this.onDismiss,
     this.onVisualSearch,
     this.onFindSimilar,
     this.onAddToWardrobe,
+  });
+
+  @override
+  State<_AhviLensOverlay> createState() => _AhviLensOverlayState();
+}
+
+class _AhviLensOverlayState extends State<_AhviLensOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _ctrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _dismiss({VoidCallback? afterDismiss}) async {
+    await _ctrl.reverse();
+    widget.onDismiss();
+    // Overlay remove అయిన తర్వాతే callback fire చేయాలి —
+    // లేకపోతే Navigator context invalid గా ఉంటుంది.
+    if (afterDismiss != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => afterDismiss());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const popupWidth = 260.0;
+    const gap = 8.0;
+    final screenSize = MediaQuery.of(context).size;
+
+    // Popup appears ABOVE the button
+    final bottom = screenSize.height - widget.buttonPos.dy + gap;
+
+    // Left-align with button, but clamp so it doesn't go off screen
+    final left = widget.buttonPos.dx
+        .clamp(12.0, screenSize.width - popupWidth - 12.0);
+
+    return Stack(
+      children: [
+        // Barrier — tap outside to dismiss
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: _dismiss,
+            behavior: HitTestBehavior.translucent,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        // Popup above the plus button
+        Positioned(
+          left: left,
+          bottom: bottom,
+          width: popupWidth,
+          child: FadeTransition(
+            opacity: _fade,
+            child: SlideTransition(
+              position: _slide,
+              child: _AhviLensMenu(
+                t: widget.t,
+                onVisualSearch: () {
+                  _dismiss(afterDismiss: widget.onVisualSearch);
+                },
+                onFindSimilar: () {
+                  _dismiss(afterDismiss: widget.onFindSimilar);
+                },
+                onAddToWardrobe: () {
+                  _dismiss(afterDismiss: widget.onAddToWardrobe);
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Menu card ─────────────────────────────────────────────────────────────
+class _AhviLensMenu extends StatelessWidget {
+  final AppThemeTokens t;
+  final VoidCallback onVisualSearch;
+  final VoidCallback onFindSimilar;
+  final VoidCallback onAddToWardrobe;
+
+  const _AhviLensMenu({
+    required this.t,
+    required this.onVisualSearch,
+    required this.onFindSimilar,
+    required this.onAddToWardrobe,
   });
 
   @override
@@ -57,300 +177,194 @@ class AhviLensSheet extends StatelessWidget {
     final textMuted = t.mutedText;
     final panel = t.panel;
     final surface = t.phoneShellInner;
-    final bgSecondary = t.backgroundSecondary;
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+    return Material(
+      color: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [surface, bgSecondary],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: accent.withValues(alpha: 0.15), width: 1),
+          color: surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: accent.withValues(alpha: 0.18), width: 1),
           boxShadow: [
             BoxShadow(
-              color: accent.withValues(alpha: 0.20),
-              blurRadius: 48,
-              offset: const Offset(0, 8),
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 32,
+              offset: const Offset(0, 6),
+            ),
+            BoxShadow(
+              color: accent.withValues(alpha: 0.12),
+              blurRadius: 20,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          // header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: accent.withValues(alpha: 0.25),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(Icons.search, color: accent, size: 17),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      AppLocalizations.t(context, 'lens_title'),
-                      style: TextStyle(
-                        color: textHeading,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: accent.withValues(alpha: 0.08),
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.20),
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(Icons.close, color: textMuted, size: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Visual AI Search info card
-          GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-              onVisualSearch?.call();
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: panel,
-                border: Border.all(
-                  color: accent.withValues(alpha: 0.15),
-                  width: 1,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
+            // ─── Header ─────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
               child: Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: accent.withValues(alpha: 0.5),
-                        width: 2,
-                      ),
-                      color: accent.withValues(alpha: 0.08),
-                    ),
-                    child: Icon(Icons.circle, color: accent, size: 12),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppLocalizations.t(context, 'lens_visual_ai_search'),
-                          style: TextStyle(
-                            color: textHeading,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          AppLocalizations.t(context, 'lens_visual_ai_desc'),
-                          style: TextStyle(
-                            color: textMuted,
-                            fontSize: 11.5,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
+                  Icon(Icons.search_rounded, color: accent, size: 15),
+                  const SizedBox(width: 6),
+                  Text(
+                    'AHVI Lens',
+                    style: TextStyle(
+                      color: textHeading,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          // Find Similar
-          AhviLensOptionTile(
-            icon: Icons.search,
-            name: AppLocalizations.t(context, 'lens_find_similar'),
-            desc: AppLocalizations.t(context, 'lens_find_similar_desc'),
-            color: accent,
-            textHeading: textHeading,
-            textMuted: textMuted,
-            panel: panel,
-            accentBorder: accent,
-            onTap: () {
-              Navigator.pop(context);
-              onFindSimilar?.call();
-            },
-          ),
-          // Add to Wardrobe
-          AhviLensOptionTile(
-            icon: Icons.add_photo_alternate_outlined,
-            name: AppLocalizations.t(context, 'lens_add_wardrobe'),
-            desc: AppLocalizations.t(context, 'lens_add_wardrobe_desc'),
-            color: accentSecondary,
-            textHeading: textHeading,
-            textMuted: textMuted,
-            panel: panel,
-            accentBorder: accent,
-            onTap: () {
-              Navigator.pop(context);
-              onAddToWardrobe?.call();
-            },
-          ),
-        ],
+            _Divider(color: accent),
+
+            // ─── Visual AI Search ───────────────────────────────────
+            _LensTile(
+              icon: Icons.image_search_rounded,
+              label: AppLocalizations.t(context, 'lens_visual_ai_search'),
+              desc: AppLocalizations.t(context, 'lens_visual_ai_desc'),
+              iconColor: accent,
+              textHeading: textHeading,
+              textMuted: textMuted,
+              panel: panel,
+              accent: accent,
+              onTap: onVisualSearch,
+            ),
+            _Divider(color: accent),
+
+            // ─── Find Similar ───────────────────────────────────────
+            _LensTile(
+              icon: Icons.search_rounded,
+              label: AppLocalizations.t(context, 'lens_find_similar'),
+              desc: AppLocalizations.t(context, 'lens_find_similar_desc'),
+              iconColor: accent,
+              textHeading: textHeading,
+              textMuted: textMuted,
+              panel: panel,
+              accent: accent,
+              onTap: onFindSimilar,
+            ),
+            _Divider(color: accent),
+
+            // ─── Add to Wardrobe ────────────────────────────────────
+            _LensTile(
+              icon: Icons.add_photo_alternate_outlined,
+              label: AppLocalizations.t(context, 'lens_add_wardrobe'),
+              desc: AppLocalizations.t(context, 'lens_add_wardrobe_desc'),
+              iconColor: accentSecondary,
+              textHeading: textHeading,
+              textMuted: textMuted,
+              panel: panel,
+              accent: accent,
+              onTap: onAddToWardrobe,
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Option tile widget ─────────────────────────────────────────────────────
-class AhviLensOptionTile extends StatefulWidget {
-  final IconData icon;
-  final String name;
-  final String desc;
+// ── Thin divider ──────────────────────────────────────────────────────────
+class _Divider extends StatelessWidget {
   final Color color;
+  const _Divider({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 0.5,
+      color: color.withValues(alpha: 0.12),
+      indent: 14,
+      endIndent: 14,
+    );
+  }
+}
+
+// ── Compact option tile ───────────────────────────────────────────────────
+class _LensTile extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final String desc;
+  final Color iconColor;
   final Color textHeading;
   final Color textMuted;
   final Color panel;
-  final Color accentBorder;
+  final Color accent;
   final VoidCallback onTap;
 
-  const AhviLensOptionTile({
-    super.key,
+  const _LensTile({
     required this.icon,
-    required this.name,
+    required this.label,
     required this.desc,
-    required this.color,
+    required this.iconColor,
     required this.textHeading,
     required this.textMuted,
     required this.panel,
-    required this.accentBorder,
+    required this.accent,
     required this.onTap,
   });
 
   @override
-  State<AhviLensOptionTile> createState() => _AhviLensOptionTileState();
+  State<_LensTile> createState() => _LensTileState();
 }
 
-class _AhviLensOptionTileState extends State<AhviLensOptionTile> {
-  bool _hovered = false;
+class _LensTileState extends State<_LensTile> {
   bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() {
-        _hovered = false;
-        _pressed = false;
-      }),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1.0,
-          duration: const Duration(milliseconds: 120),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _hovered
-                  ? widget.color.withValues(alpha: 0.08)
-                  : widget.panel,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: _hovered
-                    ? widget.color.withValues(alpha: 0.30)
-                    : widget.accentBorder.withValues(alpha: 0.12),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: widget.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: widget.color.withValues(alpha: 0.25),
-                      width: 1,
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: BoxDecoration(
+          color: _pressed
+              ? widget.accent.withValues(alpha: 0.10)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: Row(
+          children: [
+            Icon(widget.icon, color: widget.iconColor, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.label,
+                    style: TextStyle(
+                      color: widget.textHeading,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2,
                     ),
                   ),
-                  child: Icon(widget.icon, color: widget.color, size: 18),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.name,
-                        style: TextStyle(
-                          color: widget.textHeading,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        widget.desc,
-                        style: TextStyle(
-                          color: widget.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 1),
+                  Text(
+                    widget.desc,
+                    style: TextStyle(
+                      color: widget.textMuted,
+                      fontSize: 11,
+                      height: 1.3,
+                    ),
                   ),
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  transform: Matrix4.translationValues(
-                    _hovered ? 3.0 : 0.0,
-                    0,
-                    0,
-                  ),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    color: _hovered ? widget.color : widget.textMuted,
-                    size: 20,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

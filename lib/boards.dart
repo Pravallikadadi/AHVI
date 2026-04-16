@@ -662,7 +662,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     _S.base,
-                    _S.xl,
+                    _S.xs,
                     _S.base,
                     132,
                   ),
@@ -754,7 +754,7 @@ class _BoardsScreenState extends State<BoardsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AhviHomeText(color: _text),
+        const AhviHomeText(),
         const SizedBox(height: _S.sm),
         Row(
           children: [

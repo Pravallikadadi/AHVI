@@ -1948,9 +1948,12 @@ class _ChatScreenState extends State<ChatScreen>
           onSend: () => _sendMessage(),
           onEmptySend: () {},
           // ── Lens sheet actions ──────────────────────────────────────
-          onVisualSearch: () => _sendMessage('Visual search'),
-          onFindSimilar: () => _sendMessage('Find similar items'),
-          onAddToWardrobe: () => _sendMessage('Add to my wardrobe'),
+          // TODO: implement Visual Search (image picker → AI search)
+          onVisualSearch: () {},
+          // TODO: implement Find Similar (wardrobe → similar items screen)
+          onFindSimilar: () {},
+          // TODO: implement Add to Wardrobe (image picker → wardrobe save)
+          onAddToWardrobe: () {},
         ),
         const SizedBox(height: 8),
       ],

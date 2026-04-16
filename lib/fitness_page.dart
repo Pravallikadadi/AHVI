@@ -1557,6 +1557,9 @@ class _ChatViewState extends State<_ChatView> {
       drawer: _historyDrawer(),
       body: Stack(
       children: [
+        // Chat page background — full screen gradient (transparent issue fix)
+        Container(decoration: BoxDecoration(gradient: context.fPageBgGrad)),
+        const _BgOrbs(),
         Column(
           children: [
             // Header
@@ -1570,9 +1573,9 @@ class _ChatViewState extends State<_ChatView> {
                     child: Container(
                       width: 38, height: 38,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A1F5E),
+                        color: context.fPanel,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kAccent.withValues(alpha: 0.35)),
+                        border: Border.all(color: context.fBorder),
                       ),
                       child: Icon(Icons.arrow_back_ios_new_rounded, color: context.fText, size: 16),
                     ),
@@ -1592,9 +1595,9 @@ class _ChatViewState extends State<_ChatView> {
                     child: Container(
                       width: 38, height: 38,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2A1F5E),
+                        color: context.fPanel,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kAccent.withValues(alpha: 0.35)),
+                        border: Border.all(color: context.fBorder),
                       ),
                       child: Icon(Icons.history_rounded, color: context.fText, size: 18),
                     ),

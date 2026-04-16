@@ -22,16 +22,16 @@ import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 // _homeNavItems icons only — labels come from JSON
 const _homeNavIcons = <IconData>[
   Icons.home_outlined,
-  Icons.dry_cleaning_outlined,
   Icons.chat_bubble_outline_rounded,
+  Icons.dry_cleaning_outlined,
   Icons.grid_view_rounded,
   Icons.explore_outlined,
 ];
 // Keep original for fallback / non-localized usage
 const _homeNavItems = <({IconData icon, String label})>[
   (icon: Icons.home_outlined, label: 'Home'),
-  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
   (icon: Icons.chat_bubble_outline_rounded, label: 'Chat'),
+  (icon: Icons.dry_cleaning_outlined, label: 'Wardrobe'),
   (icon: Icons.grid_view_rounded, label: 'Planner'),
   (icon: Icons.explore_outlined, label: 'Explore'),
 ];
@@ -326,6 +326,16 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     );
 
     _fetchUserProfile();
+
+    // 🔧 FIX: Home tab active glow — first frame లో animate చేయి
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _navRiseCtrls[0].animateTo(
+          1.0,
+          curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+        );
+      }
+    });
   }
 
   Future<void> _fetchUserProfile() async {
@@ -494,6 +504,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
         _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
         _navRiseCtrls[0].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
         setState(() => _activeNavIdx = 0);
+      } else {
+        // 🔧 FIX: Already on home tab — rise animation ensure చేయి
+        _navRiseCtrls[0].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
       }
       if (widget.onShellNavTap != null) widget.onShellNavTap!(0);
       return;
@@ -507,25 +520,31 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     }
 
     if (idx == 1) {
-      if (widget.onShellNavTap != null) {
-        widget.onShellNavTap!(1);
-        return;
-      }
       _activateTab(1);
-      _openNavScreen(const WardrobeScreen());
-      return;
-    }
-    if (idx == 2) {
-      _activateTab(2);
       _openNavScreen(const ChatScreen());
       return;
     }
+    if (idx == 2) {
+      // 🔧 FIX: Shell కి delegate చేసే ముందు local tab highlight చేయి
+      _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
+      _navRiseCtrls[2].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
+      setState(() => _activeNavIdx = 2);
+      if (widget.onShellNavTap != null) {
+        widget.onShellNavTap!(2);
+        return;
+      }
+      _openNavScreen(const WardrobeScreen());
+      return;
+    }
     if (idx == 3) {
+      // 🔧 FIX: Shell కి delegate చేసే ముందు local tab highlight చేయి
+      _navRiseCtrls[_activeNavIdx].animateTo(0.0, curve: const Cubic(0.4, 0.0, 0.2, 1.0));
+      _navRiseCtrls[3].animateTo(1.0, curve: const Cubic(0.34, 1.56, 0.64, 1.0));
+      setState(() => _activeNavIdx = 3);
       if (widget.onShellNavTap != null) {
         widget.onShellNavTap!(3);
         return;
       }
-      _activateTab(3);
       _openNavScreen(const BoardsScreen());
       return;
     }
@@ -602,8 +621,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   void _openModuleChat(String moduleKey) {
-    final normalized = moduleKey == 'prepare' ? 'plan' : moduleKey;
-    _openNavScreen(ChatScreen(moduleContext: normalized));
+    // Overlay తెరవకుండా directly ChatScreen కి navigate చేయి
+    final module = (moduleKey == 'plan') ? 'prepare' : moduleKey;
+    _openNavScreen(ChatScreen(moduleContext: module));
   }
 
   void _openChatWithPrompt(String prompt) {
@@ -691,57 +711,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   void _submitQuery(String query) {
-    if (query.isEmpty && _overlayState == _OverlayState.idle) {
-      _triggerIntent('chat');
-      return;
-    }
-
-    if (_overlayState == _OverlayState.idle) {
-      _activeIntent = 'chat';
-      final cfg = _intentConfig['chat']!;
-      _setPlaceholder('chat');
-
-      setState(() {
-        _homeCollapsed = true;
-        _overlayBrandSub = cfg.brandSub;
-      });
-
-      _homeCollapseCtrl.animateTo(
-        1.0,
-        duration: const Duration(milliseconds: 600),
-        curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-      );
-
-      Future.delayed(const Duration(milliseconds: 420), () {
-        if (!mounted) return;
-
-        if (query.isNotEmpty) {
-          _overlayFadeCtrl.animateTo(
-            1.0,
-            duration: const Duration(milliseconds: 380),
-            curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-          );
-
-          _handleQuery(query, 'chat');
-        } else {
-          setState(() {
-            _stopThinkingAnimation();
-            _overlayState = _OverlayState.suggestions;
-            _overlaySuggestions = cfg.suggestions;
-            _responses.clear();
-            _tagsRevealed = false;
-          });
-          _overlayFadeCtrl.animateTo(
-            1.0,
-            duration: const Duration(milliseconds: 380),
-            curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-          );
-        }
-      });
-    } else if (_overlayState == _OverlayState.suggestions ||
-        _overlayState == _OverlayState.response) {
-      _handleQuery(query, _activeIntent ?? 'chat');
-    }
+    // Overlay తెరవకుండా directly ChatScreen కి navigate చేయి
+    _openChatWithPrompt(query);
   }
 
   // 🚀 FIXED FUNCTION: REAL API CALL WITH HISTORY & MEMORY
@@ -2150,7 +2121,6 @@ Builder(builder: (ctx) {
     );
   }
 
-  // 🚀 FIXED: Reroutes perfectly to the dedicated Chat Screen
   Widget _buildChatWrap() {
     return AhviChatPromptBar(
       controller: _chatController,
@@ -2167,6 +2137,7 @@ Builder(builder: (ctx) {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
+      onFieldTap: () => _openChatWithPrompt(''),
       onSubmitted: (value) {
         if (value.trim().isNotEmpty) {
           _openChatWithPrompt(value.trim());
@@ -2180,7 +2151,7 @@ Builder(builder: (ctx) {
           _chatController.clear();
         }
       },
-      onEmptySend: () => _submitQuery(''),
+      onEmptySend: () => _openChatWithPrompt(''),
       themeTokens: _t,
       onVisualSearch: null,
       onFindSimilar: null,
@@ -2283,7 +2254,7 @@ Builder(builder: (ctx) {
   Widget _buildBottomNav() {
     // 🆕 Nav labels localized
     final navLabelKeys = [
-      'nav_home', 'nav_wardrobe', 'nav_chat', 'nav_planner', 'nav_explore',
+      'nav_home', 'nav_chat', 'nav_wardrobe', 'nav_planner', 'nav_explore',
     ];
     final items = _homeNavItems;
     final screenH = MediaQuery.of(context).size.height;

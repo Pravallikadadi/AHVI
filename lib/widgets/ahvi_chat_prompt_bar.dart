@@ -107,24 +107,26 @@ class AhviChatPromptBar extends StatelessWidget {
               children: [
                 // ── Plus button → Lens sheet open చేస్తుంది ───────────
                 if (!compact) ...[
-                  _ChatPromptPressable(
-                    scalePressed: 0.88,
-                    onTap: () => _openLensSheet(context),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOutCubic,
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            accent.withValues(alpha: 0.18),
-                            accentSecondary.withValues(alpha: 0.18),
-                          ],
+                  Builder(
+                    builder: (btnCtx) => _ChatPromptPressable(
+                      scalePressed: 0.88,
+                      onTap: () => _openLensSheet(btnCtx),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOutCubic,
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              accent.withValues(alpha: 0.18),
+                              accentSecondary.withValues(alpha: 0.18),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(13),
                         ),
-                        borderRadius: BorderRadius.circular(13),
+                        child: Icon(Icons.add_rounded, color: accent, size: 20),
                       ),
-                      child: Icon(Icons.add_rounded, color: accent, size: 20),
                     ),
                   ),
                   const SizedBox(width: 8),

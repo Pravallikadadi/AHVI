@@ -392,11 +392,11 @@ class _SignUpPage extends StatelessWidget {
             child: Text(
               'AHVI',
               style: GoogleFonts.anton(
-                fontSize: 52,
+                fontSize: 36,
                 fontWeight: FontWeight.w400,
                 color: const Color(0xFF1A1D26),
                 letterSpacing: 3.2,
-                height: 1,
+                height: 1.0,
               ),
             ),
           ),
@@ -454,8 +454,31 @@ class _SignInPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionTitle(line1: 'Welcome', line2: 'back.'),
-          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              'AHVI',
+              style: GoogleFonts.anton(
+                fontSize: 36,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF1A1D26),
+                letterSpacing: 3.2,
+                height: 1.0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Center(
+            child: Text(
+              'Welcome back.',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF66708A),
+                letterSpacing: 0.1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
           const Center(child: _SectionSub(text: 'Sign in with your email')),
           const SizedBox(height: 28),
           _AnimatedInputField(
