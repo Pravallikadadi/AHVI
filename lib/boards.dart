@@ -769,10 +769,10 @@ class _BoardsScreenState extends State<BoardsScreen>
               AppLocalizations.t(context, 'boards_planner'),
               style: TextStyle(
                 fontFamily: 'Inter',
-                fontSize: 38,
+                fontSize: 28,
                 fontWeight: FontWeight.w700,
                 height: 1.0,
-                letterSpacing: -1.0,
+                letterSpacing: -0.8,
                 color: _text,
               ),
             ),

@@ -726,7 +726,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _history.length,
-                      separatorBuilder: (_, _) =>
+                      separatorBuilder: (_, __) =>
                           Divider(color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
                       itemBuilder: (ctx, i) {
                         final session = _history[i];
@@ -906,7 +906,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   scrollDirection: Axis.horizontal,
                   itemCount: quickPrompts.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => GestureDetector(
                     onTap: () => _sendMessage(quickPrompts[i]),
                     child: Container(
@@ -962,11 +962,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                     shadowMedium: t.backgroundPrimary.withValues(alpha: 0.20),
                     onAccent: Colors.white,
                     themeTokens: t,
-                    onSubmitted: (value) => _sendMessage(value),
-                    onSend: () => _sendMessage(_inputController.text),
-                    onEmptySend: () {
-                      if (_pendingAttachment != null) _sendMessage('');
-                    },
+                    onSendMessage: (message) => _sendMessage(message),
                     onVisualSearch: null,
                     onFindSimilar: null,
                     onAddToWardrobe: null,
@@ -1508,7 +1504,7 @@ class _TypingBubbleState extends State<_TypingBubble>
         ),
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (_, _) {
+          builder: (_, __) {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(3, (i) {

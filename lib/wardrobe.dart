@@ -2484,7 +2484,11 @@ class _AppHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const AhviHomeText(),
+                      const AhviHomeText(
+                        fontSize: 36,
+                        letterSpacing: 3.2,
+                        fontWeight: FontWeight.w400,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         title,

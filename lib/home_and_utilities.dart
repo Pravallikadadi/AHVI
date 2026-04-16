@@ -152,7 +152,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
         20,
         MediaQuery.of(context).padding.top + 8,
         20,
-        14,
+        8,
       ),
       child: Row(
         children: [
@@ -189,7 +189,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                     fontFamily: 'Inter',
                     fontSize: 19,
                     fontWeight: FontWeight.w300,
-                    color: t.accent.primary,
+                    color: t.textPrimary,
                     letterSpacing: -0.3,
                   ),
                 ),

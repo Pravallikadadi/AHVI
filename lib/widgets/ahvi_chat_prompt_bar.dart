@@ -18,9 +18,10 @@ class AhviChatPromptBar extends StatelessWidget {
   final Color shadowMedium;
   final Color onAccent;
   final EdgeInsetsGeometry padding;
-  final VoidCallback onSend;
-  final VoidCallback onEmptySend;
-  final ValueChanged<String> onSubmitted;
+
+  /// Called with the trimmed message text after send is confirmed.
+  /// Parent should navigate to chat page inside this callback.
+  final ValueChanged<String> onSendMessage;
 
   // ── Lens sheet (plus button తో trigger అవుతుంది) ──────────────────────
   final AppThemeTokens themeTokens;
@@ -31,7 +32,6 @@ class AhviChatPromptBar extends StatelessWidget {
   // ── Voice ─────────────────────────────────────────────────────────────
   final VoidCallback? onVoiceTap;
   final bool isListening;
-  final VoidCallback? onFieldTap;
 
   const AhviChatPromptBar({
     super.key,
@@ -48,16 +48,13 @@ class AhviChatPromptBar extends StatelessWidget {
     required this.textMuted,
     required this.shadowMedium,
     required this.onAccent,
-    required this.onSend,
-    required this.onEmptySend,
-    required this.onSubmitted,
+    required this.onSendMessage,
     required this.themeTokens,
     this.onVisualSearch,
     this.onFindSimilar,
     this.onAddToWardrobe,
     this.onVoiceTap,
     this.isListening = false,
-    this.onFieldTap,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
   });
 
@@ -75,6 +72,14 @@ class AhviChatPromptBar extends StatelessWidget {
       onFindSimilar: onFindSimilar,
       onAddToWardrobe: onAddToWardrobe,
     );
+  }
+
+  /// Sends only if text is non-empty; clears the field and calls [onSendMessage].
+  void _trySend() {
+    final text = controller.text.trim();
+    if (text.isEmpty) return;
+    controller.clear();
+    onSendMessage(text);
   }
 
   @override
@@ -132,6 +137,8 @@ class AhviChatPromptBar extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
                 // ── Text field ────────────────────────────────────────
+                // onTap intentionally omitted — keyboard opens normally,
+                // navigation happens only after send.
                 Expanded(
                   child: TextField(
                     controller: controller,
@@ -157,8 +164,8 @@ class AhviChatPromptBar extends StatelessWidget {
                     cursorColor: accent,
                     cursorWidth: 1.5,
                     cursorRadius: const Radius.circular(1),
-                    onTap: onFieldTap,
-                    onSubmitted: onSubmitted,
+                    // Keyboard "send" key → same behaviour as send button
+                    onSubmitted: (_) => _trySend(),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -207,14 +214,7 @@ class AhviChatPromptBar extends StatelessWidget {
                 _ChatPromptPressable(
                   liftY: -1.5,
                   scalePressed: 0.90,
-                  onTap: () {
-                    final text = controller.text.trim();
-                    if (text.isNotEmpty) {
-                      onSend();
-                    } else {
-                      onEmptySend();
-                    }
-                  },
+                  onTap: _trySend,
                   child: ValueListenableBuilder<TextEditingValue>(
                     valueListenable: hasTextListenable ?? controller,
                     builder: (context, value, _) {
@@ -385,3 +385,21 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
     );
   }
 }
+
+// ── Usage example (parent widget లో ఇలా వాడండి) ──────────────────────────
+//
+// AhviChatPromptBar(
+//   controller: _controller,
+//   focusNode: _focusNode,
+//   hintText: 'Search or ask anything...',
+//   onSendMessage: (message) {
+//     // 1. Chat page కి navigate చేయండి
+//     Navigator.push(
+//       context,
+//       MaterialPageRoute(
+//         builder: (_) => ChatPage(initialMessage: message),
+//       ),
+//     );
+//   },
+//   // ... other required params
+// )

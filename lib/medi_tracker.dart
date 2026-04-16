@@ -2470,48 +2470,55 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         ? const Color(0xFF2A2F45)
         : const Color(0xFFF0F4FF);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: cardBorder),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          dropdownColor: menuBg,
-          isExpanded: true,
-          borderRadius: BorderRadius.circular(14),
-          style: TextStyle(
-            color: textColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+    return PopupMenuButton<String>(
+      onSelected: onChanged,
+      color: menuBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      offset: const Offset(0, 52),
+      constraints: const BoxConstraints(minWidth: 200),
+      itemBuilder: (_) => items.map((e) {
+        final isSelected = e == value;
+        return PopupMenuItem<String>(
+          value: e,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: isSelected ? selectedBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              e,
+              style: TextStyle(
+                color: isSelected ? accent : textColor,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
           ),
-          icon: Icon(Icons.arrow_drop_down_rounded, color: accent, size: 22),
-          items: items.map((e) {
-            final isSelected = e == value;
-            return DropdownMenuItem(
-              value: e,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                decoration: BoxDecoration(
-                  color: isSelected ? selectedBg : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  e,
-                  style: TextStyle(
-                    color: isSelected ? accent : textColor,
-                    fontWeight:
-                        isSelected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 14,
-                  ),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            );
-          }).toList(),
-          onChanged: onChanged,
+            ),
+            Icon(Icons.arrow_drop_down_rounded, color: accent, size: 22),
+          ],
         ),
       ),
     );

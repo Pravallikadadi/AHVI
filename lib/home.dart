@@ -2137,21 +2137,30 @@ Builder(builder: (ctx) {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
-      onFieldTap: () => _openChatWithPrompt(''),
+      onFieldTap: () {
+        // Tap చేసినప్పుడు keyboard open చేయి — navigate చేయకూడదు
+        _chatFocusNode.requestFocus();
+      },
       onSubmitted: (value) {
-        if (value.trim().isNotEmpty) {
-          _openChatWithPrompt(value.trim());
+        final text = value.trim();
+        if (text.isNotEmpty) {
+          _chatFocusNode.unfocus();
+          _openChatWithPrompt(text);
           _chatController.clear();
         }
       },
       onSend: () {
         final text = _chatController.text.trim();
         if (text.isNotEmpty) {
+          _chatFocusNode.unfocus();
           _openChatWithPrompt(text);
           _chatController.clear();
         }
       },
-      onEmptySend: () => _openChatWithPrompt(''),
+      onEmptySend: () {
+        _chatFocusNode.unfocus();
+        _openChatWithPrompt('');
+      },
       themeTokens: _t,
       onVisualSearch: null,
       onFindSimilar: null,

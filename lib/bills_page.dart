@@ -645,10 +645,30 @@ class _BillsScreenState extends State<BillsScreen>
   Widget _buildHeader() {
     return Container(
       color: _t.backgroundPrimary,
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
+      padding: EdgeInsets.fromLTRB(24, 4, 24, 12),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // ── Icon ──
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _accent2.withValues(alpha: 0.22),
+                  _accent.withValues(alpha: 0.22),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _accent.withValues(alpha: 0.25)),
+            ),
+            child: Icon(Icons.receipt_long_rounded, color: _accent, size: 22),
+          ),
+          SizedBox(width: 12),
+          // ── Title ──
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1851,29 +1871,12 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   Widget _datePickerTrigger() {
+    final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final d = _selectedDate;
+    final label = '${months[d.month - 1]} ${d.day}, ${d.year}';
+
     return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: _selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-          builder: (ctx, child) => Theme(
-            data: ThemeData.dark().copyWith(
-              colorScheme: ColorScheme.dark(
-                primary: kAccent2,
-                onPrimary: Colors.white,
-                surface: kShell,
-                onSurface: _t.textPrimary,
-              ),
-            ),
-            child: child!,
-          ),
-        );
-        if (picked != null) {
-          _setOverlayState(() => _selectedDate = picked);
-        }
-      },
+      onTap: () => _showThemedCalendar(),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
@@ -1883,36 +1886,267 @@ class _BillsScreenState extends State<BillsScreen>
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 14,
-              color: Color(0xFFC4A0C8),
-            ),
+            Icon(Icons.calendar_today_outlined, size: 14, color: _accent2),
             SizedBox(width: 8),
             Expanded(
-              child: Builder(
-                builder: (context) {
-                  final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                  final d = _selectedDate;
-                  final label = '${months[d.month - 1]} ${d.day}, ${d.year}';
-                  return Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _t.textPrimary,
-                    ),
-                  );
-                },
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _t.textPrimary,
+                ),
               ),
             ),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 16,
-              color: Color(0xFFC4A0C8),
-            ),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: _accent2),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Custom themed calendar dialog — matches app's dark glass style
+  void _showThemedCalendar() {
+    DateTime _viewMonth = DateTime(_selectedDate.year, _selectedDate.month, 1);
+    DateTime _tempSelected = _selectedDate;
+    final now = DateTime.now();
+
+    showDialog(
+      context: context,
+      barrierColor: Color(0xB808111F),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setDlgState) {
+          final daysInMonth = DateUtils.getDaysInMonth(_viewMonth.year, _viewMonth.month);
+          final firstWeekday = DateTime(_viewMonth.year, _viewMonth.month, 1).weekday % 7; // 0=Sun
+          final monthLabel = [
+            'January','February','March','April','May','June',
+            'July','August','September','October','November','December'
+          ][_viewMonth.month - 1];
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _t.backgroundSecondary,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: _t.cardBorder, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: _accent2.withValues(alpha: 0.18),
+                    blurRadius: 40,
+                    offset: Offset(0, 12),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Month nav ─────────────────────────────────────
+                  Row(
+                    children: [
+                      _calNavBtn(
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => setDlgState(() {
+                          _viewMonth = DateTime(_viewMonth.year, _viewMonth.month - 1, 1);
+                        }),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '$monthLabel ${_viewMonth.year}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: _t.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      _calNavBtn(
+                        icon: Icons.chevron_right_rounded,
+                        onTap: () => setDlgState(() {
+                          final next = DateTime(_viewMonth.year, _viewMonth.month + 1, 1);
+                          if (!next.isAfter(DateTime(now.year, now.month + 1, 1))) {
+                            _viewMonth = next;
+                          }
+                        }),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 14),
+
+                  // ── Weekday headers ───────────────────────────────
+                  Row(
+                    children: ['Su','Mo','Tu','We','Th','Fr','Sa'].map((w) =>
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            w,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: _t.mutedText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ).toList(),
+                  ),
+                  SizedBox(height: 8),
+
+                  // ── Day grid ──────────────────────────────────────
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      mainAxisSpacing: 4,
+                      crossAxisSpacing: 4,
+                      childAspectRatio: 1,
+                    ),
+                    itemCount: firstWeekday + daysInMonth,
+                    itemBuilder: (_, i) {
+                      if (i < firstWeekday) return SizedBox.shrink();
+                      final day = i - firstWeekday + 1;
+                      final date = DateTime(_viewMonth.year, _viewMonth.month, day);
+                      final isSelected = date.year == _tempSelected.year &&
+                          date.month == _tempSelected.month &&
+                          date.day == _tempSelected.day;
+                      final isToday = date.year == now.year &&
+                          date.month == now.month &&
+                          date.day == now.day;
+                      final isFuture = date.isAfter(now);
+
+                      return GestureDetector(
+                        onTap: isFuture ? null : () => setDlgState(() => _tempSelected = date),
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 180),
+                          decoration: BoxDecoration(
+                            gradient: isSelected
+                                ? LinearGradient(
+                                    colors: [_accent2, _accent],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: isSelected
+                                ? null
+                                : isToday
+                                    ? _accent.withValues(alpha: 0.15)
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                            border: isToday && !isSelected
+                                ? Border.all(color: _accent.withValues(alpha: 0.50), width: 1.5)
+                                : null,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$day',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected || isToday
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : isFuture
+                                        ? _t.mutedText.withValues(alpha: 0.35)
+                                        : _t.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 16),
+                  Divider(color: _t.cardBorder, height: 1),
+                  SizedBox(height: 12),
+
+                  // ── Actions ───────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(ctx).pop(),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 11),
+                            decoration: BoxDecoration(
+                              color: _t.panel,
+                              border: Border.all(color: _t.cardBorder, width: 1.5),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: _t.mutedText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            _setOverlayState(() => _selectedDate = _tempSelected);
+                            Navigator.of(ctx).pop();
+                          },
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 11),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(colors: [_accent2, _accent]),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _accent.withValues(alpha: 0.30),
+                                  blurRadius: 14,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                'OK',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Widget _calNavBtn({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: _t.panel,
+          border: Border.all(color: _t.cardBorder, width: 1.5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: _accent2, size: 18),
       ),
     );
   }
