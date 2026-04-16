@@ -177,7 +177,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                   text: AppLocalizations.t(context, 'home_title_bold'),
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 17,
+                    fontSize: 19,
                     fontWeight: FontWeight.w600,
                     color: t.textPrimary,
                     letterSpacing: -0.3,
@@ -187,7 +187,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                   text: AppLocalizations.t(context, 'home_title_light'),
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 17,
+                    fontSize: 19,
                     fontWeight: FontWeight.w300,
                     color: t.accent.primary,
                     letterSpacing: -0.3,
@@ -205,8 +205,8 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
   // ── Tab bar ──
   Widget _buildTabBar(AppThemeTokens t) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(4),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: t.panel,
         borderRadius: BorderRadius.circular(14),

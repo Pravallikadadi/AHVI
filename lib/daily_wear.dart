@@ -114,7 +114,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ],
       'tags': [AppLocalizations.t(context, 'tag_breezy'), AppLocalizations.t(context, 'tag_linen'), AppLocalizations.t(context, 'tag_relaxed_fit'), AppLocalizations.t(context, 'tag_warm_weather')],
       'img': 'https://i.pinimg.com/736x/dc/f4/05/dcf405a9b3fa1734bf1a68c689295012.jpg',
-      'localImg': 'images/outfit_linen_air.jpg',
+      'localImg': 'assets/images/outfit_linen_air.jpg',
     },
     {
       'id': 'o1',
@@ -134,7 +134,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ],
       'tags': [AppLocalizations.t(context, 'tag_cosy'), AppLocalizations.t(context, 'tag_casual'), AppLocalizations.t(context, 'tag_everyday'), AppLocalizations.t(context, 'tag_comfortable')],
       'img': 'https://i.pinimg.com/736x/a3/f2/18/a3f218d89461024773e4b0c0a0b52de2.jpg',
-      'localImg': 'images/outfit_coffee_run.jpg',
+      'localImg': 'assets/images/outfit_coffee_run.jpg',
     },
     {
       'id': 'o2',
@@ -154,7 +154,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ],
       'tags': [AppLocalizations.t(context, 'tag_smart'), AppLocalizations.t(context, 'tag_formal'), AppLocalizations.t(context, 'tag_polished'), AppLocalizations.t(context, 'tag_work_ready')],
       'img': 'https://i.pinimg.com/736x/e0/c1/9d/e0c19d4fc4c0afe55a832318c50c5b8a.jpg',
-      'localImg': 'images/outfit_office_hours.jpg',
+      'localImg': 'assets/images/outfit_office_hours.jpg',
     },
     {
       'id': 'o3',
@@ -174,7 +174,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ],
       'tags': [AppLocalizations.t(context, 'tag_earth_tones'), AppLocalizations.t(context, 'tag_trendy'), AppLocalizations.t(context, 'tag_textured'), AppLocalizations.t(context, 'tag_date_night')],
       'img': 'https://i.pinimg.com/474x/33/f8/a6/33f8a65105a50fbc1948e176221182d0.jpg',
-      'localImg': 'images/outfit_golden_hour.jpg',
+      'localImg': 'assets/images/outfit_golden_hour.jpg',
     },
   ];
   late List<Map<String, dynamic>> _displayedOutfits;

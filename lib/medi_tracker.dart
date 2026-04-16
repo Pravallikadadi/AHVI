@@ -2464,23 +2464,53 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     List<String> items,
     ValueChanged<String?> onChanged,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final menuBg = isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF);
+    final selectedBg = isDark
+        ? const Color(0xFF2A2F45)
+        : const Color(0xFFF0F4FF);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
       decoration: BoxDecoration(
-        color: panel,
+        color: isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cardBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          dropdownColor: panel,
+          dropdownColor: menuBg,
           isExpanded: true,
-          style: TextStyle(color: textColor, fontSize: 14),
-          icon: Icon(Icons.arrow_drop_down, color: muted),
-          items: items
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-              .toList(),
+          borderRadius: BorderRadius.circular(14),
+          style: TextStyle(
+            color: textColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          icon: Icon(Icons.arrow_drop_down_rounded, color: accent, size: 22),
+          items: items.map((e) {
+            final isSelected = e == value;
+            return DropdownMenuItem(
+              value: e,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected ? selectedBg : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  e,
+                  style: TextStyle(
+                    color: isSelected ? accent : textColor,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
           onChanged: onChanged,
         ),
       ),

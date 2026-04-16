@@ -967,8 +967,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   const double hPad = 20.0;
                   // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 2
                   final safeBottom2 = MediaQuery.of(context).padding.bottom;
-                  // nav top(safeBottom+102) + chat bar height(60) + extra gap(4) = safeBottom+150
-                  final bottomPad = safeBottom2 + 86.0 + 60.0 + 4.0;
+                  // chat sits at safeBottom+102, height ~72, gap 8 → total safeBottom+182
+                  final bottomPad = safeBottom2 + 102.0 + 72.0 + 8.0;
 
                   return SingleChildScrollView(
                     physics: const NeverScrollableScrollPhysics(),
@@ -1009,7 +1009,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               // chat bar sits right on nav top edge
               final chatBottom = keyboardH > 0
                   ? keyboardH + 8
-                  : safeBottom + 86.0;
+                  : safeBottom + 102.0;
               return Positioned(
                 left: 0,
                 right: 0,

@@ -645,7 +645,7 @@ class _BillsScreenState extends State<BillsScreen>
   Widget _buildHeader() {
     return Container(
       color: _t.backgroundPrimary,
-      padding: EdgeInsets.fromLTRB(24, 22, 24, 12),
+      padding: EdgeInsets.fromLTRB(24, 12, 24, 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
