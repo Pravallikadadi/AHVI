@@ -2465,7 +2465,9 @@ class _AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    return Container(
+    return SafeArea(
+      bottom: false,
+      child: Container(
       decoration: BoxDecoration(
         color: t.backgroundPrimary.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
@@ -2580,6 +2582,7 @@ class _AppHeader extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

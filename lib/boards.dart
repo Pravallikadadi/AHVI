@@ -754,8 +754,15 @@ class _BoardsScreenState extends State<BoardsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const AhviHomeText(),
-        const SizedBox(height: _S.sm),
+        Padding(
+          padding: const EdgeInsets.only(top: 10.0, bottom: 6.0),
+          child: AhviHomeText(
+            color: _text,
+            fontSize: 30.0,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
         Row(
           children: [
             Text(
