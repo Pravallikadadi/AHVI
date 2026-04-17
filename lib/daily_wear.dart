@@ -466,14 +466,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _pageController.addListener(_onPageScroll);
     _fetchWeather();
 
-    _pageEntryCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 480),
-    );
-    _pageEntryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pageEntryCtrl, curve: Curves.easeOut),
-    );
-    _pageEntryCtrl.forward();
+    _pageEntryCtrl = AnimationController(vsync: this, duration: Duration.zero);
+    _pageEntryFade = Tween<double>(begin: 1.0, end: 1.0).animate(_pageEntryCtrl);
   }
 
   void _restartOptionCardAnimations() {
@@ -1321,12 +1315,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ),
     );
 
-    if (_pageEntryCtrl.isCompleted) return content;
-
-    return FadeTransition(
-      opacity: _pageEntryFade,
-      child: content,
-    );
+    return content;
   }
 
   Widget _buildHeader() => Padding(

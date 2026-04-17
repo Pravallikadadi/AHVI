@@ -956,26 +956,29 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               );
             },
             child: SafeArea(
-              top: true,
+              top: widget.onShellNavTap == null,
               bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTopBar(),
-                    _buildGreetingBlock(),
-                    SizedBox(
-                      height: 240.0,
-                      child: _buildHeroCard(),
-                    ),
-                    const SizedBox(height: 10.0),
-                    SizedBox(
-                      height: 90.0,
-                      child: _buildSecondaryRow(),
-                    ),
-                  ],
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 220.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTopBar(),
+                      _buildGreetingBlock(),
+                      SizedBox(
+                        height: 240.0,
+                        child: _buildHeroCard(),
+                      ),
+                      const SizedBox(height: 10.0),
+                      SizedBox(
+                        height: 90.0,
+                        child: _buildSecondaryRow(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

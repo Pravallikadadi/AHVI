@@ -563,6 +563,7 @@ class _BillsScreenState extends State<BillsScreen>
             ),
             Column(
               children: [
+                _buildHeader(),
                 Expanded(child: _buildScrollArea()),
                 _buildBottomActions(),
               ],
@@ -672,7 +673,7 @@ class _BillsScreenState extends State<BillsScreen>
                 Row(
                   children: [
                     Icon(
-                      Icons.wallet_rounded,
+                      Icons.receipt_long_rounded,
                       color: _accent,
                       size: 18,
                     ),
@@ -680,7 +681,7 @@ class _BillsScreenState extends State<BillsScreen>
                     Text(
                       AppLocalizations.t(context, 'bills_title'),
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         color: _t.textPrimary,
                         height: 1.0,
