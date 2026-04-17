@@ -1942,11 +1942,7 @@ class _ChatScreenState extends State<ChatScreen>
           themeTokens: t,
           onVoiceTap: _toggleListening,
           isListening: _isListening,
-          onSubmitted: (v) {
-            if (v.trim().isNotEmpty) _sendMessage(v.trim());
-          },
-          onSend: () => _sendMessage(),
-          onEmptySend: () {},
+          onSendMessage: (v) => _sendMessage(v),
           // ── Lens sheet actions ──────────────────────────────────────
           // TODO: implement Visual Search (image picker → AI search)
           onVisualSearch: () {},

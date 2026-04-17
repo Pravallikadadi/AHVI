@@ -965,10 +965,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   const double heroGap = 10.0;
                   const double secondaryRowH = 90.0;
                   const double hPad = 20.0;
-                  // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 2
+                  // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 8
                   final safeBottom2 = MediaQuery.of(context).padding.bottom;
-                  // chat sits at safeBottom+102, height ~72, gap 8 → total safeBottom+182
-                  final bottomPad = safeBottom2 + 102.0 + 72.0 + 8.0;
+                  // Exact clearance: safeBottom + nav margin(16) + nav(86) + chat(60) + gap(8)
+                  final bottomPad = safeBottom2 + 16.0 + 86.0 + 60.0 + 8.0;
 
                   return SingleChildScrollView(
                     physics: const NeverScrollableScrollPhysics(),
@@ -2137,29 +2137,9 @@ Builder(builder: (ctx) {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
-      onFieldTap: () {
-        // Tap చేసినప్పుడు keyboard open చేయి — navigate చేయకూడదు
-        _chatFocusNode.requestFocus();
-      },
-      onSubmitted: (value) {
-        final text = value.trim();
-        if (text.isNotEmpty) {
-          _chatFocusNode.unfocus();
-          _openChatWithPrompt(text);
-          _chatController.clear();
-        }
-      },
-      onSend: () {
-        final text = _chatController.text.trim();
-        if (text.isNotEmpty) {
-          _chatFocusNode.unfocus();
-          _openChatWithPrompt(text);
-          _chatController.clear();
-        }
-      },
-      onEmptySend: () {
+      onSendMessage: (text) {
         _chatFocusNode.unfocus();
-        _openChatWithPrompt('');
+        _openChatWithPrompt(text);
       },
       themeTokens: _t,
       onVisualSearch: null,
