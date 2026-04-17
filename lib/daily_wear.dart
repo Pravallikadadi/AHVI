@@ -1270,9 +1270,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _pageEntryFade,
-      child: PopScope(
+    final Widget content = PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
@@ -1321,7 +1319,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           ],
         ),
       ),
-      ),
+    );
+
+    if (_pageEntryCtrl.isCompleted) return content;
+
+    return FadeTransition(
+      opacity: _pageEntryFade,
+      child: content,
     );
   }
 

@@ -958,43 +958,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
             child: SafeArea(
               top: true,
               bottom: false,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // Fixed const layout values — no dynamic screen calculations
-                  const double heroHFinal = 240.0;
-                  const double heroGap = 10.0;
-                  const double secondaryRowH = 90.0;
-                  const double hPad = 20.0;
-                  // navBar totalH = 62 + 18 + 6 = 86, bottom: 16, chatBar: 60, gap: 8
-                  final safeBottom2 = MediaQuery.of(context).padding.bottom;
-                  // Exact clearance: safeBottom + nav margin(16) + nav(86) + chat(60) + gap(8)
-                  final bottomPad = safeBottom2 + 16.0 + 86.0 + 60.0 + 8.0;
-
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      left: hPad,
-                      right: hPad,
-                      bottom: bottomPad,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTopBar(),
+                    _buildGreetingBlock(),
+                    SizedBox(
+                      height: 240.0,
+                      child: _buildHeroCard(),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTopBar(),
-                        _buildGreetingBlock(),
-                        SizedBox(
-                          height: heroHFinal,
-                          child: _buildHeroCard(),
-                        ),
-                        const SizedBox(height: heroGap),
-                        SizedBox(
-                          height: secondaryRowH,
-                          child: _buildSecondaryRow(),
-                        ),
-                      ],
+                    const SizedBox(height: 10.0),
+                    SizedBox(
+                      height: 90.0,
+                      child: _buildSecondaryRow(),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
           ),

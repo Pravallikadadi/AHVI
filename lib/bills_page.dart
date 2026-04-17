@@ -665,30 +665,42 @@ class _BillsScreenState extends State<BillsScreen>
           ),
           SizedBox(width: 12),
           // ── Title ──
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.t(context, 'bills_title'),
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: _t.textPrimary,
-                  height: 1.0,
-                  letterSpacing: -0.5,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.wallet_rounded,
+                      color: _accent,
+                      size: 18,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      AppLocalizations.t(context, 'bills_title'),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: _t.textPrimary,
+                        height: 1.0,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                AppLocalizations.t(context, 'bills_by_ahvi'),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 3.2,
-                  color: _t.mutedText,
+                SizedBox(height: 4),
+                Text(
+                  AppLocalizations.t(context, 'bills_by_ahvi'),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 3.2,
+                    color: _t.mutedText,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
