@@ -661,9 +661,9 @@ class _BoardsScreenState extends State<BoardsScreen>
               slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
-                    _S.base,
+                    20,
                     _S.xs,
-                    _S.base,
+                    20,
                     132,
                   ),
                   sliver: SliverList(

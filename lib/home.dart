@@ -970,28 +970,28 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   // Exact clearance: safeBottom + nav margin(16) + nav(86) + chat(60) + gap(8)
                   final bottomPad = safeBottom2 + 16.0 + 86.0 + 60.0 + 8.0;
 
-                  return SingleChildScrollView(
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: bottomPad),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: hPad),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTopBar(),
-                          _buildGreetingBlock(),
-                          SizedBox(
-                            height: heroHFinal,
-                            child: _buildHeroCard(),
-                          ),
-                          const SizedBox(height: heroGap),
-                          SizedBox(
-                            height: secondaryRowH,
-                            child: _buildSecondaryRow(),
-                          ),
-                        ],
-                      ),
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      left: hPad,
+                      right: hPad,
+                      bottom: bottomPad,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTopBar(),
+                        _buildGreetingBlock(),
+                        SizedBox(
+                          height: heroHFinal,
+                          child: _buildHeroCard(),
+                        ),
+                        const SizedBox(height: heroGap),
+                        SizedBox(
+                          height: secondaryRowH,
+                          child: _buildSecondaryRow(),
+                        ),
+                      ],
                     ),
                   );
                 },
