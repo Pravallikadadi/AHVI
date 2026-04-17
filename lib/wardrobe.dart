@@ -2472,7 +2472,7 @@ class _AppHeader extends StatelessWidget {
         color: t.backgroundPrimary.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
       child: Column(
         children: [
           Padding(
@@ -2485,7 +2485,7 @@ class _AppHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const AhviHomeText(
-                        fontSize: 36,
+                        fontSize: 30,
                         letterSpacing: 3.2,
                         fontWeight: FontWeight.w400,
                       ),

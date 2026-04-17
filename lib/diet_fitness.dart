@@ -151,7 +151,7 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
                   text: '${AppLocalizations.t(context, 'diet_and')} ',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 19,
+                    fontSize: 22,
                     fontWeight: FontWeight.w600,
                     color: t.textPrimary,
                     letterSpacing: -0.3,
@@ -161,8 +161,8 @@ class _DietAndFitnessScreenState extends State<DietAndFitnessScreen>
                   text: AppLocalizations.t(context, 'fitness'),
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 19,
-                    fontWeight: FontWeight.w300,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
                     color: t.textPrimary,
                     letterSpacing: -0.3,
                   ),

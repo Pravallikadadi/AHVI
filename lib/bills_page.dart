@@ -561,15 +561,11 @@ class _BillsScreenState extends State<BillsScreen>
               glowA: _accent.withValues(alpha: 0.22),
               glowB: _accent2.withValues(alpha: 0.15),
             ),
-            SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  _buildHeader(),
-                  Expanded(child: _buildScrollArea()),
-                  _buildBottomActions(),
-                ],
-              ),
+            Column(
+              children: [
+                Expanded(child: _buildScrollArea()),
+                _buildBottomActions(),
+              ],
             ),
             SafeArea(
               top: false,
@@ -705,7 +701,7 @@ class _BillsScreenState extends State<BillsScreen>
       children: [
         // ── Sticky top section (spending card + filter tabs) ──
         Padding(
-          padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

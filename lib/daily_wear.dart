@@ -220,6 +220,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
 
+  late AnimationController _pageEntryCtrl;
+  late Animation<double> _pageEntryFade;
+
 
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
@@ -462,6 +465,15 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _startAutoPlay();
     _pageController.addListener(_onPageScroll);
     _fetchWeather();
+
+    _pageEntryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _pageEntryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pageEntryCtrl, curve: Curves.easeOut),
+    );
+    _pageEntryCtrl.forward();
   }
 
   void _restartOptionCardAnimations() {
@@ -698,6 +710,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _optCard0Ctrl.dispose();
     _optCard1Ctrl.dispose();
     _optCard2Ctrl.dispose();
+    _pageEntryCtrl.dispose();
     super.dispose();
   }
 
@@ -1257,7 +1270,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return FadeTransition(
+      opacity: _pageEntryFade,
+      child: PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
@@ -1305,6 +1320,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             if (_tryOnOpen) _buildTryOnOverlay(),
           ],
         ),
+      ),
       ),
     );
   }

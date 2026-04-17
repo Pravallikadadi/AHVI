@@ -128,8 +128,6 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
             ),
             child: _buildTabBar(t),
           ),
-
-          // ── Tab content ──
           Expanded(
             child: IndexedStack(
               index: _tabController.index,
@@ -177,20 +175,20 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
                   text: AppLocalizations.t(context, 'home_title_bold'),
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 19,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                     color: t.textPrimary,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.4,
                   ),
                 ),
                 TextSpan(
                   text: AppLocalizations.t(context, 'home_title_light'),
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 19,
-                    fontWeight: FontWeight.w300,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                     color: t.textPrimary,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.4,
                   ),
                 ),
               ],
@@ -204,7 +202,8 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
 
   // ── Tab bar ──
   Widget _buildTabBar(AppThemeTokens t) {
-    return Container(
+    return ClipRect(
+      child: Container(
       margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
@@ -214,6 +213,9 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
       ),
       child: TabBar(
         controller: _tabController,
+        padding: EdgeInsets.zero,
+        splashFactory: NoSplash.splashFactory,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
         indicator: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -251,6 +253,7 @@ class _HomeUtilitiesScreenState extends State<HomeUtilitiesScreen>
           Tab(text: AppLocalizations.t(context, 'home_tab_bills')),
           Tab(text: AppLocalizations.t(context, 'home_tab_contacts')),
         ],
+      ),
       ),
     );
   }
