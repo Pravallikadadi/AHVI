@@ -958,16 +958,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
             child: SafeArea(
               top: true,
               bottom: false,
-              child: Builder(
-                builder: (context) {
-                  final mq = MediaQuery.of(context);
-                  final screenH = mq.size.height;
-                  final safeTop = mq.padding.top;
-                  final safeBottom = mq.padding.bottom;
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final safeBottom = MediaQuery.of(context).padding.bottom;
                   // nav(86) + navMargin(16) + chatBar(64) + chatMargin(8) + safeBottom
                   final reservedBottom = safeBottom + 174.0;
-                  final usableH = screenH - safeTop - reservedBottom;
-                  // heroH = usable minus topBar(60) + greeting(100) + gap(10) + secondaryRow(90)
+                  // constraints.maxHeight is already below SafeArea top
+                  final usableH = constraints.maxHeight - reservedBottom;
                   final heroH = (usableH - 260.0).clamp(160.0, 280.0);
                   return SizedBox(
                     height: usableH,
@@ -975,7 +972,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                       padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.max,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           _buildTopBar(),
                           _buildGreetingBlock(),

@@ -464,7 +464,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
     _startAutoPlay();
     _pageController.addListener(_onPageScroll);
-    _fetchWeather();
+    // Delay weather fetch until after the route entry transition completes.
+    // Calling setState during the transition causes the page to appear faded/stuck.
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) _fetchWeather();
+    });
 
     _pageEntryCtrl = AnimationController(vsync: this, duration: Duration.zero);
     _pageEntryFade = Tween<double>(begin: 1.0, end: 1.0).animate(_pageEntryCtrl);

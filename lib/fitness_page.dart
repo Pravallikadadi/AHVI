@@ -393,10 +393,35 @@ class _HeroCardState extends State<_HeroCard> {
               ),
             ),
           ),
-          // Quote text — center aligned with subtitle
-          Positioned.fill(
+          // Left-side gradient overlay so text is always readable
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: MediaQuery.of(context).size.width * 0.58,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF9B7FD4).withValues(alpha: 1.0),
+                    const Color(0xFF9B7FD4).withValues(alpha: 0.85),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.65, 1.0],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+              ),
+            ),
+          ),
+          // Quote text — constrained to left half, rendered above gradient
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: MediaQuery.of(context).size.width * 0.52,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(26, 0, 26, 0),
+              padding: const EdgeInsets.fromLTRB(26, 0, 12, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -404,25 +429,22 @@ class _HeroCardState extends State<_HeroCard> {
                   Text(
                     AppLocalizations.t(context, _kFitnessQuoteKeys[0].quoteKey),
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
-                      height: 1.15,
-                      letterSpacing: -0.5,
+                      height: 1.2,
+                      letterSpacing: -0.3,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.45,
-                    child: Text(
-                      AppLocalizations.t(context, _kFitnessQuoteKeys[0].subKey),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white.withValues(alpha: 0.75),
-                        letterSpacing: 0.2,
-                        height: 1.4,
-                      ),
+                  Text(
+                    AppLocalizations.t(context, _kFitnessQuoteKeys[0].subKey),
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white.withValues(alpha: 0.80),
+                      letterSpacing: 0.2,
+                      height: 1.4,
                     ),
                   ),
                   const SizedBox(height: 10),
