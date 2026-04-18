@@ -956,30 +956,40 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               );
             },
             child: SafeArea(
-              top: widget.onShellNavTap == null,
+              top: true,
               bottom: false,
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Padding(
-                  padding: EdgeInsets.only(left: 20.0, right: 20.0, bottom: MediaQuery.of(context).padding.bottom + 160.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildTopBar(),
-                      _buildGreetingBlock(),
-                      SizedBox(
-                        height: 240.0,
-                        child: _buildHeroCard(),
-                      ),
-                      const SizedBox(height: 10.0),
-                      SizedBox(
-                        height: 90.0,
-                        child: _buildSecondaryRow(),
-                      ),
-                    ],
-                  ),
-                ),
+              child: Builder(
+                builder: (context) {
+                  final mq = MediaQuery.of(context);
+                  final screenH = mq.size.height;
+                  final safeTop = mq.padding.top;
+                  final safeBottom = mq.padding.bottom;
+                  // nav(86) + navMargin(16) + chatBar(64) + chatMargin(8) + safeBottom
+                  final reservedBottom = safeBottom + 174.0;
+                  final usableH = screenH - safeTop - reservedBottom;
+                  // topBar ~60, greeting ~100, gap 10, secondaryRow 90
+                  final heroH = (usableH - 260.0).clamp(180.0, 280.0);
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTopBar(),
+                        _buildGreetingBlock(),
+                        SizedBox(
+                          height: heroH,
+                          child: _buildHeroCard(),
+                        ),
+                        const SizedBox(height: 10.0),
+                        SizedBox(
+                          height: 90.0,
+                          child: _buildSecondaryRow(),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -990,11 +1000,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
             builder: (context) {
               final keyboardH = MediaQuery.of(context).viewInsets.bottom;
               final safeBottom = MediaQuery.of(context).padding.bottom;
-              // nav top = safeBottom + 16(margin) + 86(totalH) = safeBottom + 102
-              // chat bar sits right on nav top edge
+              // standalone: above nav bar → safeBottom + 102
+              // shell: no nav bar → just above safe area → safeBottom + 16
               final chatBottom = keyboardH > 0
                   ? keyboardH + 8
-                  : safeBottom + 102.0;
+                  : widget.onShellNavTap != null
+                      ? safeBottom + 16.0
+                      : safeBottom + 102.0;
               return Positioned(
                 left: 0,
                 right: 0,

@@ -660,8 +660,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _suggestionBanner = banner;
       _tryOnOutfitId ??= sorted.first['id'] as String;
     });
-    _pageController.jumpToPage(0);
-    _restartOptionCardAnimations();
+    // Delay jumpToPage until after the route entry transition finishes.
+    // Calling it during the transition causes a visual flicker/fade on the page.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pageController.hasClients) _pageController.jumpToPage(0);
+      _restartOptionCardAnimations();
+    });
   }
 
   void _removeOverlay() {
@@ -762,7 +767,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.88,
         child: Scaffold(

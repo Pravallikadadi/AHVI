@@ -332,10 +332,10 @@ class _BoardsScreenState extends State<BoardsScreen>
         opaque: true,
         transitionDuration: _A.slow,
         reverseTransitionDuration: _A.slow,
-        // Wrap the page itself in FadeTransition + SlideTransition here.
-        // This way DailyWear fades/slides in using `animation`,
-        // but Flutter never applies a secondary fade to the boards page.
-        pageBuilder: (context, animation, secondary) {
+        pageBuilder: (context, animation, secondary) => page,
+        transitionsBuilder: (context, animation, secondary, child) {
+          // Use only `animation` (incoming page) — ignore `secondary`
+          // entirely so the boards page never gets a fade-out applied to it.
           final curved = CurvedAnimation(
             parent: animation,
             curve: _A.pageEntry,
@@ -347,11 +347,10 @@ class _BoardsScreenState extends State<BoardsScreen>
                 begin: const Offset(0.04, 0),
                 end: Offset.zero,
               ).animate(curved),
-              child: page,
+              child: child,
             ),
           );
         },
-        transitionsBuilder: (context, animation, secondary, child) => child,
         maintainState: true,
       ),
     );
