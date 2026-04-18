@@ -621,17 +621,25 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
     final w = wm[code] ?? wm[2]!;
     if (!mounted) return;
-    setState(() {
-      _weatherIcon = w[0];
-      _weatherLabel = '${w[1]} · $feelsLike';
-      _weatherDetail = w[2];
-      _weatherTemp = '$temp°';
-      _weatherContext = '${w[1]}, $feelsLike, $temp°C';
-    });
-    _sortOutfitsForWeather(temp);
+
+    // Merge weather data + outfit reorder into ONE deferred setState
+    // to prevent the double-rebuild flash/fade.
+    _applyWeatherAndSort(
+      temp: temp,
+      icon: w[0],
+      label: '${w[1]} · $feelsLike',
+      detail: w[2],
+      weatherCtx: '${w[1]}, $feelsLike, $temp°C',
+    );
   }
 
-  void _sortOutfitsForWeather(int temp) {
+  void _applyWeatherAndSort({
+    required int temp,
+    required String icon,
+    required String label,
+    required String detail,
+    required String weatherCtx,
+  }) {
     int score(Map<String, dynamic> outfit) {
       final range = ((outfit['range'] as List?)?.cast<int>() ?? [0, 99]);
       final low = range[0];
@@ -644,28 +652,27 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final sorted = List<Map<String, dynamic>>.from(_buildAllOutfits(context))
       ..sort((a, b) => score(b).compareTo(score(a)));
     final hero = sorted.first;
-    final icon = temp >= 30
-        ? '🌡️'
-        : temp >= 22
-        ? '🌤️'
-        : temp >= 15
-        ? '🍃'
-        : '🧣';
+    final tempIcon = temp >= 30 ? '🌡️' : temp >= 22 ? '🌤️' : temp >= 15 ? '🍃' : '🧣';
     final banner = score(hero) == 2
         ? AppLocalizations.t(context, 'banner_perfect_fit')
-            .replaceAll('{icon}', icon)
+            .replaceAll('{icon}', tempIcon)
             .replaceAll('{name}', AppLocalizations.t(context, hero['nameKey'] as String))
             .replaceAll('{temp}', '$temp')
         : AppLocalizations.t(context, 'banner_sorted_for')
-            .replaceAll('{icon}', icon)
+            .replaceAll('{icon}', tempIcon)
             .replaceAll('{temp}', '$temp');
-    // Defer the full reorder + banner update to after the current frame renders.
-    // Doing setState here directly causes the screen to flash/fade because it
-    // triggers a full rebuild mid-transition. Using addPostFrameCallback ensures
-    // the existing frame paints first, then we update smoothly.
+
+    // Single postFrameCallback — ONE setState for both weather + outfit data.
+    // Previously: setState (weather) → _sortOutfitsForWeather → setState (outfits)
+    // = 2 rebuilds = flash. Now: 1 rebuild = no flash.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       setState(() {
+        _weatherIcon = icon;
+        _weatherLabel = label;
+        _weatherDetail = detail;
+        _weatherTemp = '$temp°';
+        _weatherContext = weatherCtx;
         _displayedOutfits = sorted;
         _carouselIndex = 0;
         _suggestionBanner = banner;
@@ -677,6 +684,17 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         _restartOptionCardAnimations();
       });
     });
+  }
+
+  void _sortOutfitsForWeather(int temp) {
+    // Delegate to merged method — preserves existing weather display values
+    _applyWeatherAndSort(
+      temp: temp,
+      icon: _weatherIcon,
+      label: _weatherLabel,
+      detail: _weatherDetail,
+      weatherCtx: _weatherContext,
+    );
   }
 
   void _removeOverlay() {
