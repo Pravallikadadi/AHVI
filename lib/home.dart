@@ -960,33 +960,32 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               bottom: false,
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  // heroH: clamp so card looks good on all screen sizes
                   final safeBottom = MediaQuery.of(context).padding.bottom;
-                  // nav(86) + navMargin(16) + chatBar(64) + chatMargin(8) + safeBottom
-                  final reservedBottom = safeBottom + 174.0;
-                  // constraints.maxHeight is already below SafeArea top
-                  final usableH = constraints.maxHeight - reservedBottom;
+                  final safeTop = MediaQuery.of(context).padding.top;
+                  final screenH = MediaQuery.of(context).size.height;
+                  // nav(86) + navMargin(16) + chatBar(64) + chatMargin(8) + safeBottom + safeTop
+                  final reservedBottom = safeBottom + safeTop + 174.0;
+                  final usableH = screenH - reservedBottom;
                   final heroH = (usableH - 260.0).clamp(160.0, 280.0);
-                  return SizedBox(
-                    height: usableH,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 20.0, right: 20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildTopBar(),
-                          _buildGreetingBlock(),
-                          SizedBox(
-                            height: heroH,
-                            child: _buildHeroCard(),
-                          ),
-                          const SizedBox(height: 10.0),
-                          SizedBox(
-                            height: 90.0,
-                            child: _buildSecondaryRow(),
-                          ),
-                        ],
-                      ),
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTopBar(),
+                        _buildGreetingBlock(),
+                        SizedBox(
+                          height: heroH,
+                          child: _buildHeroCard(),
+                        ),
+                        const SizedBox(height: 10.0),
+                        SizedBox(
+                          height: 90.0,
+                          child: _buildSecondaryRow(),
+                        ),
+                      ],
                     ),
                   );
                 },

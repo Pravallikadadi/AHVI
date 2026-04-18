@@ -466,7 +466,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _pageController.addListener(_onPageScroll);
     // Delay weather fetch until after the route entry transition completes.
     // Calling setState during the transition causes the page to appear faded/stuck.
-    Future.delayed(const Duration(milliseconds: 400), () {
+    // 700ms gives enough room for the route animation (typically 300–400ms) to finish.
+    Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) _fetchWeather();
     });
 
@@ -658,18 +659,23 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         : AppLocalizations.t(context, 'banner_sorted_for')
             .replaceAll('{icon}', icon)
             .replaceAll('{temp}', '$temp');
-    setState(() {
-      _displayedOutfits = sorted;
-      _carouselIndex = 0;
-      _suggestionBanner = banner;
-      _tryOnOutfitId ??= sorted.first['id'] as String;
-    });
-    // Delay jumpToPage until after the route entry transition finishes.
-    // Calling it during the transition causes a visual flicker/fade on the page.
+    // Defer the full reorder + banner update to after the current frame renders.
+    // Doing setState here directly causes the screen to flash/fade because it
+    // triggers a full rebuild mid-transition. Using addPostFrameCallback ensures
+    // the existing frame paints first, then we update smoothly.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_pageController.hasClients) _pageController.jumpToPage(0);
-      _restartOptionCardAnimations();
+      setState(() {
+        _displayedOutfits = sorted;
+        _carouselIndex = 0;
+        _suggestionBanner = banner;
+        _tryOnOutfitId ??= sorted.first['id'] as String;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_pageController.hasClients) _pageController.jumpToPage(0);
+        _restartOptionCardAnimations();
+      });
     });
   }
 
@@ -1299,10 +1305,21 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                     _buildHeader(),
                     const SizedBox(height: 16),
                     _buildWeatherBar(),
-                    if (_suggestionBanner != null) ...[
-                      const SizedBox(height: 14),
-                      _buildSuggestionBanner(),
-                    ],
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeInOut,
+                      child: _suggestionBanner != null
+                          ? Padding(
+                              padding: const EdgeInsets.only(top: 14),
+                              child: AnimatedOpacity(
+                                opacity: 1.0,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeOut,
+                                child: _buildSuggestionBanner(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
                     const SizedBox(height: 16),
                     _buildCarousel(),
                     const SizedBox(height: 24),
