@@ -762,6 +762,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.88,
         child: Scaffold(

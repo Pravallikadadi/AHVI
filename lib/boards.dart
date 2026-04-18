@@ -329,10 +329,13 @@ class _BoardsScreenState extends State<BoardsScreen>
     HapticFeedback.lightImpact();
     Navigator.of(context).push(
       PageRouteBuilder<void>(
+        opaque: true,
         transitionDuration: _A.slow,
         reverseTransitionDuration: _A.slow,
-        pageBuilder: (context, animation, secondary) => page,
-        transitionsBuilder: (context, animation, secondary, child) {
+        // Wrap the page itself in FadeTransition + SlideTransition here.
+        // This way DailyWear fades/slides in using `animation`,
+        // but Flutter never applies a secondary fade to the boards page.
+        pageBuilder: (context, animation, secondary) {
           final curved = CurvedAnimation(
             parent: animation,
             curve: _A.pageEntry,
@@ -344,10 +347,12 @@ class _BoardsScreenState extends State<BoardsScreen>
                 begin: const Offset(0.04, 0),
                 end: Offset.zero,
               ).animate(curved),
-              child: child,
+              child: page,
             ),
           );
         },
+        transitionsBuilder: (context, animation, secondary, child) => child,
+        maintainState: true,
       ),
     );
   }
