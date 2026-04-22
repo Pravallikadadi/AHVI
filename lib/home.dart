@@ -831,7 +831,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       }
     });
 
-    final tagDelay = 150;
+    const int tagDelay = 150;
 
     Future.delayed(Duration(milliseconds: tagDelay), () {
       if (!mounted) return;
@@ -1398,7 +1398,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
         itemCount: _prepareChipKeys.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 7),
+        separatorBuilder: (_, __) => const SizedBox(width: 7),
         itemBuilder: (_, i) {
           // 🆕 label localized, prompt English గా పంపుతున్నాం
           return _PrepareQuickChip(
@@ -1526,7 +1526,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                 (224 * MediaQuery.of(context).devicePixelRatio)
                                     .round(),
                             filterQuality: FilterQuality.low,
-                            errorBuilder: (_, _, _) => Container(
+                            errorBuilder: (_ctx, _err, _st) => Container(
                               color: _accent.withValues(alpha: 0.1),
                               child: Icon(Icons.image, color: _textMuted),
                             ),
@@ -2015,7 +2015,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                           (112 * MediaQuery.of(context).devicePixelRatio)
                               .round(),
                       filterQuality: FilterQuality.low,
-                      errorBuilder: (_, _, _) => Container(
+                      errorBuilder: (_ctx, _err, _st) => Container(
                         color: _accent.withValues(alpha: 0.1),
                         child: Icon(Icons.image, color: _textMuted),
                       ),
@@ -2542,7 +2542,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
               const SizedBox(width: 10),
               AnimatedBuilder(
                 animation: _thinkingCtrl,
-                builder: (_, _) {
+                builder: (_, __) {
                   Widget dot(int i) {
                     const period = 1.0;
                     const phaseShift = 0.125;
@@ -2713,7 +2713,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           const SizedBox(height: 14),
           AnimatedBuilder(
             animation: _tagsRevealCtrl,
-            builder: (_, _) => Opacity(
+            builder: (_, __) => Opacity(
               opacity: _tagsRevealCtrl.value,
               child: Transform.translate(
                 offset: Offset(0, 7 * (1 - _tagsRevealCtrl.value)),
@@ -2804,7 +2804,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                             (outfitStripH * 0.62 * MediaQuery.of(context).devicePixelRatio)
                                 .round(),
                         filterQuality: FilterQuality.low,
-                        errorBuilder: (_, _, _) =>
+                        errorBuilder: (_ctx, _err, _st) =>
                             Container(color: _accent.withValues(alpha: 0.1)),
                       ),
                     ),
@@ -3336,7 +3336,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                       fit: BoxFit.cover,
                                       cacheWidth: 264,
                                       cacheHeight: 192,
-                                      errorBuilder: (_, _, _) => Container(
+                                      errorBuilder: (_ctx, _err, _st) => Container(
                                         color: _panel,
                                         alignment: Alignment.center,
                                         child: Icon(
@@ -3978,7 +3978,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                                 ).devicePixelRatio)
                                             .round(),
                                     filterQuality: FilterQuality.low,
-                                    errorBuilder: (_, _, _) => Container(
+                                    errorBuilder: (_ctx, _err, _st) => Container(
                                       color: _accent.withValues(alpha: 0.1),
                                       child: Icon(
                                         Icons.image,

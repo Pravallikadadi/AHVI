@@ -29,6 +29,9 @@ class AhviChatPromptBar extends StatelessWidget {
   final VoidCallback? onFindSimilar;
   final VoidCallback? onAddToWardrobe;
 
+  // ── Plus button override (optional — if null, lens sheet opens by default) ──
+  final VoidCallback? onPlusTap;
+
   // ── Voice ─────────────────────────────────────────────────────────────
   final VoidCallback? onVoiceTap;
   final bool isListening;
@@ -53,6 +56,7 @@ class AhviChatPromptBar extends StatelessWidget {
     this.onVisualSearch,
     this.onFindSimilar,
     this.onAddToWardrobe,
+    this.onPlusTap,
     this.onVoiceTap,
     this.isListening = false,
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -115,7 +119,7 @@ class AhviChatPromptBar extends StatelessWidget {
                   Builder(
                     builder: (btnCtx) => _ChatPromptPressable(
                       scalePressed: 0.88,
-                      onTap: () => _openLensSheet(btnCtx),
+                      onTap: () => onPlusTap != null ? onPlusTap!() : _openLensSheet(btnCtx),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
