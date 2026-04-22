@@ -1125,18 +1125,11 @@ Builder(builder: (ctx) {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              if (_seeAllOpen) _closeSeeAll();
-              if (_overlayState != _OverlayState.idle) _dismissOverlay();
-            },
-            child: AhviHomeText(
-              color: _textHeading,
-              fontSize: logoFontSize,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
+          AhviHomeText(
+            color: _textHeading,
+            fontSize: logoFontSize,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
           ),
           _buildProfileAvatar(),
         ],
