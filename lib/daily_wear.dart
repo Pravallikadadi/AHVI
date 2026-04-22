@@ -659,21 +659,28 @@ _optCard2Fade = Tween<double>(begin: 0, end: 1).animate(_optCard2Ctrl);
     // = 2 rebuilds = flash. Now: 1 rebuild = no flash.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() {
-        _weatherIcon = icon;
-        _weatherLabel = label;
-        _weatherDetail = detail;
-        _weatherTemp = '$temp°';
-        _weatherContext = weatherCtx;
-        _displayedOutfits = sorted;
-        _carouselIndex = 0;
-        _suggestionBanner = banner;
-        _tryOnOutfitId ??= sorted.first['id'] as String;
-      });
+      if (_weatherTemp != '$temp°') {
+        setState(() {
+          _weatherIcon = icon;
+          _weatherLabel = label;
+          _weatherDetail = detail;
+          _weatherTemp = '$temp°';
+          _weatherContext = weatherCtx;
+          _displayedOutfits = sorted;
+          _carouselIndex = 0;
+          _suggestionBanner = banner;
+          _tryOnOutfitId ??= sorted.first['id'] as String;
+        });
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        if (_pageController.hasClients) _pageController.jumpToPage(0);
-        _restartOptionCardAnimations();
+        if (_pageController.hasClients) {
+          _pageController.animateToPage(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
       });
     });
   }
