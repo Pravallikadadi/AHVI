@@ -322,24 +322,29 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     // they require AppLocalizations (an InheritedWidget) which is not
     // available during initState().
 
-    _updateClock();
-    _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted) _updateClock();
-    });
-    final now = DateTime.now();
-    final nextMinute = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      now.hour,
-      now.minute + 1,
-    );
-    _clockAlignTimer = Timer(nextMinute.difference(now), () {
+    // Delay first clock setState until after the route transition finishes (~300ms).
+    // Calling setState during the push animation causes the screen to appear faded/stuck.
+    Future.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
       _updateClock();
-      _clockTimer?.cancel();
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
         if (mounted) _updateClock();
+      });
+      final now = DateTime.now();
+      final nextMinute = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute + 1,
+      );
+      _clockAlignTimer = Timer(nextMinute.difference(now), () {
+        if (!mounted) return;
+        _updateClock();
+        _clockTimer?.cancel();
+        _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+          if (mounted) _updateClock();
+        });
       });
     });
 
@@ -733,7 +738,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _optCard0Ctrl.dispose();
     _optCard1Ctrl.dispose();
     _optCard2Ctrl.dispose();
-    super.dispose();
+
   }
 
   void _showToast(String message, {bool green = false}) {
@@ -1182,7 +1187,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _chatHistory.length,
-                      separatorBuilder: (_, _) => Divider(
+                      separatorBuilder: (_, __) => Divider(
                           color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
                       itemBuilder: (_, i) {
                         final session = _chatHistory[i];
@@ -2016,7 +2021,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: optionCards.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, i) {
                   return SizedBox(
                     width: 180,
@@ -2454,7 +2459,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
       itemCount: quickPrompts.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 8),
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
       itemBuilder: (_, i) => _PressScaleButton(
         scaleDown: 0.94,
         onTap: () => _sendMessage(quickPrompts[i]),

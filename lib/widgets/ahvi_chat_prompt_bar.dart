@@ -111,7 +111,7 @@ class AhviChatPromptBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 320;
+            final compact = constraints.maxWidth < 260;
             return Row(
               children: [
                 // ── Plus button → Lens sheet open చేస్తుంది ───────────

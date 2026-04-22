@@ -2121,13 +2121,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
-      onPlusTap: () => showAhviLensSheet(
-        context,
-        t: _t,
-        onVisualSearch: null,
-        onFindSimilar: null,
-        onAddToWardrobe: null,
-      ),
+      onPlusTap: _openPlusMenu,
+      padding: EdgeInsets.zero,
       onSendMessage: (text) {
         _chatFocusNode.unfocus();
         _openChatWithPrompt(text);
