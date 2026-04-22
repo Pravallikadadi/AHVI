@@ -1049,7 +1049,9 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       ) {
     return GestureDetector(
       onTap: () {
-        FocusScope.of(context).unfocus();
+        _nameFocus.unfocus();
+        _phoneFocus.unfocus();
+        FocusManager.instance.primaryFocus?.unfocus();
         _showPicker(hint, options, onChanged);
       },
       child: AnimatedContainer(
@@ -1105,9 +1107,24 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       List<String> options,
       ValueChanged<String?> onChanged,
       ) {
-    // Dismiss keyboard before opening picker so it never appears alongside sheet
-    FocusScope.of(context).unfocus();
+    // Explicitly unfocus all text fields so keyboard fully dismisses
+    _nameFocus.unfocus();
+    _phoneFocus.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
 
+    // Short delay lets the keyboard fully close before sheet opens,
+    // preventing Flutter from re-raising the keyboard for the sheet
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
+      _doShowPicker(title, options, onChanged);
+    });
+  }
+
+  void _doShowPicker(
+      String title,
+      List<String> options,
+      ValueChanged<String?> onChanged,
+      ) {
     int tempIndex = 0;
     showModalBottomSheet(
       context: context,
