@@ -967,11 +967,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
                   // Responsive secondary row height — shrink on small screens
                   final secondaryH = screenH < 700 ? 110.0 : 120.0;
-                  // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + gaps
+                  // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + navBar + gaps
                   const chatBarH = 64.0;
+                  const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
                   const topSectionH = 178.0;
                   const spacing = 30.0;
-                  final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - spacing)
+                  final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
                       .clamp(160.0, 380.0);
 
                   return SizedBox(
@@ -997,6 +998,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 6),
                           _buildChatWrap(),
+                          // Space so nav bar doesn't overlap the prompt bar
+                          const SizedBox(height: navBarH),
                         ],
                       ),
                     ),

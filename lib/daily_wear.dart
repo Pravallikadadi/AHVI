@@ -286,16 +286,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final borders = [accentColor, accent3Color, accent2Color];
     final gradients = [
       [
-        accentColor.withValues(alpha: 0.14),
-        accentColor.withValues(alpha: 0.06),
+        accentColor.withValues(alpha: 0.22),
+        accentColor.withValues(alpha: 0.10),
       ],
       [
-        accent3Color.withValues(alpha: 0.12),
-        accent3Color.withValues(alpha: 0.05),
+        accent3Color.withValues(alpha: 0.20),
+        accent3Color.withValues(alpha: 0.09),
       ],
       [
-        accent2Color.withValues(alpha: 0.13),
-        accent2Color.withValues(alpha: 0.06),
+        accent2Color.withValues(alpha: 0.21),
+        accent2Color.withValues(alpha: 0.10),
       ],
     ];
     return List.generate(options.length, (index) {
@@ -1779,9 +1779,9 @@ void dispose() {
                 colors: [
                   Colors.black.withValues(alpha: 0.02),
                   Colors.black.withValues(alpha: 0),
-                  Colors.black.withValues(alpha: 0.20),
-                  Colors.black.withValues(alpha: 0.50),
-                  Colors.black.withValues(alpha: 0.72),
+                  Colors.black.withValues(alpha: 0.30),
+                  Colors.black.withValues(alpha: 0.62),
+                  Colors.black.withValues(alpha: 0.84),
                 ],
               ),
             ),
@@ -1893,9 +1893,9 @@ void dispose() {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: Colors.white.withValues(alpha: 0.22),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
                         ),
                         child: Text(
                           t,
@@ -3633,7 +3633,7 @@ class _BgGradientPainter extends CustomPainter {
         center: const Alignment(-0.8, -0.84),
         radius: 0.65,
         colors: [
-          primary.withValues(alpha: 0.12),
+          primary.withValues(alpha: 0.18),
           primary.withValues(alpha: 0.0),
         ],
       ),
@@ -3641,7 +3641,7 @@ class _BgGradientPainter extends CustomPainter {
         center: const Alignment(0.76, 0.64),
         radius: 0.55,
         colors: [
-          secondary.withValues(alpha: 0.10),
+          secondary.withValues(alpha: 0.16),
           secondary.withValues(alpha: 0.0),
         ],
       ),
@@ -3649,7 +3649,7 @@ class _BgGradientPainter extends CustomPainter {
         center: Alignment.center,
         radius: 0.45,
         colors: [
-          tertiary.withValues(alpha: 0.07),
+          tertiary.withValues(alpha: 0.12),
           tertiary.withValues(alpha: 0.0),
         ],
       ),

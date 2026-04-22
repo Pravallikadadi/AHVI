@@ -37,11 +37,11 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         backgroundPrimary: BaseTheme.lightBgPrimary,
         backgroundSecondary: BaseTheme.lightBgSecondary,
         textPrimary: BaseTheme.lightText,
-        mutedText: BaseTheme.lightMuted,
-        panel: const Color(0xFFFFFFFF),
-        panelBorder: const Color(0xFFD8E0F5),
-        card: const Color(0xFFFFFFFF),
-        cardBorder: const Color(0xFFE5E9F7),
+        mutedText: const Color(0xFF7A7F96), // was BaseTheme.lightMuted — darkened for contrast
+        panel: const Color(0xFFF0F2FA),     // was 0xFFFFFFFF — off-white so panels lift off bg
+        panelBorder: const Color(0xFFB8C0DC), // was 0xFFD8E0F5 — stronger border
+        card: const Color(0xFFF0F2FA),      // was 0xFFFFFFFF — matches panel
+        cardBorder: const Color(0xFFC4CCDF), // was 0xFFE5E9F7 — clearly visible edge
         phoneShell: BaseTheme.lightPhoneShell,
         phoneShellInner: BaseTheme.lightPhoneShellInner,
         tileText: const Color(0xFF182031),
