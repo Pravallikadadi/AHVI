@@ -97,23 +97,10 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   @override
   AppThemeTokens lerp(ThemeExtension<AppThemeTokens>? other, double t) {
     if (other is! AppThemeTokens) return this;
-    return AppThemeTokens(
-      backgroundPrimary:
-          Color.lerp(backgroundPrimary, other.backgroundPrimary, t)!,
-      backgroundSecondary:
-          Color.lerp(backgroundSecondary, other.backgroundSecondary, t)!,
-      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
-      mutedText: Color.lerp(mutedText, other.mutedText, t)!,
-      panel: Color.lerp(panel, other.panel, t)!,
-      panelBorder: Color.lerp(panelBorder, other.panelBorder, t)!,
-      card: Color.lerp(card, other.card, t)!,
-      cardBorder: Color.lerp(cardBorder, other.cardBorder, t)!,
-      phoneShell: Color.lerp(phoneShell, other.phoneShell, t)!,
-      phoneShellInner:
-          Color.lerp(phoneShellInner, other.phoneShellInner, t)!,
-      tileText: Color.lerp(tileText, other.tileText, t)!,
-      accent: other.accent,
-    );
+    // Snap at the halfway point instead of blending — avoids the washed-out
+    // mid-transition state where light and dark colors average to grey.
+    if (t >= 0.5) return other;
+    return this;
   }
 }
 

@@ -324,6 +324,7 @@ void initState() {
     // SAFE: runs after UI is built
     _startAutoPlay();
     _restartOptionCardAnimations();
+    _fabEntryCtrl.forward();
 
     // Clock
     Future.delayed(const Duration(milliseconds: 500), () {
