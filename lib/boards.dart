@@ -329,13 +329,11 @@ class _BoardsScreenState extends State<BoardsScreen>
     HapticFeedback.lightImpact();
     Navigator.of(context).push(
       PageRouteBuilder<void>(
-        opaque: false,
+        opaque: true,
         transitionDuration: _A.slow,
         reverseTransitionDuration: _A.slow,
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (context, animation, secondary, child) {
-          // `secondary` intentionally ignored — boards page stays fully
-          // visible behind the incoming screen with no fade-out.
           final curved = CurvedAnimation(
             parent: animation,
             curve: _A.pageEntry,
