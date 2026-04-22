@@ -2121,16 +2121,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
-      onPlusTap: _openPlusMenu,
+      onPlusTap: () => showAhviLensSheet(
+        context,
+        t: _t,
+        onVisualSearch: () => _showComingSoon(),
+        onFindSimilar: () => _showComingSoon(),
+        onAddToWardrobe: () => _showComingSoon(),
+      ),
       padding: EdgeInsets.zero,
       onSendMessage: (text) {
         _chatFocusNode.unfocus();
         _openChatWithPrompt(text);
       },
       themeTokens: _t,
-      onVisualSearch: null,
-      onFindSimilar: null,
-      onAddToWardrobe: null,
+      onVisualSearch: () => _showComingSoon(),
+      onFindSimilar: () => _showComingSoon(),
+      onAddToWardrobe: () => _showComingSoon(),
     );
   }
 

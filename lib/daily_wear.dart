@@ -324,7 +324,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
     // Delay first clock setState until after the route transition finishes (~300ms).
     // Calling setState during the push animation causes the screen to appear faded/stuck.
-    Future.delayed(const Duration(milliseconds: 350), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       _updateClock();
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -464,11 +464,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       end: 0.85,
     ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
 
-    _startAutoPlay();
     _pageController.addListener(_onPageScroll);
-    // Delay weather fetch until after the route entry transition completes.
-    // Calling setState during the transition causes the page to appear faded/stuck.
-    // 700ms gives enough room for the route animation (typically 300–400ms) to finish.
+    // Delay ALL setState-triggering work until after the route entry transition.
+    // Running setState during the push animation causes the page to appear faded/stuck.
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      _startAutoPlay();
+      _restartOptionCardAnimations();
+    });
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) _fetchWeather();
     });
