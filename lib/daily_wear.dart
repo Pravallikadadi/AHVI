@@ -314,22 +314,26 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Map<String, dynamic> get _currentOutfit => _displayedOutfits[_carouselIndex];
 
-  @override
-  void initState() {
-    super.initState();
-    // NOTE: _displayedOutfits, _savedCarouselById, _savedOptionById and
-    // _tryOnOutfitId are initialized in didChangeDependencies() because
-    // they require AppLocalizations (an InheritedWidget) which is not
-    // available during initState().
+ @override
+void initState() {
+  super.initState();
 
-    // Delay first clock setState until after the route transition finishes (~300ms).
-    // Calling setState during the push animation causes the screen to appear faded/stuck.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!mounted) return;
+
+    // SAFE: runs after UI is built
+    _startAutoPlay();
+    _restartOptionCardAnimations();
+
+    // Clock
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
       _updateClock();
+
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
         if (mounted) _updateClock();
       });
+
       final now = DateTime.now();
       final nextMinute = DateTime(
         now.year,
@@ -338,6 +342,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         now.hour,
         now.minute + 1,
       );
+
       _clockAlignTimer = Timer(nextMinute.difference(now), () {
         if (!mounted) return;
         _updateClock();
@@ -348,140 +353,119 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       });
     });
 
-    _optCard0Ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _optCard1Ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _optCard2Ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _optCard0Slide = Tween<Offset>(
-      begin: const Offset(0, 0.35),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
-    _optCard1Slide = Tween<Offset>(
-      begin: const Offset(0, 0.35),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
-    _optCard2Slide = Tween<Offset>(
-      begin: const Offset(0, 0.35),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-    _optCard0Fade = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
-    _optCard1Fade = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
-    _optCard2Fade = Tween<double>(
-      begin: 0,
-      end: 1,
-    ).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-    // NOTE: _restartOptionCardAnimations() is intentionally NOT called here.
-    // Calling it during initState fires the fade-in animations while the route
-    // push transition is still running, which makes the whole screen appear
-    // washed-out/faded. The call inside the 400 ms Future.delayed below is
-    // the only one that should trigger the initial card animations.
-
-    _fabEntryCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fabEntryScale = Tween<double>(
-      begin: 0.4,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _fabEntryCtrl, curve: Curves.elasticOut));
-    _fabEntryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fabEntryCtrl,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) _fabEntryCtrl.forward();
-    });
-
-    _fabPulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2500),
-    )..repeat();
-    _fabPulseScale = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
-    _fabPulseOpacity = Tween<double>(
-      begin: 0.55,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
-
-    _chatSlideCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 440),
-    );
-    _chatSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _chatSlideCtrl,
-            curve: const Cubic(0.32, 0.72, 0, 1),
-          ),
-        );
-    _chatFadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _chatSlideCtrl, curve: const Interval(0, 0.4)),
-    );
-
-    _tryOnSlideCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 420),
-    );
-    _tryOnSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _tryOnSlideCtrl,
-            curve: const Cubic(0.32, 0.72, 0, 1),
-          ),
-        );
-    _tryOnFadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Interval(0, 0.4)),
-    );
-
-    _micPulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    );
-    _micPulseScale = Tween<double>(
-      begin: 1.0,
-      end: 1.08,
-    ).animate(CurvedAnimation(parent: _micPulseCtrl, curve: Curves.easeInOut));
-    _scanCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3000),
-    )..repeat();
-    _scanLineY = Tween<double>(
-      begin: 0.10,
-      end: 0.85,
-    ).animate(CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
-
-    _pageController.addListener(_onPageScroll);
-    // Delay ALL setState-triggering work until after the route entry transition.
-    // Running setState during the push animation causes the page to appear faded/stuck.
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (!mounted) return;
-      _startAutoPlay();
-      _restartOptionCardAnimations();
-    });
+    // Weather
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) _fetchWeather();
     });
+  });
 
+  // Controllers (keep same)
+  _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+  _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+  _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
 
-  }
+  _fabEntryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  _fabEntryScale = Tween<double>(
+  begin: 0.4,
+  end: 1.0,
+).animate(CurvedAnimation(
+  parent: _fabEntryCtrl,
+  curve: Curves.elasticOut,
+));
+
+_fabEntryOpacity = Tween<double>(
+  begin: 0.0,
+  end: 1.0,
+).animate(CurvedAnimation(
+  parent: _fabEntryCtrl,
+  curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+));
+  _fabPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
+  _fabPulseScale = Tween<double>(
+  begin: 0.8,
+  end: 1.4,
+).animate(CurvedAnimation(
+  parent: _fabPulseCtrl,
+  curve: Curves.easeOut,
+));
+
+_fabPulseOpacity = Tween<double>(
+  begin: 0.4,
+  end: 0.0,
+).animate(CurvedAnimation(
+  parent: _fabPulseCtrl,
+  curve: Curves.easeOut,
+));
+  _chatSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
+  _tryOnSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+// ✅ ADD THIS HERE
+
+_chatSlideAnim = Tween<Offset>(
+  begin: const Offset(0, 1),
+  end: Offset.zero,
+).animate(CurvedAnimation(
+  parent: _chatSlideCtrl,
+  curve: Curves.easeOut,
+));
+
+_chatFadeAnim = Tween<double>(
+  begin: 0.0,
+  end: 1.0,
+).animate(_chatSlideCtrl);
+
+_tryOnSlideAnim = Tween<Offset>(
+  begin: const Offset(0, 1),
+  end: Offset.zero,
+).animate(CurvedAnimation(
+  parent: _tryOnSlideCtrl,
+  curve: Curves.easeOut,
+));
+
+_tryOnFadeAnim = Tween<double>(
+  begin: 0.0,
+  end: 1.0,
+).animate(_tryOnSlideCtrl);
+  _micPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+  _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+// ✅ ADD THIS
+
+_micPulseScale = Tween<double>(
+  begin: 1.0,
+  end: 1.2,
+).animate(CurvedAnimation(
+  parent: _micPulseCtrl,
+  curve: Curves.easeInOut,
+));
+
+_scanLineY = Tween<double>(
+  begin: 0.0,
+  end: 1.0,
+).animate(CurvedAnimation(
+  parent: _scanCtrl,
+  curve: Curves.linear,
+));
+  _pageController.addListener(_onPageScroll);
+  // ✅ ADD THIS HERE (animation initialization)
+
+_optCard0Slide = Tween<Offset>(
+  begin: const Offset(0, 0.3),
+  end: Offset.zero,
+).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+
+_optCard1Slide = Tween<Offset>(
+  begin: const Offset(0, 0.3),
+  end: Offset.zero,
+).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+
+_optCard2Slide = Tween<Offset>(
+  begin: const Offset(0, 0.3),
+  end: Offset.zero,
+).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+
+_optCard0Fade = Tween<double>(begin: 0, end: 1).animate(_optCard0Ctrl);
+_optCard1Fade = Tween<double>(begin: 0, end: 1).animate(_optCard1Ctrl);
+_optCard2Fade = Tween<double>(begin: 0, end: 1).animate(_optCard2Ctrl);
+}
 
   void _restartOptionCardAnimations() {
     _optCard0Ctrl.forward(from: 0);
@@ -717,36 +701,38 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   // ──────────────────────────────────────────────────────────────────────
 
   @override
-  void dispose() {
-    _pageController.dispose();
-    _chatController.dispose();
-    _removeOverlay();
-    _chatScrollController.dispose();
-    _fabEntryCtrl.dispose();
-    _fabPulseCtrl.dispose();
-    _chatSlideCtrl.dispose();
-    _tryOnSlideCtrl.dispose();
-    _micPulseCtrl.dispose();
-    _scanCtrl.dispose();
-    _autoPlayTimer?.cancel();
-    _toastTimer?.cancel();
+void dispose() {
+  _pageController.removeListener(_onPageScroll);
+  _pageController.dispose();
+  _chatController.dispose();
+  _removeOverlay();
+  _chatScrollController.dispose();
+  _fabEntryCtrl.dispose();
+  _fabPulseCtrl.dispose();
+  _chatSlideCtrl.dispose();
+  _tryOnSlideCtrl.dispose();
+  _micPulseCtrl.dispose();
+  _scanCtrl.dispose();
+  _autoPlayTimer?.cancel();
+  _toastTimer?.cancel();
 
-    try {
-      _toastEntry?.remove();
-    } catch (_) {}
-    _chatFocusNode.dispose();
-    _clockAlignTimer?.cancel();
-    _clockTimer?.cancel();
-    _chatGreetingTimer?.cancel();
-    _tryOnStageTimer?.cancel();
-    for (final timer in _arTagTimers) {
-      timer.cancel();
-    }
-    _optCard0Ctrl.dispose();
-    _optCard1Ctrl.dispose();
-    _optCard2Ctrl.dispose();
-
+  try {
+    _toastEntry?.remove();
+  } catch (_) {}
+  _chatFocusNode.dispose();
+  _clockAlignTimer?.cancel();
+  _clockTimer?.cancel();
+  _chatGreetingTimer?.cancel();
+  _tryOnStageTimer?.cancel();
+  for (final timer in _arTagTimers) {
+    timer.cancel();
   }
+  _optCard0Ctrl.dispose();
+  _optCard1Ctrl.dispose();
+  _optCard2Ctrl.dispose();
+
+  super.dispose(); // ✅ ADD THIS
+}
 
   void _showToast(String message, {bool green = false}) {
     _toastEntry?.remove();
