@@ -618,6 +618,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
         curve: const Cubic(0.34, 1.56, 0.64, 1.0),
       );
       setState(() => _activeNavIdx = 0);
+      // 🔧 FIX: Shell కి కూడా Home index తెలియజేయి — nav bar తిరిగి కనపడుతుంది
+      if (widget.onShellNavTap != null) widget.onShellNavTap!(0);
     });
   }
 
@@ -1026,12 +1028,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           if (_plusMenuOpen) _buildPlusMenu(),
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
+          // 🔧 FIX: Keyboard open అయినా nav bar same position లో ఉండాలి — hide చేయకూడదు
           if (widget.onShellNavTap == null)
             Builder(builder: (ctx) {
-              final keyboardH = MediaQuery.viewInsetsOf(ctx).bottom;
               final safeB = MediaQuery.paddingOf(ctx).bottom;
-              final keyboardVisible = keyboardH > 50;
-              if (keyboardVisible) return const SizedBox.shrink();
               return Positioned(left: 16, right: 16, bottom: safeB + 8, child: _buildBottomNav());
             }),
 

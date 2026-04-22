@@ -308,6 +308,8 @@ class _MainNavigationShellState extends State<MainNavigationShell>
         },
         child: Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          // 🔧 FIX: Keyboard open అయినా nav bar పైకి వెళ్ళకూడదు
+          resizeToAvoidBottomInset: false,
           body: Stack(
             children: [
               // Page content
@@ -323,11 +325,11 @@ class _MainNavigationShellState extends State<MainNavigationShell>
                 ),
               ),
 
-              // Floating bottom nav
+              // Floating bottom nav — keyboard వచ్చినా fixed గా ఉంటుంది
               Positioned(
                 left: _S.base,
                 right: _S.base,
-                bottom: _S.base,
+                bottom: MediaQuery.paddingOf(context).bottom + _S.sm,
                 child: _buildBottomNav(navItems),
               ),
 
