@@ -1048,7 +1048,10 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       ValueChanged<String?> onChanged,
       ) {
     return GestureDetector(
-      onTap: () => _showPicker(hint, options, onChanged),
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        _showPicker(hint, options, onChanged);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
@@ -1102,10 +1105,15 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
       List<String> options,
       ValueChanged<String?> onChanged,
       ) {
+    // Dismiss keyboard before opening picker so it never appears alongside sheet
+    FocusScope.of(context).unfocus();
+
     int tempIndex = 0;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFFFFFFFF),
+      isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

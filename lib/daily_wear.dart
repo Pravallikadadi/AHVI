@@ -1716,12 +1716,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: panelColor,
+                color: Colors.black.withValues(alpha: 0.35),
                 shape: BoxShape.circle,
-                border: Border.all(color: cardBorderColor),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
                 boxShadow: [
                   BoxShadow(
-                    color: bgColor.withValues(alpha: 0.3),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -1730,7 +1730,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
               child: Center(
                 child: Text(
                   left ? '‹' : '›',
-                  style: TextStyle(color: textColor, fontSize: 20),
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
                 ),
               ),
             ),
@@ -1777,11 +1777,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 end: Alignment.bottomCenter,
                 stops: const [0.0, 0.22, 0.55, 0.78, 1.0],
                 colors: [
-                  bgColor.withValues(alpha: 0.02),
-                  bgColor.withValues(alpha: 0),
-                  bgColor.withValues(alpha: 0.28),
-                  bgColor.withValues(alpha: 0.60),
-                  bgColor.withValues(alpha: 0.82),
+                  Colors.black.withValues(alpha: 0.02),
+                  Colors.black.withValues(alpha: 0),
+                  Colors.black.withValues(alpha: 0.20),
+                  Colors.black.withValues(alpha: 0.50),
+                  Colors.black.withValues(alpha: 0.72),
                 ],
               ),
             ),
@@ -1800,16 +1800,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: panelColor,
+                  color: Colors.black.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: cardBorderColor),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
                 ),
                 child: Text(
                   AppLocalizations.t(context, 'daily_wear_ahvi_pick'),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: textColor,
+                    color: Colors.white,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -1844,10 +1844,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       children: [
                         Text(
                           AppLocalizations.t(context, outfit['nameKey'] as String),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w600,
-                            color: textColor,
+                            color: Colors.white,
                             letterSpacing: -0.3,
                             height: 1.05,
                           ),
@@ -1855,7 +1855,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                         const SizedBox(height: 4),
                         Text(
                           AppLocalizations.t(context, outfit['descKey'] as String),
-                          style: TextStyle(fontSize: 11, color: mutedColor),
+                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.70)),
                         ),
                       ],
                     ),
@@ -1866,16 +1866,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: panelColor,
+                      color: Colors.black.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: cardBorderColor),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
                     ),
                     child: Text(
                       '${index + 1} / ${_displayedOutfits.length}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: textColor,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -1893,16 +1893,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: panelColor,
+                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: cardBorderColor),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           t,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: textColor,
+                            color: Colors.white,
                           ),
                         ),
                       ),

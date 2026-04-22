@@ -965,7 +965,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   // Responsive secondary row height — shrink on small screens
                   final secondaryH = screenH < 700 ? 80.0 : 90.0;
 
-                  return Expanded(
+                  return SizedBox(
+                    height: constraints.maxHeight,
                     child: Padding(
                       padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                       child: Column(
