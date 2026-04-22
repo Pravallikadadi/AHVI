@@ -220,9 +220,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
 
-  late AnimationController _pageEntryCtrl;
-  late Animation<double> _pageEntryFade;
-
 
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
@@ -471,18 +468,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       if (mounted) _fetchWeather();
     });
 
-    _pageEntryCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 280),
-    );
-    _pageEntryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _pageEntryCtrl, curve: Curves.easeOut),
-    );
-    // Start fade only after the route push animation finishes (~300ms)
-    // so we don't double-fade with the MaterialPageRoute transition.
-    Future.delayed(const Duration(milliseconds: 320), () {
-      if (mounted) _pageEntryCtrl.forward();
-    });
+
   }
 
   void _restartOptionCardAnimations() {
@@ -747,7 +733,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _optCard0Ctrl.dispose();
     _optCard1Ctrl.dispose();
     _optCard2Ctrl.dispose();
-    _pageEntryCtrl.dispose();
     super.dispose();
   }
 
@@ -1369,7 +1354,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ),
     );
 
-    return FadeTransition(opacity: _pageEntryFade, child: content);
+    return content;
   }
 
   Widget _buildHeader() => Padding(
