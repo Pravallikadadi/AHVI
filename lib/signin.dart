@@ -4,6 +4,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:myapp/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const AhviApp());
 
@@ -35,16 +36,31 @@ class SignInScreen extends StatelessWidget {
   // --- NEW: Real Google Login Flow ---
   Future<void> _handleGoogleLogin(BuildContext context) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
-    
+
     // Attempt the login
     final success = await appwrite.loginWithGoogle();
-    
-    // If successful, navigate to the main app
+
+    // If successful, check if first-time user and route accordingly
     if (success && context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.main,
-        (route) => false,
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
+
+      if (isFirstTime) {
+        await prefs.setBool('isFirstTimeUser', false);
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.onboarding1,
+            (route) => false,
+          );
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.main,
+            (route) => false,
+          );
+        }
+      }
     } else if (context.mounted) {
       // If it fails or the user cancels, show an error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,11 +73,27 @@ class SignInScreen extends StatelessWidget {
   Future<void> _handleAppleLogin(BuildContext context) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
     final success = await appwrite.loginWithApple();
+
     if (success && context.mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.main,
-        (route) => false,
-      );
+      final prefs = await SharedPreferences.getInstance();
+      final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
+
+      if (isFirstTime) {
+        await prefs.setBool('isFirstTimeUser', false);
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.onboarding1,
+            (route) => false,
+          );
+        }
+      } else {
+        if (context.mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.main,
+            (route) => false,
+          );
+        }
+      }
     } else if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

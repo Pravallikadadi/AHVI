@@ -1746,52 +1746,28 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        ColorFiltered(
-          colorFilter: const ColorFilter.matrix([
-            0.72,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0.72,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0.72,
-            0,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-          ]),
-          child: Image.network(
-            outfit['img'] as String,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
-            filterQuality: FilterQuality.low,
-            errorBuilder: (_, _, _) {
-              final localImg = outfit['localImg'] as String?;
-              if (localImg != null) {
-                return Image.asset(
-                  localImg,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                );
-              }
-              return Container(
-                color: panelColor,
-                child: Center(
-                  child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
-                ),
+        Image.network(
+          outfit['img'] as String,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
+          filterQuality: FilterQuality.low,
+          errorBuilder: (_, _, _) {
+            final localImg = outfit['localImg'] as String?;
+            if (localImg != null) {
+              return Image.asset(
+                localImg,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               );
-            },
-          ),
+            }
+            return Container(
+              color: panelColor,
+              child: Center(
+                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+              ),
+            );
+          },
         ),
         Positioned.fill(
           child: DecoratedBox(
@@ -1803,9 +1779,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 colors: [
                   bgColor.withValues(alpha: 0.02),
                   bgColor.withValues(alpha: 0),
-                  bgColor.withValues(alpha: 0.35),
-                  bgColor.withValues(alpha: 0.75),
-                  bgColor.withValues(alpha: 0.95),
+                  bgColor.withValues(alpha: 0.28),
+                  bgColor.withValues(alpha: 0.60),
+                  bgColor.withValues(alpha: 0.82),
                 ],
               ),
             ),

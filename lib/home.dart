@@ -957,21 +957,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
             },
             child: SafeArea(
               top: true,
-              bottom: false,
+              bottom: true,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final safeBottom = MediaQuery.of(context).padding.bottom;
-                  // Total reserved at bottom:
-                  // nav bar (86) + nav margin (16) + chat bar (64) + chat gap (16) + safeBottom
-                  final reservedBottom = safeBottom + 182.0;
-                  // Available height for content (below SafeArea top)
-                  final usableH = constraints.maxHeight - reservedBottom;
-                  // Hero card gets whatever remains after fixed items:
-                  // topBar(~60) + greeting(~60) + suggestion(~58) + secondary(90) + spacers(10+8) = ~286
-                  // Clamp so it looks good on both small and large screens
-                  final heroH = (usableH - 286.0).clamp(130.0, 260.0);
-                  return SizedBox(
-                    height: usableH,
+                  final screenH = constraints.maxHeight;
+
+                  // Responsive secondary row height — shrink on small screens
+                  final secondaryH = screenH < 700 ? 80.0 : 90.0;
+
+                  return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                       child: Column(
@@ -979,6 +973,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                         children: [
                           _buildTopBar(),
                           _buildGreetingBlock(),
+                          // Hero card flexibly fills whatever space is left
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 10.0),
@@ -986,9 +981,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                             ),
                           ),
                           SizedBox(
-                            height: 90.0,
+                            height: secondaryH,
                             child: _buildSecondaryRow(),
                           ),
+                          const SizedBox(height: 6),
+                          _buildChatWrap(),
                         ],
                       ),
                     ),
@@ -1000,25 +997,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
           if (_overlayState != _OverlayState.idle) _buildAiOverlay(),
 
-          Builder(
-            builder: (context) {
-              final keyboardH = MediaQuery.of(context).viewInsets.bottom;
-              final safeBottom = MediaQuery.of(context).padding.bottom;
-              // standalone: above nav bar → safeBottom + 102
-              // shell: no nav bar → just above safe area → safeBottom + 16
-              final chatBottom = keyboardH > 0
-                  ? keyboardH + 8
-                  : widget.onShellNavTap != null
-                      ? safeBottom + 16.0
-                      : safeBottom + 102.0;
-              return Positioned(
-                left: 0,
-                right: 0,
-                bottom: chatBottom,
-                child: _buildChatWrap(),
-              );
-            },
-          ),
 
           if (_activeIntent == 'prepare' &&
               (_overlayState == _OverlayState.suggestions ||
@@ -1042,7 +1020,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           if (widget.onShellNavTap == null)
 Builder(builder: (ctx) {
               final safeB = MediaQuery.of(ctx).padding.bottom;
-              return Positioned(left: 16, right: 16, bottom: safeB + 16, child: _buildBottomNav());
+              return Positioned(left: 16, right: 16, bottom: safeB + 8, child: _buildBottomNav());
             }),
 
           if (_seeAllOpen) _buildSeeAllPanel(),
@@ -1131,9 +1109,9 @@ Builder(builder: (ctx) {
   Widget _buildTopBar() {
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;
-    const double topPad = 10.0;
-    const double botPad = 6.0;
-    const double logoFontSize = 30.0;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
+    final double botPad = screenH < 700 ? 4.0 : 6.0;
+    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
     return Padding(
       padding: EdgeInsets.only(top: topPad, bottom: botPad),
       child: Row(
@@ -1213,8 +1191,8 @@ Builder(builder: (ctx) {
 
   Widget _buildGreetingBlock() {
     final screenH = MediaQuery.of(context).size.height;
-    const double greetFontSize = 24.0;
-    const double botPad = 6.0;
+    final double greetFontSize = screenH < 700 ? 20.0 : 24.0;
+    final double botPad = screenH < 700 ? 4.0 : 6.0;
     return Padding(
       padding: EdgeInsets.only(bottom: botPad),
       child: ValueListenableBuilder<_ClockState>(

@@ -726,7 +726,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                   : ListView.separated(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _history.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           Divider(color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
                       itemBuilder: (ctx, i) {
                         final session = _history[i];
@@ -906,7 +906,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   scrollDirection: Axis.horizontal,
                   itemCount: quickPrompts.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (_, i) => GestureDetector(
                     onTap: () => _sendMessage(quickPrompts[i]),
                     child: Container(
@@ -1504,7 +1504,7 @@ class _TypingBubbleState extends State<_TypingBubble>
         ),
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (_, __) {
+          builder: (_, _) {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(3, (i) {
