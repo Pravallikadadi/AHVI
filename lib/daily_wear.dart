@@ -473,12 +473,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
     _pageEntryCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 280),
     );
     _pageEntryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _pageEntryCtrl, curve: Curves.easeOut),
     );
-    Future.delayed(const Duration(milliseconds: 50), () {
+    // Start fade only after the route push animation finishes (~300ms)
+    // so we don't double-fade with the MaterialPageRoute transition.
+    Future.delayed(const Duration(milliseconds: 320), () {
       if (mounted) _pageEntryCtrl.forward();
     });
   }

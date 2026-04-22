@@ -1026,8 +1026,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
           if (widget.onShellNavTap == null)
-Builder(builder: (ctx) {
-              final safeB = MediaQuery.of(ctx).padding.bottom;
+            Builder(builder: (ctx) {
+              final mq = MediaQuery.of(ctx);
+              final safeB = mq.padding.bottom;
+              final keyboardVisible = mq.viewInsets.bottom > 50;
+              if (keyboardVisible) return const SizedBox.shrink();
               return Positioned(left: 16, right: 16, bottom: safeB + 8, child: _buildBottomNav());
             }),
 
