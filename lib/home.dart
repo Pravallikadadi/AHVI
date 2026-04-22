@@ -8,6 +8,7 @@ import 'package:myapp/boards.dart';
 import 'package:myapp/profile.dart' as profile;
 import 'package:myapp/wardrobe.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
@@ -2120,6 +2121,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
+      onPlusTap: () => showAhviLensSheet(
+        context,
+        t: _t,
+        onVisualSearch: null,
+        onFindSimilar: null,
+        onAddToWardrobe: null,
+      ),
       onSendMessage: (text) {
         _chatFocusNode.unfocus();
         _openChatWithPrompt(text);
