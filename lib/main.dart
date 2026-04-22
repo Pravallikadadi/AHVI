@@ -131,6 +131,9 @@ class _MyAppState extends State<MyApp> {
             theme: lightTheme,
             darkTheme: darkTheme,
             themeMode: controller.themeMode,
+            // Disable theme lerp animation — prevents the washed-out fade
+            // that occurs while colors interpolate between light ↔ dark tokens.
+            themeAnimationDuration: Duration.zero,
 
             // Locale driven directly by ProfileController — updates all screens
             locale: _langToLocale(profileCtrl.state.lang),
