@@ -963,7 +963,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   final screenH = constraints.maxHeight;
 
                   // Responsive secondary row height — shrink on small screens
-                  final secondaryH = screenH < 700 ? 80.0 : 90.0;
+                  final secondaryH = screenH < 700 ? 110.0 : 120.0;
+                  // Reserve space for secondary row + chat bar so hero card never pushes them off
+                  const chatBarH = 64.0;
+                  const reservedH = 110.0; // topBar + greeting approx
+                  const spacing = 16.0; // paddings + SizedBox gaps
+                  final heroMaxH = (screenH - reservedH - secondaryH - chatBarH - spacing)
+                      .clamp(160.0, double.infinity);
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -974,8 +980,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                         children: [
                           _buildTopBar(),
                           _buildGreetingBlock(),
-                          // Hero card flexibly fills whatever space is left
-                          Expanded(
+                          // Hero card — capped so secondary row + chat bar always stay visible
+                          ConstrainedBox(
+                            constraints: BoxConstraints(maxHeight: heroMaxH),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 10.0),
                               child: _buildHeroCard(),
@@ -1767,7 +1774,7 @@ Builder(builder: (ctx) {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1779,13 +1786,13 @@ Builder(builder: (ctx) {
                 children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    width: 28,
-                    height: 28,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: accentColor.withValues(
                         alpha: isHovered ? 0.16 : 0.08,
                       ),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: accentColor.withValues(alpha: 0.15),
                         width: 1,
@@ -1794,13 +1801,13 @@ Builder(builder: (ctx) {
                     child: Icon(
                       icon,
                       color: isHovered ? _accent : _textMuted,
-                      size: 13,
+                      size: 18,
                     ),
                   ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
-                    width: 18,
-                    height: 18,
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _accent.withValues(alpha: isHovered ? 0.18 : 0.06),
@@ -1814,30 +1821,30 @@ Builder(builder: (ctx) {
                       child: Icon(
                         Icons.chevron_right_rounded,
                         color: isHovered ? _accent : _textMuted,
-                        size: 10,
+                        size: 13,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 8),
               Text(
                 title,
                 style: TextStyle(
                   color: _textHeading,
-                  fontSize: 12.0,
+                  fontSize: 14.0,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.15,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 3),
               Text(
                 subtitle,
                 style: TextStyle(
                   color: _textMuted,
-                  fontSize: 9.5,
+                  fontSize: 11.0,
                   fontWeight: FontWeight.w300,
                   height: 1.3,
                 ),

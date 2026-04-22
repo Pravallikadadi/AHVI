@@ -2116,8 +2116,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                           end: Alignment.bottomCenter,
                           stops: const [0.28, 1.0],
                           colors: [
-                            bgColor.withValues(alpha: 0),
-                            bgColor.withValues(alpha: 0.72),
+                            Colors.black.withValues(alpha: 0),
+                            Colors.black.withValues(alpha: 0.60),
                           ],
                         ),
                       ),
@@ -2750,7 +2750,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: bgColor.withValues(alpha: 0.55),
+                            color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(color: cardBorderColor),
                           ),
@@ -2862,7 +2862,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    color: bgColor.withValues(alpha: 0.55),
+                    color: Colors.black.withValues(alpha: 0.45),
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2951,8 +2951,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                       end: Alignment.bottomCenter,
                       stops: const [0.4, 1.0],
                       colors: [
-                        bgColor.withValues(alpha: 0),
-                        bgColor.withValues(alpha: 0.85),
+                        Colors.black.withValues(alpha: 0),
+                        Colors.black.withValues(alpha: 0.70),
                       ],
                     ),
                   ),
@@ -2988,10 +2988,10 @@ class _DailyWearScreenState extends State<DailyWearScreen>
                 left: 18,
                 child: Text(
                   AppLocalizations.t(context, outfit['nameKey'] as String),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: textColor,
+                    color: Colors.white,
                   ),
                 ),
               ),
