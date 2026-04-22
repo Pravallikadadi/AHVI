@@ -471,8 +471,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       if (mounted) _fetchWeather();
     });
 
-    _pageEntryCtrl = AnimationController(vsync: this, duration: Duration.zero);
-    _pageEntryFade = Tween<double>(begin: 1.0, end: 1.0).animate(_pageEntryCtrl);
+    _pageEntryCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _pageEntryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pageEntryCtrl, curve: Curves.easeOut),
+    );
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (mounted) _pageEntryCtrl.forward();
+    });
   }
 
   void _restartOptionCardAnimations() {
@@ -1359,7 +1367,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       ),
     );
 
-    return content;
+    return FadeTransition(opacity: _pageEntryFade, child: content);
   }
 
   Widget _buildHeader() => Padding(

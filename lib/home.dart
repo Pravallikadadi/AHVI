@@ -964,12 +964,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
                   // Responsive secondary row height — shrink on small screens
                   final secondaryH = screenH < 700 ? 110.0 : 120.0;
-                  // Reserve space for secondary row + chat bar so hero card never pushes them off
+                  // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + gaps
                   const chatBarH = 64.0;
-                  const reservedH = 110.0; // topBar + greeting approx
-                  const spacing = 16.0; // paddings + SizedBox gaps
-                  final heroMaxH = (screenH - reservedH - secondaryH - chatBarH - spacing)
-                      .clamp(160.0, double.infinity);
+                  const topSectionH = 178.0;
+                  const spacing = 30.0;
+                  final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - spacing)
+                      .clamp(160.0, 380.0);
 
                   return SizedBox(
                     height: constraints.maxHeight,
