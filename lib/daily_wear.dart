@@ -384,7 +384,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       begin: 0,
       end: 1,
     ).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-    _restartOptionCardAnimations();
+    // NOTE: _restartOptionCardAnimations() is intentionally NOT called here.
+    // Calling it during initState fires the fade-in animations while the route
+    // push transition is still running, which makes the whole screen appear
+    // washed-out/faded. The call inside the 400 ms Future.delayed below is
+    // the only one that should trigger the initial card animations.
 
     _fabEntryCtrl = AnimationController(
       vsync: this,
