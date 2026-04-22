@@ -1747,28 +1747,36 @@ void dispose() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          outfit['img'] as String,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-          cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
-          filterQuality: FilterQuality.low,
-          errorBuilder: (_, _, _) {
-            final localImg = outfit['localImg'] as String?;
-            if (localImg != null) {
-              return Image.asset(
-                localImg,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+        ColorFiltered(
+          colorFilter: const ColorFilter.matrix([
+            0.72, 0, 0, 0, 0,
+            0, 0.72, 0, 0, 0,
+            0, 0, 0.72, 0, 0,
+            0, 0, 0, 1, 0,
+          ]),
+          child: Image.network(
+            outfit['img'] as String,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
+            filterQuality: FilterQuality.low,
+            errorBuilder: (_, _, _) {
+              final localImg = outfit['localImg'] as String?;
+              if (localImg != null) {
+                return Image.asset(
+                  localImg,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                );
+              }
+              return Container(
+                color: panelColor,
+                child: Center(
+                  child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+                ),
               );
-            }
-            return Container(
-              color: panelColor,
-              child: Center(
-                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
-              ),
-            );
-          },
+            },
+          ),
         ),
         Positioned.fill(
           child: DecoratedBox(
@@ -1780,9 +1788,9 @@ void dispose() {
                 colors: [
                   Colors.black.withValues(alpha: 0.02),
                   Colors.black.withValues(alpha: 0),
-                  Colors.black.withValues(alpha: 0.30),
-                  Colors.black.withValues(alpha: 0.62),
-                  Colors.black.withValues(alpha: 0.84),
+                  Colors.black.withValues(alpha: 0.35),
+                  Colors.black.withValues(alpha: 0.75),
+                  Colors.black.withValues(alpha: 0.95),
                 ],
               ),
             ),
@@ -3634,7 +3642,7 @@ class _BgGradientPainter extends CustomPainter {
         center: const Alignment(-0.8, -0.84),
         radius: 0.65,
         colors: [
-          primary.withValues(alpha: 0.18),
+          primary.withValues(alpha: 0.12),
           primary.withValues(alpha: 0.0),
         ],
       ),
@@ -3642,7 +3650,7 @@ class _BgGradientPainter extends CustomPainter {
         center: const Alignment(0.76, 0.64),
         radius: 0.55,
         colors: [
-          secondary.withValues(alpha: 0.16),
+          secondary.withValues(alpha: 0.10),
           secondary.withValues(alpha: 0.0),
         ],
       ),
@@ -3650,7 +3658,7 @@ class _BgGradientPainter extends CustomPainter {
         center: Alignment.center,
         radius: 0.45,
         colors: [
-          tertiary.withValues(alpha: 0.12),
+          tertiary.withValues(alpha: 0.07),
           tertiary.withValues(alpha: 0.0),
         ],
       ),
