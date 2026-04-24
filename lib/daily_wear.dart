@@ -701,11 +701,11 @@ void dispose() {
     final outfit = _buildAllOutfits(context).firstWhere((o) => o['id'] == outfitId);
     HapticFeedback.lightImpact();
     if (closeModal) {
-      _tryOnSlideCtrl.reverse();
+      _tryOnSlideCtrl.reverse(); // reverse first
     }
     setState(() {
       _wornOutfitId = outfitId;
-      if (closeModal) _tryOnOpen = false;
+      if (closeModal) _tryOnOpen = false; // then update state
     });
     _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
   }
@@ -795,8 +795,8 @@ void dispose() {
 
   void _closeTryOn() {
     _resetTryOnSimulation();
-    setState(() => _tryOnOpen = false);
-    _tryOnSlideCtrl.reverse();
+    _tryOnSlideCtrl.reverse(); // reverse first so AnimatedOpacity fades out cleanly
+    setState(() => _tryOnOpen = false); // then update state
   }
 
   void _resetTryOnSimulation() {
@@ -1299,8 +1299,16 @@ void dispose() {
               enabled: !_chatOpen && !_tryOnOpen,
               child: RepaintBoundary(child: _buildChatFab()),
             ),
-            if (_tryOnOpen)
-              RepaintBoundary(child: _buildTryOnOverlay()),
+            IgnorePointer(
+              ignoring: !_tryOnOpen,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: _tryOnOpen ? 1.0 : 0.0,
+                child: RepaintBoundary(
+                  child: _buildTryOnOverlay(),
+                ),
+              ),
+            ),
           ],
         ),
       ),

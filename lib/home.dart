@@ -1012,14 +1012,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final screenH = constraints.maxHeight;
 
                   // Responsive secondary row height — shrink on small screens
-                  final secondaryH = screenH < 700 ? 120.0 : 130.0;
+                  final secondaryH = screenH < 700 ? 132.0 : 144.0;
                   // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + navBar + gaps
                   const chatBarH = 64.0;
                   const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
                   const topSectionH = 170.0;
-                  const spacing = 20.0;
+                  const spacing = 18.0;
                   final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
-                      .clamp(180.0, 460.0);
+                      .clamp(180.0, 480.0);
 
                   // Placeholder height matching _buildTopBar (logo font + top/bot padding)
                   final double topPad = screenH < 700 ? 6.0 : 10.0;
