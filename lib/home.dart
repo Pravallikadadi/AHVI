@@ -1014,10 +1014,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                             height: secondaryH,
                             child: _buildSecondaryRow(),
                           ),
-                          const SizedBox(height: 11),
-                          _buildChatWrap(),
-                          // Space so nav bar doesn't overlap the prompt bar
-                          const SizedBox(height: navBarH),
+                          // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
+                          const SizedBox(height: 11 + 64 + navBarH),
                         ],
                       ),
                     ),
@@ -1047,6 +1045,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
             ),
 
           if (_plusMenuOpen) _buildPlusMenu(),
+
+          // ── Floating Prompt Bar — keyboard పైన anchor అవుతుంది ──────────────
+          Builder(builder: (ctx) {
+            final keyboardH = MediaQuery.of(ctx).viewInsets.bottom;
+            final safeB = MediaQuery.paddingOf(ctx).bottom;
+            final promptBottom = keyboardH > 0
+                ? keyboardH + 8.0
+                : safeB + 86.0 + 8.0;
+            return Positioned(
+              left: 20,
+              right: 20,
+              bottom: promptBottom,
+              child: _buildChatWrap(),
+            );
+          }),
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
           // 🔧 FIX: Keyboard open అయినా nav bar same position లో ఉండాలి — hide చేయకూడదు
