@@ -1076,15 +1076,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // ── Floating Prompt Bar ─────────────────────────────────────────────
           // Nav bar fixed గా ఉంటుంది — keyboard వచ్చినా move అవ్వదు
           // Prompt bar మాత్రమే keyboard పైకి లిఫ్ట్ అవుతుంది
-          Builder(
-            builder: (ctx) {
-              final kbH = MediaQuery.of(ctx).viewInsets.bottom; // ✅ Direct — no delay
+          ValueListenableBuilder<double>(
+            valueListenable: _keyboardHeight,
+            builder: (ctx, kbH, _) {
               final safeB = MediaQuery.paddingOf(ctx).bottom;
               final navBarTotalH = safeB + 86.0 + 8.0;
+              // kbH > 0 అంటే keyboard open — దాని పైన 8px gap
+              // kbH == 0 అంటే keyboard closed — nav bar పైన normal position
               final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;
-              return AnimatedPositioned(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
+              return Positioned(
                 left: 20,
                 right: 20,
                 bottom: promptBottom,
