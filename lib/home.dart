@@ -100,7 +100,7 @@ class Screen4 extends StatefulWidget {
   State<Screen4> createState() => _Screen4State();
 }
 
-class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
+class _Screen4State extends State<Screen4> with TickerProviderStateMixin, WidgetsBindingObserver {
   AppThemeTokens get _t => context.themeTokens;
 
   // 🔧 FIX: Palette switch అయినప్పుడు full rebuild trigger చేయడానికి
@@ -185,6 +185,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   Timer? _clockTimer;
   final TextEditingController _chatController = TextEditingController();
   final FocusNode _chatFocusNode = FocusNode();
+  final ValueNotifier<double> _keyboardHeight = ValueNotifier<double>(0.0);
 
   // ── Voice ──────────────────────────────────────────────────────────────────
   final stt.SpeechToText _speech = stt.SpeechToText();
@@ -257,6 +258,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initSpeech();
+    // Keyboard height track చేయడానికి FocusNode listener
+    _chatFocusNode.addListener(_onChatFocusChange);
+    WidgetsBinding.instance.addObserver(this);
 
     _aurora1Ctrl = AnimationController(
       vsync: this,
@@ -470,7 +474,30 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   @override
+  void _onChatFocusChange() {
+    if (!mounted) return;
+    if (!_chatFocusNode.hasFocus) {
+      _keyboardHeight.value = 0.0;
+    }
+    // focus వచ్చినప్పుడు didChangeMetrics లో keyboard height update అవుతుంది
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final kbH = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom /
+        WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
+    if (_chatFocusNode.hasFocus || kbH > 0) {
+      _keyboardHeight.value = kbH;
+    } else {
+      _keyboardHeight.value = 0.0;
+    }
+  }
+
   void dispose() {
+    _chatFocusNode.removeListener(_onChatFocusChange);
+    WidgetsBinding.instance.removeObserver(this);
+    _keyboardHeight.dispose();
     _speech.stop();
     _aurora1Ctrl.dispose();
     _aurora2Ctrl.dispose();
@@ -1047,26 +1074,24 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           if (_plusMenuOpen) _buildPlusMenu(),
 
           // ── Floating Prompt Bar ─────────────────────────────────────────────
-          // Nav bar fixed గా ఉంటుంది (viewInsets చూడదు)
-          // Prompt bar మాత్రమే keyboard వచ్చినప్పుడు పైకి లిఫ్ట్ అవుతుంది
-          Builder(builder: (ctx) {
-            final keyboardH = MediaQuery.of(ctx).viewInsets.bottom;
-            final safeB = MediaQuery.paddingOf(ctx).bottom;
-            // keyboard లేనప్పుడు: nav bar (86px) పైన + 8px gap
-            // keyboard వచ్చినప్పుడు: keyboard పైన + 8px gap
-            final navBarTotalH = safeB + 86.0 + 8.0;
-            final promptBottom = keyboardH > 0
-                ? keyboardH + 8.0
-                : navBarTotalH;
-            return AnimatedPositioned(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              left: 20,
-              right: 20,
-              bottom: promptBottom,
-              child: _buildChatWrap(),
-            );
-          }),
+          // Nav bar fixed గా ఉంటుంది — keyboard వచ్చినా move అవ్వదు
+          // Prompt bar మాత్రమే keyboard పైకి లిఫ్ట్ అవుతుంది
+          ValueListenableBuilder<double>(
+            valueListenable: _keyboardHeight,
+            builder: (ctx, kbH, _) {
+              final safeB = MediaQuery.paddingOf(ctx).bottom;
+              final navBarTotalH = safeB + 86.0 + 8.0;
+              final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                left: 20,
+                right: 20,
+                bottom: promptBottom,
+                child: _buildChatWrap(),
+              );
+            },
+          ),
 
           // Only show nav bar when NOT inside a Shell (Shell has its own nav bar)
           // 🔧 FIX: Keyboard open అయినా nav bar same position లో ఉండాలి — hide చేయకూడదు
