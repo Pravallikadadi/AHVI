@@ -2500,18 +2500,31 @@ void dispose() {
     );
   }
 
-  Widget _buildTryOnOverlay() => GestureDetector(
-    onTap: _closeTryOn,
-    child: Material(
-      color: Colors.transparent,
-      child: Align(
+  Widget _buildTryOnOverlay() => Stack(
+    children: [
+      // Scrim — animates independently, never composited with the sheet
+      Positioned.fill(
+        child: AnimatedBuilder(
+          animation: _tryOnSlideCtrl,
+          builder: (_, __) => GestureDetector(
+            onTap: _closeTryOn,
+            child: ColoredBox(
+              color: Colors.black.withValues(
+                alpha: (_tryOnSlideCtrl.value * 0.45).clamp(0.0, 0.45),
+              ),
+            ),
+          ),
+        ),
+      ),
+      // Sheet — slide + fade applied only to the sheet widget itself
+      Align(
         alignment: Alignment.bottomCenter,
         child: GestureDetector(
           onTap: () {},
           child: SlideTransition(
             position: _tryOnSlideAnim,
-            child: FadeTransition(
-              opacity: _tryOnFadeAnim,
+            child: Material(
+              color: Colors.transparent,
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.90,
                 decoration: BoxDecoration(
@@ -2588,7 +2601,7 @@ void dispose() {
           ),
         ),
       ),
-    ),
+    ],
   );
 
   Widget _tryOnBody() {
