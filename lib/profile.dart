@@ -33,20 +33,23 @@ class ThemeColors {
 }
 
 final Map<AppTheme, ThemeColors> themeMap = {
+  // matches accent_palette.dart — coolBlue
   AppTheme.coolBlue: ThemeColors(
-    accent1: Color(0xFF7C6DFA),
-    accent2: Color(0xFFA480F5),
-    accent3: Color(0xFFE067A4),
+    accent1: Color(0xFF6B91FF),
+    accent2: Color(0xFF8D7DFF),
+    accent3: Color(0xFF04D7C8),
   ),
+  // matches accent_palette.dart — sunsetPop
   AppTheme.sunsetPop: ThemeColors(
-    accent1: Color(0xFFF4845F),
-    accent2: Color(0xFFF5A623),
-    accent3: Color(0xFFE0506A),
+    accent1: Color(0xFFFF9E66),
+    accent2: Color(0xFFFFD86E),
+    accent3: Color(0xFFFF8EC7),
   ),
+  // matches accent_palette.dart — futureCandy
   AppTheme.futureCandy: ThemeColors(
-    accent1: Color(0xFF43E1C0),
-    accent2: Color(0xFF7C6DFA),
-    accent3: Color(0xFFF06DB5),
+    accent1: Color(0xFFFF8EC7),
+    accent2: Color(0xFF8D7DFF),
+    accent3: Color(0xFF04D7C8),
   ),
 };
 
@@ -2827,11 +2830,11 @@ class _ThemeRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final themes = [
       (AppTheme.coolBlue, 'Cool Blue',
-       [const Color(0xFF7C6DFA), const Color(0xFFA480F5)]),
+       [const Color(0xFF6B91FF), const Color(0xFF04D7C8)]),
       (AppTheme.sunsetPop, 'Sunset Pop',
-       [const Color(0xFFF4845F), const Color(0xFFE0506A)]),
+       [const Color(0xFFFF9E66), const Color(0xFFFF8EC7)]),
       (AppTheme.futureCandy, 'Future Candy',
-       [const Color(0xFF43E1C0), const Color(0xFF7C6DFA)]),
+       [const Color(0xFFFF8EC7), const Color(0xFF04D7C8)]),
     ];
 
     return Row(

@@ -102,6 +102,24 @@ class Screen4 extends StatefulWidget {
 
 class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   AppThemeTokens get _t => context.themeTokens;
+
+  // 🔧 FIX: Palette switch అయినప్పుడు full rebuild trigger చేయడానికి
+  // accent color track చేస్తాం — change అయితే setState() చేస్తాం
+  Color? _cachedAccent;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newAccent = context.themeTokens.accent.primary;
+    if (_cachedAccent != null && _cachedAccent != newAccent) {
+      // Palette switch జరిగింది — IndexedStack లో alive గా ఉన్న
+      // ఈ screen ని force rebuild చేయాలి
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+    _cachedAccent = newAccent;
+  }
   Color get _bgPrimary => _t.backgroundPrimary;
   Color get _bgSecondary => _t.backgroundSecondary;
   Color get _surface => _t.phoneShellInner;
@@ -966,7 +984,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                   final screenH = constraints.maxHeight;
 
                   // Responsive secondary row height — shrink on small screens
-                  final secondaryH = screenH < 700 ? 110.0 : 120.0;
+                  final secondaryH = screenH < 700 ? 132.0 : 144.0;
                   // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + navBar + gaps
                   const chatBarH = 64.0;
                   const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
@@ -996,7 +1014,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                             height: secondaryH,
                             child: _buildSecondaryRow(),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 11),
                           _buildChatWrap(),
                           // Space so nav bar doesn't overlap the prompt bar
                           const SizedBox(height: navBarH),
@@ -1047,61 +1065,49 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   Widget _buildAuroraLayer() {
+    // 🔧 FIX: RepaintBoundary తీసేశాం + colors ని builder లోపల
+    // fresh గా read చేస్తున్నాం — palette switch అయినప్పుడు correct colors వస్తాయి
     return Positioned.fill(
-      child: RepaintBoundary(
-        child: ClipRect(
-          child: AnimatedBuilder(
-            animation: Listenable.merge([
-              _aurora1Ctrl,
-              _aurora2Ctrl,
-              _aurora3Ctrl,
-            ]),
-            builder: (context, _) {
-              final t1 = _aurora1Ctrl.value;
-              final t2 = _aurora2Ctrl.value;
-              final t3 = _aurora3Ctrl.value;
-              return Stack(
-                children: [
-                  Positioned(
-                    top: -100 + (t1 * 90),
-                    left: -80 + (t1 * 60),
-                    child: _auroraOrb(
-                      340,
-                      340,
-                      _accent.withValues(alpha: 0.30),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -60 + (t2 * 60),
-                    right: -60 + (t2 * 30),
-                    child: _auroraOrb(
-                      300,
-                      300,
-                      _accentSecondary.withValues(alpha: 0.34),
-                    ),
-                  ),
-                  Positioned(
-                    top: 300 + (t3 * -60),
-                    left: -40 + (t3 * 100),
-                    child: _auroraOrb(
-                      220,
-                      220,
-                      _accentTertiary.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  Positioned(
-                    top: 140 + (t1 * 80),
-                    right: -30,
-                    child: _auroraOrb(
-                      180,
-                      180,
-                      _accent.withValues(alpha: 0.18),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+      child: ClipRect(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _aurora1Ctrl,
+            _aurora2Ctrl,
+            _aurora3Ctrl,
+          ]),
+          builder: (context, _) {
+            final t1 = _aurora1Ctrl.value;
+            final t2 = _aurora2Ctrl.value;
+            final t3 = _aurora3Ctrl.value;
+            final tok = context.themeTokens;
+            final c1 = tok.accent.primary;
+            final c2 = tok.accent.secondary;
+            final c3 = tok.accent.tertiary;
+            return Stack(
+              children: [
+                Positioned(
+                  top: -100 + (t1 * 90),
+                  left: -80 + (t1 * 60),
+                  child: _auroraOrb(340, 340, c1.withValues(alpha: 0.30)),
+                ),
+                Positioned(
+                  bottom: -60 + (t2 * 60),
+                  right: -60 + (t2 * 30),
+                  child: _auroraOrb(300, 300, c2.withValues(alpha: 0.34)),
+                ),
+                Positioned(
+                  top: 300 + (t3 * -60),
+                  left: -40 + (t3 * 100),
+                  child: _auroraOrb(220, 220, c3.withValues(alpha: 0.22)),
+                ),
+                Positioned(
+                  top: 140 + (t1 * 80),
+                  right: -30,
+                  child: _auroraOrb(180, 180, c1.withValues(alpha: 0.18)),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1132,11 +1138,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          AhviHomeText(
-            color: _textHeading,
-            fontSize: logoFontSize,
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w400,
+          Hero(
+            tag: 'ahvi_logo',
+            child: AhviHomeText(
+              color: _textHeading,
+              fontSize: logoFontSize,
+              letterSpacing: 3.2,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           _buildProfileAvatar(),
         ],
@@ -1191,7 +1200,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
         ),
         clipBehavior: Clip.antiAlias,
         child: _avatarBytes == null
-            ? Container(color: t.panel)
+            ? Icon(
+                Icons.person_rounded,
+                size: 26,
+                color: _accent.withValues(alpha: 0.7),
+              )
             : Image.memory(_avatarBytes!, fit: BoxFit.cover),
       ),
     );
@@ -1640,7 +1653,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                 onTap: () => _openModuleChat('style'),
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    gradient: _accentGradient,
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [_accent, _accentTertiary],
+                                    ),
                                     borderRadius: BorderRadius.circular(100),
                                     boxShadow: [
                                       BoxShadow(
@@ -1709,9 +1726,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           Expanded(
             child: _buildSecCard(
               icon: Icons.grid_view_rounded,
-              title: AppLocalizations.t(context, 'sec_organize_title'), // 🆕
-              subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'), // 🆕
-              accentColor: _accent,
+              title: AppLocalizations.t(context, 'sec_plan_title'),
+              subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
+              ctaKey: 'sec_plan_cta',
               intent: 'organize',
             ),
           ),
@@ -1719,9 +1736,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
           Expanded(
             child: _buildSecCard(
               icon: Icons.calendar_month_outlined,
-              title: AppLocalizations.t(context, 'sec_plan_title'), // 🆕
-              subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'), // 🆕
-              accentColor: _accentSecondary,
+              title: AppLocalizations.t(context, 'sec_prep_title'),
+              subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
+              ctaKey: 'sec_prep_cta',
               intent: 'plan',
             ),
           ),
@@ -1732,7 +1749,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                 icon: Icons.auto_awesome_outlined,
                 title: AppLocalizations.t(context, 'sec_organize_title'),
                 subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
-                accentColor: _accentTertiary,
+                ctaKey: 'hero_start_styling',
                 intent: 'style',
               ),
             ),
@@ -1745,116 +1762,265 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color accentColor,
+    required String ctaKey,
     required String intent,
   }) {
     final screenH = MediaQuery.of(context).size.height;
-    return _CardPressable(
-      onTap: () => _openModuleChat(intent),
-      builder: (isHovered) {
-        return Container(
-          height: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_surface, _bgSecondary],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _border, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: _shadowMedium,
-                blurRadius: isHovered ? 52 : 28,
-                offset: const Offset(0, 8),
-              ),
-              BoxShadow(
-                color: _accent.withValues(alpha: isHovered ? 0.15 : 0.05),
-                blurRadius: 20,
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
+    // CTA label from localization key
+    final ctaLabel = AppLocalizations.t(context, ctaKey);
+
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_shimmerCtrl, _breatheCtrl]),
+        builder: (context, _) {
+          // 🔧 Fresh read inside builder — palette switch అయినప్పుడు stale అవ్వవు
+          final accentColor = context.themeTokens.accent.primary;
+          final accentTertiary = context.themeTokens.accent.tertiary;
+          final breatheOpacity = 0.10 + 0.10 * _breatheCtrl.value;
+          final shimmerAlpha =
+              0.5 + 0.5 * math.sin(_shimmerCtrl.value * math.pi * 2);
+
+          return _CardPressable(
+            onTap: () => _openModuleChat(intent),
+            builder: (isHovered) {
+              return Container(
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  color: _surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: 0.20),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _shadowMedium,
+                      blurRadius: isHovered ? 52 : 28,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
                       color: accentColor.withValues(
-                        alpha: isHovered ? 0.16 : 0.08,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: accentColor.withValues(alpha: 0.15),
-                        width: 1,
-                      ),
+                          alpha: isHovered ? 0.15 : 0.08),
+                      blurRadius: 20,
                     ),
-                    child: Icon(
-                      icon,
-                      color: isHovered ? _accent : _textMuted,
-                      size: 18,
-                    ),
-                  ),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _accent.withValues(alpha: isHovered ? 0.18 : 0.06),
-                      border: Border.all(
-                        color: _accent.withValues(alpha: isHovered ? 0.30 : 0.15),
-                        width: 1,
-                      ),
-                    ),
-                    child: Transform.translate(
-                      offset: Offset(isHovered ? 2.0 : 0.0, 0),
-                      child: Icon(
-                        Icons.chevron_right_rounded,
-                        color: isHovered ? _accent : _textMuted,
-                        size: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  color: _textHeading,
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.15,
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  color: _textMuted,
-                  fontSize: 11.0,
-                  fontWeight: FontWeight.w300,
-                  height: 1.3,
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  children: [
+                    // Radial glow background
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: const Alignment(0.8, -0.5),
+                            radius: 1.4,
+                            colors: [
+                              accentColor.withValues(alpha: 0.18),
+                              _transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Animated breathing border overlay
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: accentColor.withValues(
+                                  alpha: breatheOpacity),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Shimmer top line
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 1,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              _transparent,
+                              accentColor.withValues(
+                                  alpha: 0.55 * shimmerAlpha),
+                              accentColor.withValues(alpha: 0.35),
+                              _transparent,
+                            ],
+                            stops: const [0.0, 0.30, 0.65, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Card content
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 200),
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: accentColor.withValues(
+                                        alpha: isHovered ? 0.16 : 0.08,
+                                      ),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: accentColor.withValues(
+                                            alpha: 0.18),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      icon,
+                                      color: isHovered
+                                          ? accentColor
+                                          : _textMuted,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 200),
+                                    width: 22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: accentColor.withValues(
+                                          alpha:
+                                              isHovered ? 0.18 : 0.06),
+                                      border: Border.all(
+                                        color: accentColor.withValues(
+                                            alpha:
+                                                isHovered ? 0.30 : 0.15),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Transform.translate(
+                                      offset: Offset(
+                                          isHovered ? 2.0 : 0.0, 0),
+                                      child: Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: isHovered
+                                            ? accentColor
+                                            : _textMuted,
+                                        size: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                title,
+                                style: TextStyle(
+                                  color: _textHeading,
+                                  fontSize: 14.0,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.15,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  color: _textMuted,
+                                  fontSize: 11.0,
+                                  fontWeight: FontWeight.w300,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          // Gradient CTA button — Daily Wear style (primary → tertiary)
+                          _AnimatedPressable(
+                            liftY: -2.0,
+                            scalePressed: 0.95,
+                            onTap: () => _openModuleChat(intent),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    accentColor,
+                                    context.themeTokens.accent.tertiary,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: accentColor.withValues(alpha: 0.40),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                  BoxShadow(
+                                    color: context.themeTokens.accent.tertiary
+                                        .withValues(alpha: 0.25),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    ctaLabel,
+                                    style: TextStyle(
+                                      color: _onAccent,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.30,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: _onAccent,
+                                    size: 10,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -3088,11 +3254,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
   }
 
   Widget _buildPrepareExactChecklistCard(String title) {
-    const sections = [
+    final sections = [
       (
         name: 'Documents',
         emoji: '📄',
-        color: Color(0xFF04D7C8),
+        color: _accentTertiary,
         items: [
           'Passport / ID',
           'Boarding pass',
@@ -3104,7 +3270,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       (
         name: 'Tech & Power',
         emoji: '🔌',
-        color: Color(0xFF8D7DFF),
+        color: _accentSecondary,
         items: [
           'Phone + charger',
           'Power bank',
@@ -3116,7 +3282,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
       (
         name: 'Comfort',
         emoji: '😴',
-        color: Color(0xFF6B91FF),
+        color: _accent,
         items: [
           'Neck pillow',
           'Eye mask',
@@ -3253,7 +3419,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                           duration: const Duration(milliseconds: 400),
                           alignment: Alignment.centerLeft,
                           widthFactor: progress,
-                          child: Container(color: const Color(0xFF04D7C8)),
+                          child: Container(color: _accentTertiary),
                         ),
                       ),
                     ),
@@ -3299,15 +3465,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0x1F04D7C8),
+                                  color: _accentTertiary.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(99),
                                 ),
                                 child: Text(
                                   '$doneCount/${itemsState[sIdx].length}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF04D7C8),
+                                    color: _accentTertiary,
                                   ),
                                 ),
                               ),
@@ -3638,7 +3804,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFF8D7DFF),
+                                              color: _accentSecondary,
                                               borderRadius:
                                                   BorderRadius.circular(99),
                                             ),
@@ -3667,13 +3833,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
                         gradient: isListSaved
-                            ? const LinearGradient(
-                                colors: [Color(0xFF04D7C8), Color(0xFF04D7C8)],
+                            ? LinearGradient(
+                                colors: [_accent, _accentTertiary],
                               )
-                            : const LinearGradient(
+                            : LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [Color(0xFF04D7C8), Color(0xFF6B91FF)],
+                                colors: [_accent, _accentTertiary],
                               ),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -3687,10 +3853,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                           const SizedBox(width: 6),
                           Text(
                             isListSaved ? 'List Saved!' : 'Save to Style Board',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFF5F7FF),
+                              color: _onAccent,
                               letterSpacing: 0.14,
                             ),
                           ),
@@ -4300,7 +4466,9 @@ class _NavPillPainter extends CustomPainter {
       old.activeIdx != activeIdx ||
       old.bulgeT != bulgeT ||
       old.fillColor != fillColor ||
-      old.shadowColor != shadowColor;
+      old.shadowColor != shadowColor ||
+      old.glowColor != glowColor ||
+      old.borderColor != borderColor;
 }
 
 enum _OverlayState { idle, suggestions, thinking, response }

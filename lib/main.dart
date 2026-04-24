@@ -161,12 +161,26 @@ class _MyAppState extends State<MyApp> {
               AppRoutes.onboarding3: (_) => const Screen3(),
 
               // ─── NEW FEATURE ROUTES REGISTERED HERE ───
-              AppRoutes.workout: (_) => DailyWearScreen(),
               AppRoutes.skincare: (_) => const SkincareScreen(),
               AppRoutes.bills: (_) => const BillsScreen(),
               AppRoutes.wardrobe: (_) => const WardrobeScreen(),
               AppRoutes.calendar: (_) => const CalendarShell(),
               AppRoutes.boards: (_) => const BoardsScreen(),
+            },
+
+            // DailyWear uses PageRouteBuilder to skip the default
+            // slide+fade transition that causes the washed-out look on APK.
+            onGenerateRoute: (settings) {
+              if (settings.name == AppRoutes.workout) {
+                return PageRouteBuilder(
+                  settings: settings,
+                  pageBuilder: (_, __, ___) => DailyWearScreen(),
+                  transitionDuration: Duration.zero,
+                  reverseTransitionDuration: Duration.zero,
+                  transitionsBuilder: (_, __, ___, child) => child,
+                );
+              }
+              return null; // fall through to routes map
             },
           );
         },
@@ -202,6 +216,22 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
   // Pages are built in build() so locale changes trigger proper rebuilds.
   // PageStorageKey preserves scroll state across tab switches.
+
+  // 🔧 FIX: Palette switch tracking
+  Color? _cachedAccent;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tok = Theme.of(context).extension<AppThemeTokens>();
+    final newAccent = tok?.accent.primary;
+    if (_cachedAccent != null && _cachedAccent != newAccent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+    _cachedAccent = newAccent;
+  }
 
   @override
   void initState() {
@@ -350,13 +380,14 @@ class _MainNavigationShellState extends State<MainNavigationShell>
     const pillH = 64.0;
     const maxBulge = 11.0;
     const totalH = pillH + maxBulge + 6.0;
-    final t = context.themeTokens;
 
     return SizedBox(
       height: totalH,
       child: AnimatedBuilder(
         animation: Listenable.merge(_navRiseCtrls),
         builder: (context, child) {
+          // 🔧 FIX: builder లోపల read చేయాలి — palette switch కి respond అవ్వాలి
+          final t = context.themeTokens;
           final activeIdx = _currentIndex;
           final bulgeT = _navRiseCtrls[activeIdx].value;
 
@@ -993,7 +1024,9 @@ class _NavPillPainter extends CustomPainter {
   bool shouldRepaint(_NavPillPainter old) =>
       old.activeIdx != activeIdx ||
       old.bulgeT != bulgeT ||
-      old.fillColor != fillColor;
+      old.fillColor != fillColor ||
+      old.glowColor != glowColor ||
+      old.borderColor != borderColor;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

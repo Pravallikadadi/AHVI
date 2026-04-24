@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -281,25 +282,9 @@ class _MainScreenState extends State<MainScreen> {
           
           if (!_isChatOpen)
             Positioned(
-              bottom: 20, right: 16,
-              child: GestureDetector(
+              bottom: 30, right: 20,
+              child: _AskAhviFab(
                 onTap: () => setState(() => _isChatOpen = true),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-                  decoration: BoxDecoration(
-                    color: context.dAccent,
-                    borderRadius: BorderRadius.circular(100),
-                    boxShadow: [BoxShadow(color: context.dAccent.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 6))],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
-                      const SizedBox(width: 7),
-                      Text(AppLocalizations.t(context, 'diet_ask_ahvi'), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
               ),
             ),
           AnimatedPositioned(
@@ -1808,5 +1793,124 @@ class _DietPulsingMicIconState extends State<_DietPulsingMicIcon> with SingleTic
   @override
   Widget build(BuildContext context) {
     return ScaleTransition(scale: _scale, child: const Icon(Icons.mic_rounded, color: Colors.white, size: 18));
+  }
+}
+
+// ─── ASK AHVI FAB (matches Skincare style exactly) ───────────────────────────
+class _AskAhviFab extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AskAhviFab({required this.onTap});
+
+  @override
+  State<_AskAhviFab> createState() => _AskAhviFabState();
+}
+
+class _AskAhviFabState extends State<_AskAhviFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.dAccent;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: AnimatedBuilder(
+          animation: _pulseCtrl,
+          builder: (_, child) => Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Pulse ring
+              Positioned.fill(
+                child: Opacity(
+                  opacity: _pulseOpacity.value,
+                  child: Transform.scale(
+                    scale: _pulseScale.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child!,
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  child: const Text(
+                    '✦',
+                    style: TextStyle(fontSize: 11, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  AppLocalizations.t(context, 'diet_ask_ahvi'),
+                  style: GoogleFonts.anton(
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

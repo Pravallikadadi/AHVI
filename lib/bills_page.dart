@@ -1,6 +1,6 @@
 import 'dart:math';
-import 'package:vector_math/vector_math_64.dart' show Vector3;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,22 +8,7 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
-// ── PALETTE (1:1 from CSS :root) ────────────────────────────────────
-Color kBg = Color(0xFF08111F);
-Color kBg2 = Color(0xFF0F1A2D);
-Color kShell = Color(0xFF192131);
-Color kShell2 = Color(0xFF111723);
-Color kText = Color(0xFFF5F7FF);
-Color kMuted = Color(0xB8E6EBFF);
-Color kAccent = Color(0xFF6B91FF);
-Color kAccent2 = Color(0xFF8D7DFF);
-Color kAccent3 = Color(0xFF04D7C8);
-Color kAccent4 = Color(0xFFFF8EC7);
-Color kAccent5 = Color(0xFFFFD86E);
-Color kRed = Color(0xFFFF6B7A);
-Color kPanel = Color(0x14FFFFFF);
-Color kPanel2 = Color(0x1FFFFFFF);
-Color kBorder = Color(0x1FFFFFFF);
+// ── PALETTE (driven by theme tokens — see _BillsScreenState getters) ─────────
 
 // ════════════════════════════════════════════════════════════════════
 //  TRANSLATION HELPERS  (top-level so all widgets can use them)
@@ -85,11 +70,28 @@ class BillsScreen extends StatefulWidget {
 class _BillsScreenState extends State<BillsScreen>
     with TickerProviderStateMixin {
   AppThemeTokens get _t => context.themeTokens;
-  Color get _accent => _t.accent.primary;
+
+  // ── Palette (driven by theme tokens — matches DailyWearScreen) ──────
+  Color get _accent  => _t.accent.primary;
   Color get _accent2 => _t.accent.secondary;
   Color get _accent3 => _t.accent.tertiary;
-  Color get _accent4 => Color.lerp(_accent2, _accent, 0.45)!;
-  Color get _accent5 => Color.lerp(_accent, _accent3, 0.45)!;
+  Color get _accent4 => _t.accent.primary;
+  Color get _accent5 => _t.accent.secondary;
+  static const Color _deleteRed = Color(0xFFFF6B7A);
+
+  // ── Palette-specific hardcoded colors for chat button ───────────────
+  static const Color _futureCandyPink  = Color(0xFFE91E8C); // futureCandy pure pink (hardcoded)
+  static const Color _futureCandyPink2 = Color(0xFFFF6BAE); // futureCandy pink lighter
+  static const Color _coolBlue         = Color(0xFF6B91FF); // coolBlue primary
+  static const Color _coolBlue2        = Color(0xFF8D7DFF); // coolBlue secondary
+
+  bool get _isCoolBlue => _t.accent.primary == _coolBlue;
+
+  // Chat FAB accent — Future Candy = pink hardcoded, Cool Blue = blue hardcoded, others = palette
+  Color get _chatAccent  => _isCoolBlue ? _coolBlue  : _futureCandyPink;
+  Color get _chatAccent2 => _isCoolBlue ? _coolBlue2 : _futureCandyPink2;
+
+
 
   // ── STATE ──────────────────────────────────────────────────────────
   bool _isLoading = true;
@@ -186,10 +188,10 @@ class _BillsScreenState extends State<BillsScreen>
 
   Map<String, dynamic> _getCategoryMeta(String cat) {
     final meta = {
-      'shopping': {'icon': '🛍️', 'color': kAccent2, 'bg': Color(0x268D7DFF)},
-      'food': {'icon': '🍔', 'color': kAccent5, 'bg': Color(0x26FFD86E)},
-      'utility': {'icon': '⚡', 'color': kAccent3, 'bg': Color(0x2604D7C8)},
-      'medical': {'icon': '💊', 'color': kAccent4, 'bg': Color(0x26FF8EC7)},
+      'shopping': {'icon': '🛍️', 'color': _accent2, 'bg': _accent2.withValues(alpha: 0.15)},
+      'food': {'icon': '🍔', 'color': _accent5, 'bg': _accent5.withValues(alpha: 0.15)},
+      'utility': {'icon': '⚡', 'color': _accent3, 'bg': _accent3.withValues(alpha: 0.15)},
+      'medical': {'icon': '💊', 'color': _accent4, 'bg': _accent4.withValues(alpha: 0.15)},
       'other': {'icon': '📄', 'color': _t.textPrimary, 'bg': Color(0x1AFFFFFF)},
     };
     return meta[cat.toLowerCase()] ?? meta['other']!;
@@ -481,7 +483,7 @@ class _BillsScreenState extends State<BillsScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Color(0xB808111F),
+      barrierColor: _t.backgroundPrimary.withValues(alpha: 0.70),
       useRootNavigator: true,
       builder: (sheetCtx) {
         return StatefulBuilder(
@@ -568,27 +570,9 @@ class _BillsScreenState extends State<BillsScreen>
                 _buildBottomActions(),
               ],
             ),
-            SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 100),
-                child: Align(
-                  alignment: Alignment.bottomRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 20),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildChatFab(),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
             AnimatedBuilder(
               animation: _chatSlide,
-              builder: (_, _) {
+              builder: (_, __) {
                 return Positioned(
                   bottom: 170,
                   right: 24,
@@ -597,12 +581,11 @@ class _BillsScreenState extends State<BillsScreen>
                     child: Transform(
                       alignment: Alignment.bottomRight,
                       transform: Matrix4.identity()
-                        ..translateByVector3(
-                            Vector3(0.0, 16.0 * (1 - _chatSlide.value), 0.0))
-                        ..scaleByVector3(Vector3(
+                        ..translate(0.0, 16.0 * (1 - _chatSlide.value), 0.0)
+                        ..scale(
                             0.95 + 0.05 * _chatSlide.value,
                             0.95 + 0.05 * _chatSlide.value,
-                            1.0)),
+                            1.0),
                       child: IgnorePointer(
                         ignoring: !_chatOpen,
                         child: _buildChatPanel(),
@@ -615,7 +598,7 @@ class _BillsScreenState extends State<BillsScreen>
             if (_toastVisible)
               AnimatedBuilder(
                 animation: _toastAnim,
-                builder: (_, _) => Positioned(
+                builder: (_, __) => Positioned(
                   bottom: 120,
                   left: 0,
                   right: 0,
@@ -646,25 +629,6 @@ class _BillsScreenState extends State<BillsScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Icon ──
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _accent2.withValues(alpha: 0.22),
-                  _accent.withValues(alpha: 0.22),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _accent.withValues(alpha: 0.25)),
-            ),
-            child: Icon(Icons.receipt_long_rounded, color: _accent, size: 22),
-          ),
-          SizedBox(width: 12),
           // ── Title ──
           Expanded(
             child: Column(
@@ -672,12 +636,6 @@ class _BillsScreenState extends State<BillsScreen>
               children: [
                 Row(
                   children: [
-                    Icon(
-                      Icons.receipt_long_rounded,
-                      color: _accent,
-                      size: 18,
-                    ),
-                    SizedBox(width: 6),
                     Text(
                       AppLocalizations.t(context, 'bills_title'),
                       style: TextStyle(
@@ -722,15 +680,53 @@ class _BillsScreenState extends State<BillsScreen>
               SizedBox(height: 14),
               _buildFilterTabs(),
               SizedBox(height: 12),
-              Text(
-                _activeFilter == 'all'
-                    ? AppLocalizations.t(context, 'bills_recent')
-                    : _translateCategory(context, _activeFilter),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: _t.textPrimary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    _activeFilter == 'all'
+                        ? AppLocalizations.t(context, 'bills_recent')
+                        : _translateCategory(context, _activeFilter),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _t.textPrimary,
+                    ),
+                  ),
+                  _PressScaleButton(
+                      onTap: () => _openOverlay('add'),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [_accent, _accent3],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _accent2.withValues(alpha: 0.35),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 15),
+                            SizedBox(width: 5),
+                            Text(
+                              AppLocalizations.t(context, 'bills_btn_add_bill'),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
               SizedBox(height: 10),
             ],
@@ -764,7 +760,7 @@ class _BillsScreenState extends State<BillsScreen>
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [_accent2, _accent, _accent4.withValues(alpha: 0.85)],
+          colors: [_accent, _accent2, _accent3],
           stops: [0.0, 0.4, 1.0],
         ),
         borderRadius: BorderRadius.circular(24),
@@ -903,7 +899,7 @@ class _BillsScreenState extends State<BillsScreen>
 
   Widget _buildFilterTabs() {
     final tabs = [
-      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': Colors.white, 'bg': kBg2},
+      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': Colors.white, 'bg': _t.backgroundSecondary},
       {
         'key': 'shopping',
         'label': AppLocalizations.t(context, 'bills_filter_shopping'),
@@ -1041,6 +1037,7 @@ class _BillsScreenState extends State<BillsScreen>
               height: 1.6,
             ),
           ),
+
         ],
       ),
     );
@@ -1052,93 +1049,49 @@ class _BillsScreenState extends State<BillsScreen>
       color: Colors.transparent,
       child: Row(
         children: [
-          Expanded(
-            child: _PressScaleButton(
-              onTap: () => _openOverlay('add'),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_accent2, _accent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          _PressScaleButton(
+            onTap: () => _openOverlay('coupon'),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_accent, _accent3],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _accent.withValues(alpha: 0.35),
+                        blurRadius: 16,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _accent2.withValues(alpha: 0.40),
-                      blurRadius: 30,
-                      offset: Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      AppLocalizations.t(context, 'bills_btn_add_bill'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.local_offer_outlined,
                         color: Colors.white,
+                        size: 14,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: _PressScaleButton(
-              onTap: () => _openOverlay('coupon'),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [_accent, _accent2],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _accent.withValues(alpha: 0.35),
-                          blurRadius: 30,
-                          offset: Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.local_offer_outlined,
+                      SizedBox(width: 6),
+                      Text(
+                        AppLocalizations.t(context, 'bills_btn_my_coupons'),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                           color: Colors.white,
-                          size: 18,
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          AppLocalizations.t(context, 'bills_btn_my_coupons'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  Positioned(
+                ),
+                Positioned(
                     top: -6,
                     right: 14,
                     child: Container(
@@ -1168,6 +1121,12 @@ class _BillsScreenState extends State<BillsScreen>
                 ],
               ),
             ),
+          const Spacer(),
+          // ── Ask Ahvi chat button (Future Candy = pink, others = palette accent) ──
+          _AskAhviFab(
+            accent: _chatAccent,
+            accent2: _chatAccent2,
+            onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'),
           ),
         ],
       ),
@@ -1175,7 +1134,7 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   Widget _buildChatFab() {
-    return AhviStylistFab(onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'));
+    return _AskAhviFab(accent: _chatAccent, accent2: _chatAccent2, onTap: () => showAhviStylistChatSheet(context, moduleContext: 'bills'));
   }
 
   Widget _buildChatPanel() {
@@ -1187,7 +1146,7 @@ class _BillsScreenState extends State<BillsScreen>
         border: Border.all(color: _t.cardBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+          color: Colors.black.withValues(alpha: 0.40),
             blurRadius: 60,
             offset: Offset(0, 20),
           ),
@@ -1202,7 +1161,7 @@ class _BillsScreenState extends State<BillsScreen>
               padding: EdgeInsets.fromLTRB(16, 14, 16, 12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0x1A8D7DFF), Color(0x0FFF8EC7)],
+                  colors: [_accent2.withValues(alpha: 0.10), _accent4.withValues(alpha: 0.06)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -1214,7 +1173,7 @@ class _BillsScreenState extends State<BillsScreen>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [_accent2, _accent4]),
+                      gradient: LinearGradient(colors: [_accent, _accent3]),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -1364,7 +1323,7 @@ class _BillsScreenState extends State<BillsScreen>
                       height: 32,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [_accent2, _accent],
+                          colors: [_accent, _accent3],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -1427,7 +1386,7 @@ class _BillsScreenState extends State<BillsScreen>
         border: Border(top: BorderSide(color: _t.cardBorder, width: 1.5)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x266B91FF),
+            color: _accent.withValues(alpha: 0.15),
             blurRadius: 60,
             offset: Offset(0, -20),
           ),
@@ -1599,7 +1558,7 @@ class _BillsScreenState extends State<BillsScreen>
                     child: Container(
                       padding: EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [_accent2, _accent]),
+                        gradient: LinearGradient(colors: [_accent, _accent3]),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -1643,8 +1602,8 @@ class _BillsScreenState extends State<BillsScreen>
     return Container(
       padding: EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: kPanel,
-        border: Border.all(color: kBorder, width: 1.5),
+        color: _t.panel,
+        border: Border.all(color: _t.cardBorder, width: 1.5),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
@@ -1658,7 +1617,7 @@ class _BillsScreenState extends State<BillsScreen>
                 padding: EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? (mode == 'ai' ? Color(0x268D7DFF) : Color(0x2604D7C8))
+                      ? (mode == 'ai' ? _accent2.withValues(alpha: 0.15) : _accent3.withValues(alpha: 0.15))
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(13),
                 ),
@@ -1669,7 +1628,7 @@ class _BillsScreenState extends State<BillsScreen>
                       mode == 'ai' ? Icons.auto_awesome : Icons.edit_outlined,
                       size: 14,
                       color: isActive
-                          ? (mode == 'ai' ? kAccent2 : kAccent3)
+                          ? (mode == 'ai' ? _accent2 : _accent3)
                           : _t.mutedText,
                     ),
                     SizedBox(width: 5),
@@ -1681,7 +1640,7 @@ class _BillsScreenState extends State<BillsScreen>
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: isActive
-                            ? (mode == 'ai' ? kAccent2 : kAccent3)
+                            ? (mode == 'ai' ? _accent2 : _accent3)
                             : _t.mutedText,
                       ),
                     ),
@@ -1715,9 +1674,9 @@ class _BillsScreenState extends State<BillsScreen>
             Expanded(
               child: _uploadOptBtn(
                 icon: Icons.camera_alt_outlined,
-                iconColor: Color(0xFFD4756E),
-                bg: isDark ? Color(0x1FD4756E) : Color(0xFFD4756E).withValues(alpha: 0.08),
-                border: isDark ? Color(0x33D4756E) : Color(0xFFD4756E).withValues(alpha: 0.30),
+                iconColor: _accent3,
+                bg: isDark ? _accent3.withValues(alpha: 0.12) : _accent3.withValues(alpha: 0.08),
+                border: isDark ? _accent3.withValues(alpha: 0.20) : _accent3.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_camera_label'),
                 sub: AppLocalizations.t(context, 'bills_camera_sub'),
               ),
@@ -1726,9 +1685,9 @@ class _BillsScreenState extends State<BillsScreen>
             Expanded(
               child: _uploadOptBtn(
                 icon: Icons.upload_file_outlined,
-                iconColor: Color(0xFF5A8FD8),
-                bg: isDark ? Color(0x1F5A8FD8) : Color(0xFF5A8FD8).withValues(alpha: 0.08),
-                border: isDark ? Color(0x335A8FD8) : Color(0xFF5A8FD8).withValues(alpha: 0.30),
+                iconColor: _accent,
+                bg: isDark ? _accent.withValues(alpha: 0.12) : _accent.withValues(alpha: 0.08),
+                border: isDark ? _accent.withValues(alpha: 0.20) : _accent.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_upload_label'),
                 sub: AppLocalizations.t(context, 'bills_upload_sub'),
               ),
@@ -1788,13 +1747,13 @@ class _BillsScreenState extends State<BillsScreen>
     return Container(
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Color(0x1204D7C8),
-        border: Border.all(color: Color(0x2904D7C8), width: 1.5),
+        color: _accent3.withValues(alpha: 0.07),
+        border: Border.all(color: _accent3.withValues(alpha: 0.16), width: 1.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Icon(Icons.edit_rounded, color: kAccent3, size: 16),
+          Icon(Icons.edit_rounded, color: _accent3, size: 16),
           SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1804,7 +1763,7 @@ class _BillsScreenState extends State<BillsScreen>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: kAccent3,
+                  color: _accent3,
                 ),
               ),
               Text(
@@ -1854,7 +1813,7 @@ class _BillsScreenState extends State<BillsScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Color(0x146B91FF),
+            color: _accent.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: Offset(0, 2),
           ),
@@ -1922,7 +1881,7 @@ class _BillsScreenState extends State<BillsScreen>
 
     showDialog(
       context: context,
-      barrierColor: Color(0xB808111F),
+      barrierColor: _t.backgroundPrimary.withValues(alpha: 0.70),
       builder: (ctx) {
         return StatefulBuilder(builder: (ctx, setDlgState) {
           final daysInMonth = DateUtils.getDaysInMonth(_viewMonth.year, _viewMonth.month);
@@ -2034,7 +1993,7 @@ class _BillsScreenState extends State<BillsScreen>
                           decoration: BoxDecoration(
                             gradient: isSelected
                                 ? LinearGradient(
-                                    colors: [_accent2, _accent],
+                                    colors: [_accent, _accent3],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   )
@@ -2110,7 +2069,7 @@ class _BillsScreenState extends State<BillsScreen>
                           child: Container(
                             padding: EdgeInsets.symmetric(vertical: 11),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(colors: [_accent2, _accent]),
+                              gradient: LinearGradient(colors: [_accent, _accent3]),
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
@@ -2177,7 +2136,7 @@ class _BillsScreenState extends State<BillsScreen>
           dropdownColor: _t.backgroundSecondary,
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
-            color: Color(0xFFC4A0C8),
+            color: _accent2,
             size: 16,
           ),
           isExpanded: true,
@@ -2211,7 +2170,7 @@ class _BillsScreenState extends State<BillsScreen>
         border: Border(top: BorderSide(color: _t.cardBorder, width: 1.5)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x2E8D7DFF),
+            color: _accent2.withValues(alpha: 0.18),
             blurRadius: 60,
             offset: Offset(0, -20),
           ),
@@ -2340,7 +2299,7 @@ class _BillsScreenState extends State<BillsScreen>
                           dropdownColor: _t.backgroundSecondary,
                           icon: Icon(
                             Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFFC4A0C8),
+                            color: _accent2,
                             size: 16,
                           ),
                           isExpanded: true,
@@ -2398,7 +2357,7 @@ class _BillsScreenState extends State<BillsScreen>
               width: double.infinity,
               padding: EdgeInsets.symmetric(vertical: 13),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [_accent2, _accent]),
+                gradient: LinearGradient(colors: [_accent, _accent3]),
                 borderRadius: BorderRadius.circular(15),
                 boxShadow: [
                   BoxShadow(
@@ -2528,10 +2487,10 @@ class _BillsScreenState extends State<BillsScreen>
 
   Widget _buildStoredCouponCard(Map<String, dynamic> coupon, int index) {
     final palettes = [
-      [Color(0xFF8D7DFF), Color(0xFF6B91FF)],
-      [Color(0xFFFF8EC7), Color(0xFFFFD86E)],
-      [Color(0xFF04D7C8), Color(0xFF6B91FF)],
-      [Color(0xFF6B91FF), Color(0xFF04D7C8)],
+      [_accent2, _accent],
+      [_accent4, _accent5],
+      [_accent3, _accent],
+      [_accent, _accent3],
     ];
     final gradientColors = palettes[index % palettes.length];
 
@@ -2552,7 +2511,7 @@ class _BillsScreenState extends State<BillsScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Color(0x218050C8),
+            color: _accent.withValues(alpha: 0.13),
             blurRadius: 16,
             offset: Offset(0, 4),
           ),
@@ -2633,7 +2592,7 @@ class _BillsScreenState extends State<BillsScreen>
           ),
           SizedBox(
             width: 14,
-            child: CustomPaint(painter: _PerforationPainter(notchColor: _t.backgroundSecondary)),
+            child: CustomPaint(painter: _PerforationPainter(notchColor: _t.backgroundSecondary, dashColor: _t.cardBorder)),
           ),
           Expanded(
             child: Container(
@@ -2714,14 +2673,14 @@ class _BillsScreenState extends State<BillsScreen>
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Color(0x14FF6B7A),
-                        border: Border.all(color: Color(0x33FF6B7A), width: 1),
+                        color: _deleteRed.withValues(alpha: 0.08),
+                        border: Border.all(color: _deleteRed.withValues(alpha: 0.20), width: 1),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       child: Icon(
                         Icons.delete_outline_rounded,
                         size: 13,
-                        color: Color(0x99FF6B7A),
+                        color: _deleteRed.withValues(alpha: 0.60),
                       ),
                     ),
                   ),
@@ -2755,10 +2714,10 @@ class _BillsScreenState extends State<BillsScreen>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 22, vertical: 10),
       decoration: BoxDecoration(
-        color: Color(0xF20F1A2D),
-        border: Border.all(color: kBorder, width: 1),
+        color: _t.backgroundSecondary,
+        border: Border.all(color: _t.cardBorder, width: 1),
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 20)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.20), blurRadius: 20)],
       ),
       child: Text(
         _toastMsg,
@@ -2778,7 +2737,7 @@ class _BillsScreenState extends State<BillsScreen>
         height: 4,
         margin: EdgeInsets.only(top: 8, bottom: 20),
         decoration: BoxDecoration(
-          color: kPanel2,
+          color: _t.panelBorder,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -2811,6 +2770,8 @@ class _AnimatedBillCard extends StatefulWidget {
 
 class _AnimatedBillCardState extends State<_AnimatedBillCard>
     with SingleTickerProviderStateMixin {
+  static const Color _deleteRed = Color(0xFFFF6B7A);
+
   late AnimationController _ctrl;
   late Animation<double> _opacity;
   late Animation<Offset> _slide;
@@ -3000,9 +2961,9 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
                           width: 22,
                           height: 22,
                           decoration: BoxDecoration(
-                            color: Color(0x26FF6B7A),
+                            color: _deleteRed.withValues(alpha: 0.15),
                             border: Border.all(
-                              color: Color(0x4DFF6B7A),
+                              color: _deleteRed.withValues(alpha: 0.30),
                               width: 1,
                             ),
                             borderRadius: BorderRadius.circular(11),
@@ -3010,7 +2971,7 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
                           child: Icon(
                             Icons.close_rounded,
                             size: 11,
-                            color: kRed,
+                            color: _deleteRed,
                           ),
                         ),
                       ),
@@ -3056,16 +3017,23 @@ class _DetailSheet extends StatelessWidget {
     required this.onDelete,
   });
 
+  static const Color _deleteRed = Color(0xFFFF6B7A);
+  static const Color _deleteRedLight = Color(0xFFFF8EC7);
+
   @override
   Widget build(BuildContext context) {
+    final _t = context.themeTokens;
+    final _accent = _t.accent.primary;
+    final _accent2 = _t.accent.secondary;
+    final _accent4 = Color.lerp(_accent2, _accent, 0.45)!;
     return Container(
       decoration: BoxDecoration(
-        color: kBg2,
+        color: _t.backgroundSecondary,
         borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
-        border: Border(top: BorderSide(color: kBorder, width: 1.5)),
+        border: Border(top: BorderSide(color: _t.cardBorder, width: 1.5)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x2E6B91FF),
+            color: _accent.withValues(alpha: 0.18),
             blurRadius: 60,
             offset: Offset(0, -20),
           ),
@@ -3083,7 +3051,7 @@ class _DetailSheet extends StatelessWidget {
                 height: 4,
                 margin: EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: kPanel2,
+                  color: _t.panelBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -3097,10 +3065,10 @@ class _DetailSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: meta['bg'] as Color,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Color(0x4DC4A0C8), width: 1.5),
+                    border: Border.all(color: _accent2.withValues(alpha: 0.30), width: 1.5),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0x247850B4),
+                        color: _accent.withValues(alpha: 0.14),
                         blurRadius: 14,
                         offset: Offset(0, 4),
                       ),
@@ -3123,7 +3091,7 @@ class _DetailSheet extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: kText,
+                          color: _t.textPrimary,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -3131,7 +3099,7 @@ class _DetailSheet extends StatelessWidget {
                         bill['date'] as String,
                         style: TextStyle(
                           fontSize: 11,
-                          color: kMuted,
+                          color: _t.mutedText,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -3143,7 +3111,7 @@ class _DetailSheet extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
-                    color: kText,
+                    color: _t.textPrimary,
                   ),
                 ),
               ],
@@ -3152,21 +3120,21 @@ class _DetailSheet extends StatelessWidget {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Color(0x1F8D7DFF),
+                color: _accent2.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Color(0x388D7DFF), width: 1),
+                border: Border.all(color: _accent2.withValues(alpha: 0.22), width: 1),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('✦', style: TextStyle(fontSize: 8, color: kAccent2)),
+                  Text('✦', style: TextStyle(fontSize: 8, color: _accent2)),
                   SizedBox(width: 4),
                   Text(
                     AppLocalizations.t(context, 'bills_ai_scanned'),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: kAccent2,
+                      color: _accent2,
                     ),
                   ),
                 ],
@@ -3180,16 +3148,16 @@ class _DetailSheet extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2.4,
-                  color: kMuted,
+                  color: _t.mutedText,
                 ),
               ),
             ),
-            _detailRow(AppLocalizations.t(context, 'bills_detail_category'), _translateCategory(context, bill['category'] as String).toUpperCase()),
-            _detailRow(AppLocalizations.t(context, 'bills_detail_payment'), _translatePayment(context, bill['payment'] as String)),
-            _detailRow(AppLocalizations.t(context, 'bills_detail_amount'), '₹${_fmtAmount(bill['amount'] as double)}'),
-            _detailRow(AppLocalizations.t(context, 'bills_detail_date'), bill['date'] as String),
+            _detailRow(context, AppLocalizations.t(context, 'bills_detail_category'), _translateCategory(context, bill['category'] as String).toUpperCase()),
+            _detailRow(context, AppLocalizations.t(context, 'bills_detail_payment'), _translatePayment(context, bill['payment'] as String)),
+            _detailRow(context, AppLocalizations.t(context, 'bills_detail_amount'), '₹${_fmtAmount(bill['amount'] as double)}'),
+            _detailRow(context, AppLocalizations.t(context, 'bills_detail_date'), bill['date'] as String),
             if ((bill['items'] as String).isNotEmpty) ...[
-              _detailRow(AppLocalizations.t(context, 'bills_detail_items'), bill['items'] as String),
+              _detailRow(context, AppLocalizations.t(context, 'bills_detail_items'), bill['items'] as String),
             ],
             if ((bill['note'] as String).isNotEmpty) ...[
               Padding(
@@ -3200,7 +3168,7 @@ class _DetailSheet extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 2.4,
-                    color: kMuted,
+                    color: _t.mutedText,
                   ),
                 ),
               ),
@@ -3209,11 +3177,11 @@ class _DetailSheet extends StatelessWidget {
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0x148D7DFF), Color(0x0DFF8EC7)],
+                    colors: [_accent2.withValues(alpha: 0.08), _accent4.withValues(alpha: 0.05)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: Color(0x238D7DFF), width: 1),
+                  border: Border.all(color: _accent2.withValues(alpha: 0.14), width: 1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
@@ -3221,7 +3189,7 @@ class _DetailSheet extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: kText,
+                    color: _t.textPrimary,
                     height: 1.6,
                   ),
                 ),
@@ -3248,13 +3216,14 @@ class _DetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(String key, String value) {
+  Widget _detailRow(BuildContext context, String key, String value) {
+    final _t = context.themeTokens;
     return Container(
       margin: EdgeInsets.only(bottom: 7),
       padding: EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: kPanel,
-        border: Border.all(color: kBorder, width: 1),
+        color: _t.panel,
+        border: Border.all(color: _t.cardBorder, width: 1),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -3265,7 +3234,7 @@ class _DetailSheet extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: kMuted,
+              color: _t.mutedText,
             ),
           ),
           Text(
@@ -3273,7 +3242,7 @@ class _DetailSheet extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: kText,
+              color: _t.textPrimary,
             ),
           ),
         ],
@@ -3287,6 +3256,7 @@ class _DetailSheet extends StatelessWidget {
     bool isPrimary, {
     VoidCallback? onTap,
   }) {
+    final _t = ctx.themeTokens;
     return GestureDetector(
       onTap: onTap ?? () => Navigator.pop(ctx),
       child: Container(
@@ -3294,18 +3264,18 @@ class _DetailSheet extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isPrimary
               ? LinearGradient(
-                  colors: [Color(0xCCFF6B7A), Color(0xCCFF8EC7)],
+                  colors: [_deleteRed.withValues(alpha: 0.80), _deleteRedLight.withValues(alpha: 0.80)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: isPrimary ? null : kPanel,
-          border: Border.all(color: kBorder, width: 1),
+          color: isPrimary ? null : _t.panel,
+          border: Border.all(color: _t.cardBorder, width: 1),
           borderRadius: BorderRadius.circular(16),
           boxShadow: isPrimary
               ? [
                   BoxShadow(
-                    color: Color(0x47FF6B7A),
+                    color: _deleteRed.withValues(alpha: 0.28),
                     blurRadius: 20,
                     offset: Offset(0, 6),
                   ),
@@ -3318,7 +3288,7 @@ class _DetailSheet extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isPrimary ? Colors.white : kText,
+              color: isPrimary ? Colors.white : _t.textPrimary,
             ),
           ),
         ),
@@ -3437,7 +3407,8 @@ class _PressScaleButtonState extends State<_PressScaleButton> {
 // ════════════════════════════════════════════════════════════════════
 class _PerforationPainter extends CustomPainter {
   final Color notchColor;
-  const _PerforationPainter({required this.notchColor});
+  final Color dashColor;
+  const _PerforationPainter({required this.notchColor, required this.dashColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3449,7 +3420,7 @@ class _PerforationPainter extends CustomPainter {
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 8, notchPaint);
 
     final dashPaint = Paint()
-      ..color = kBorder
+      ..color = dashColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
     final dashH = 5.0;
@@ -3744,6 +3715,227 @@ class _BillsMenuRowState extends State<_BillsMenuRow> {
                 endIndent: 0,
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+// ─── ASK AHVI FAB (matches Skincare style exactly) ───────────────────────────
+class _AskAhviFab extends StatefulWidget {
+  final VoidCallback onTap;
+  final Color? accent;
+  final Color? accent2;
+  const _AskAhviFab({required this.onTap, this.accent, this.accent2});
+  @override
+  State<_AskAhviFab> createState() => _AskAhviFabState();
+}
+
+class _AskAhviFabState extends State<_AskAhviFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final accent  = widget.accent  ?? t.accent.primary;
+    final accent2 = widget.accent2 ?? t.accent.secondary;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: AnimatedBuilder(
+          animation: _pulseCtrl,
+          builder: (_, child) => Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: _pulseOpacity.value,
+                  child: Transform.scale(
+                    scale: _pulseScale.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child!,
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent2, accent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  child: const Text(
+                    '✦',
+                    style: TextStyle(fontSize: 11, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  AppLocalizations.t(context, 'ask_ahvi'),
+                  style: GoogleFonts.anton(
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+// ─── Bills Chat FAB — inline in bottom bar (square pill, pulse ring) ──────────
+class _BillsChatFabInline extends StatefulWidget {
+  final VoidCallback onTap;
+  final Color accent;
+  const _BillsChatFabInline({required this.onTap, required this.accent});
+  @override
+  State<_BillsChatFabInline> createState() => _BillsChatFabInlineState();
+}
+
+class _BillsChatFabInlineState extends State<_BillsChatFabInline>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.18).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = widget.accent;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) { setState(() => _pressed = false); widget.onTap(); },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.92 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: AnimatedBuilder(
+          animation: _pulseCtrl,
+          builder: (_, child) => Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: _pulseOpacity.value,
+                  child: Transform.scale(
+                    scale: _pulseScale.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.40),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child!,
+            ],
+          ),
+          child: Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.45),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text('✦', style: TextStyle(fontSize: 20, color: Colors.white)),
+            ),
+          ),
         ),
       ),
     );

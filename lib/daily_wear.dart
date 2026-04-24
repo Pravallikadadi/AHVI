@@ -59,6 +59,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   int _carouselIndex = 0;
   bool _chatOpen = false;
   bool _tryOnOpen = false;
+  bool _ready = false; // prevents washed-out first frame
   final PageController _pageController = PageController();
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -286,16 +287,16 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final borders = [accentColor, accent3Color, accent2Color];
     final gradients = [
       [
-        accentColor.withValues(alpha: 0.22),
-        accentColor.withValues(alpha: 0.10),
+        accentColor.withValues(alpha: 0.24),
+        accentColor.withValues(alpha: 0.11),
       ],
       [
-        accent3Color.withValues(alpha: 0.20),
-        accent3Color.withValues(alpha: 0.09),
+        accent3Color.withValues(alpha: 0.22),
+        accent3Color.withValues(alpha: 0.10),
       ],
       [
-        accent2Color.withValues(alpha: 0.21),
-        accent2Color.withValues(alpha: 0.10),
+        accent2Color.withValues(alpha: 0.23),
+        accent2Color.withValues(alpha: 0.11),
       ],
     ];
     return List.generate(options.length, (index) {
@@ -314,36 +315,74 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   Map<String, dynamic> get _currentOutfit => _displayedOutfits[_carouselIndex];
 
- @override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!mounted) return;
+    // ── Controllers first ──────────────────────────────────────
+    _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard0Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+    _optCard0Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
 
-    // SAFE: runs after UI is built
-    _startAutoPlay();
-    _restartOptionCardAnimations();
-    _fabEntryCtrl.forward();
+    _fabEntryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fabEntryScale = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _fabEntryCtrl, curve: Curves.elasticOut));
+    _fabEntryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fabEntryCtrl, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
 
-    // Clock
-    Future.delayed(const Duration(milliseconds: 500), () {
+    _fabPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
+    _fabPulseScale = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+    _fabPulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+
+    _chatSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
+    _chatSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _chatSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
+    _chatFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _chatSlideCtrl, curve: const Interval(0, 0.4)));
+
+    _tryOnSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _tryOnSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
+    _tryOnFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Interval(0, 0.4)));
+
+    _micPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _micPulseScale = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _micPulseCtrl, curve: Curves.easeInOut));
+
+    _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
+    _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
+      CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
+    // Start fade-in immediately on page load
+    _pageController.addListener(_onPageScroll);
+
+    // ── Deferred startup ──────────────────────────────────────────────────
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _updateClock();
+      setState(() => _ready = true); // page is fully rendered, show content
+      _startAutoPlay();
+      _restartOptionCardAnimations();
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) _fabEntryCtrl.forward();
+      });
 
+      _updateClock();
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
         if (mounted) _updateClock();
       });
-
       final now = DateTime.now();
-      final nextMinute = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        now.hour,
-        now.minute + 1,
-      );
-
+      final nextMinute = DateTime(now.year, now.month, now.day, now.hour, now.minute + 1);
       _clockAlignTimer = Timer(nextMinute.difference(now), () {
         if (!mounted) return;
         _updateClock();
@@ -352,123 +391,19 @@ void initState() {
           if (mounted) _updateClock();
         });
       });
+
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) _fetchWeather();
+      });
     });
-
-    // Weather
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) _fetchWeather();
-    });
-  });
-
-  // Controllers (keep same)
-  _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-  _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-  _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-
-  _fabEntryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-  _fabEntryScale = Tween<double>(
-  begin: 0.4,
-  end: 1.0,
-).animate(CurvedAnimation(
-  parent: _fabEntryCtrl,
-  curve: Curves.elasticOut,
-));
-
-_fabEntryOpacity = Tween<double>(
-  begin: 0.0,
-  end: 1.0,
-).animate(CurvedAnimation(
-  parent: _fabEntryCtrl,
-  curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-));
-  _fabPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
-  _fabPulseScale = Tween<double>(
-  begin: 0.8,
-  end: 1.4,
-).animate(CurvedAnimation(
-  parent: _fabPulseCtrl,
-  curve: Curves.easeOut,
-));
-
-_fabPulseOpacity = Tween<double>(
-  begin: 0.4,
-  end: 0.0,
-).animate(CurvedAnimation(
-  parent: _fabPulseCtrl,
-  curve: Curves.easeOut,
-));
-  _chatSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
-  _tryOnSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-// ✅ ADD THIS HERE
-
-_chatSlideAnim = Tween<Offset>(
-  begin: const Offset(0, 1),
-  end: Offset.zero,
-).animate(CurvedAnimation(
-  parent: _chatSlideCtrl,
-  curve: Curves.easeOut,
-));
-
-_chatFadeAnim = Tween<double>(
-  begin: 0.0,
-  end: 1.0,
-).animate(_chatSlideCtrl);
-
-_tryOnSlideAnim = Tween<Offset>(
-  begin: const Offset(0, 1),
-  end: Offset.zero,
-).animate(CurvedAnimation(
-  parent: _tryOnSlideCtrl,
-  curve: Curves.easeOut,
-));
-
-_tryOnFadeAnim = Tween<double>(
-  begin: 0.0,
-  end: 1.0,
-).animate(_tryOnSlideCtrl);
-  _micPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-  _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
-// ✅ ADD THIS
-
-_micPulseScale = Tween<double>(
-  begin: 1.0,
-  end: 1.2,
-).animate(CurvedAnimation(
-  parent: _micPulseCtrl,
-  curve: Curves.easeInOut,
-));
-
-_scanLineY = Tween<double>(
-  begin: 0.0,
-  end: 1.0,
-).animate(CurvedAnimation(
-  parent: _scanCtrl,
-  curve: Curves.linear,
-));
-  _pageController.addListener(_onPageScroll);
-  // ✅ ADD THIS HERE (animation initialization)
-
-_optCard0Slide = Tween<Offset>(
-  begin: const Offset(0, 0.3),
-  end: Offset.zero,
-).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
-
-_optCard1Slide = Tween<Offset>(
-  begin: const Offset(0, 0.3),
-  end: Offset.zero,
-).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
-
-_optCard2Slide = Tween<Offset>(
-  begin: const Offset(0, 0.3),
-  end: Offset.zero,
-).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-
-_optCard0Fade = Tween<double>(begin: 0, end: 1).animate(_optCard0Ctrl);
-_optCard1Fade = Tween<double>(begin: 0, end: 1).animate(_optCard1Ctrl);
-_optCard2Fade = Tween<double>(begin: 0, end: 1).animate(_optCard2Ctrl);
-}
+  }
 
   void _restartOptionCardAnimations() {
+    // Guard: if all cards already fully visible, skip to avoid flicker on
+    // hot rebuilds / setState cycles that are faster on Android APK
+    if (_optCard0Ctrl.isCompleted &&
+        _optCard1Ctrl.isCompleted &&
+        _optCard2Ctrl.isCompleted) return;
     _optCard0Ctrl.forward(from: 0);
     Future.delayed(const Duration(milliseconds: 70), () {
       if (mounted) _optCard1Ctrl.forward(from: 0);
@@ -795,6 +730,7 @@ void dispose() {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      barrierColor: Colors.transparent,
       backgroundColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.88,
@@ -1360,6 +1296,9 @@ void dispose() {
       ),
     );
 
+    if (!_ready) {
+      return Scaffold(backgroundColor: bgColor);
+    }
     return content;
   }
 
@@ -1435,12 +1374,19 @@ void dispose() {
   Widget _buildDatePill() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
     decoration: BoxDecoration(
-      color: panel2Color,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          accentColor.withValues(alpha: 0.18),
+          accent3Color.withValues(alpha: 0.12),
+        ],
+      ),
       borderRadius: BorderRadius.circular(30),
-      border: Border.all(color: cardBorderColor),
+      border: Border.all(color: accentColor.withValues(alpha: 0.30)),
       boxShadow: [
         BoxShadow(
-          color: bgColor.withValues(alpha: 0.2),
+          color: accentColor.withValues(alpha: 0.12),
           blurRadius: 20,
           offset: const Offset(0, 4),
         ),
@@ -1453,8 +1399,8 @@ void dispose() {
           _liveDay,
           style: TextStyle(
             fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: textColor,
+            fontWeight: FontWeight.w700,
+            color: accentColor,
             letterSpacing: 1.2,
           ),
         ),
@@ -1463,7 +1409,7 @@ void dispose() {
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: textColor,
+            color: accentColor.withValues(alpha: 0.5),
             letterSpacing: 1.2,
           ),
         ),
@@ -1471,8 +1417,8 @@ void dispose() {
           _liveDate,
           style: TextStyle(
             fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: textColor,
+            fontWeight: FontWeight.w700,
+            color: accentColor,
             letterSpacing: 1.2,
           ),
         ),
@@ -1482,7 +1428,7 @@ void dispose() {
           style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w500,
-            color: textColor.withValues(alpha: 0.7),
+            color: accentColor.withValues(alpha: 0.65),
             letterSpacing: 0.5,
           ),
         ),
@@ -1496,12 +1442,20 @@ void dispose() {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       constraints: const BoxConstraints(minHeight: 68),
       decoration: BoxDecoration(
-        color: panel2Color,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            accentColor.withValues(alpha: 0.13),
+            accent2Color.withValues(alpha: 0.08),
+            accent3Color.withValues(alpha: 0.11),
+          ],
+        ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: cardBorderColor),
+        border: Border.all(color: accentColor.withValues(alpha: 0.22)),
         boxShadow: [
           BoxShadow(
-            color: bgColor.withValues(alpha: 0.25),
+            color: accentColor.withValues(alpha: 0.12),
             blurRadius: 32,
             offset: const Offset(0, 8),
           ),
@@ -1717,9 +1671,9 @@ void dispose() {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: Colors.black.withValues(alpha: 0.30),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.2),
@@ -1747,36 +1701,40 @@ void dispose() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ColorFiltered(
-          colorFilter: const ColorFilter.matrix([
-            0.72, 0, 0, 0, 0,
-            0, 0.72, 0, 0, 0,
-            0, 0, 0.72, 0, 0,
-            0, 0, 0, 1, 0,
-          ]),
-          child: Image.network(
-            outfit['img'] as String,
-            fit: BoxFit.cover,
-            alignment: Alignment.topCenter,
-            cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
-            filterQuality: FilterQuality.low,
-            errorBuilder: (_, _, _) {
-              final localImg = outfit['localImg'] as String?;
-              if (localImg != null) {
-                return Image.asset(
-                  localImg,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                );
-              }
-              return Container(
-                color: panelColor,
-                child: Center(
-                  child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
-                ),
+        Image.network(
+          outfit['img'] as String,
+          fit: BoxFit.cover,
+          alignment: Alignment.topCenter,
+          cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
+          filterQuality: FilterQuality.medium,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (wasSynchronouslyLoaded || frame != null) return child;
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: frame == null
+                  ? Container(
+                      key: const ValueKey('placeholder'),
+                      color: panelColor,
+                    )
+                  : child,
+            );
+          },
+          errorBuilder: (_, _, _) {
+            final localImg = outfit['localImg'] as String?;
+            if (localImg != null) {
+              return Image.asset(
+                localImg,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
               );
-            },
-          ),
+            }
+            return Container(
+              color: panelColor,
+              child: Center(
+                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+              ),
+            );
+          },
         ),
         Positioned.fill(
           child: DecoratedBox(
@@ -1788,9 +1746,9 @@ void dispose() {
                 colors: [
                   Colors.black.withValues(alpha: 0.02),
                   Colors.black.withValues(alpha: 0),
-                  Colors.black.withValues(alpha: 0.35),
-                  Colors.black.withValues(alpha: 0.75),
-                  Colors.black.withValues(alpha: 0.95),
+                  Colors.black.withValues(alpha: 0.18),
+                  Colors.black.withValues(alpha: 0.42),
+                  Colors.black.withValues(alpha: 0.62),
                 ],
               ),
             ),
@@ -1809,9 +1767,9 @@ void dispose() {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
+                  color: Colors.black.withValues(alpha: 0.32),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                 ),
                 child: Text(
                   AppLocalizations.t(context, 'daily_wear_ahvi_pick'),
@@ -1864,7 +1822,7 @@ void dispose() {
                         const SizedBox(height: 4),
                         Text(
                           AppLocalizations.t(context, outfit['descKey'] as String),
-                          style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.70)),
+                          style: const TextStyle(fontSize: 11, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -1875,9 +1833,9 @@ void dispose() {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.35),
+                      color: Colors.black.withValues(alpha: 0.32),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                     ),
                     child: Text(
                       '${index + 1} / ${_displayedOutfits.length}',
@@ -1902,9 +1860,9 @@ void dispose() {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.22),
+                          color: Colors.white.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.40)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
                         ),
                         child: Text(
                           t,
@@ -2095,7 +2053,19 @@ void dispose() {
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     cacheWidth: _cacheWidth(context, 180),
-                    filterQuality: FilterQuality.low,
+                    filterQuality: FilterQuality.medium,
+                    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                      if (wasSynchronouslyLoaded || frame != null) return child;
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: frame == null
+                            ? Container(
+                                key: const ValueKey('placeholder'),
+                                color: panelColor,
+                              )
+                            : child,
+                      );
+                    },
                     errorBuilder: (_, _, _) {
                       final outfitData = _buildAllOutfits(context).firstWhere(
                         (o) => o['id'] == card['outfitId'],
@@ -2126,7 +2096,7 @@ void dispose() {
                           stops: const [0.28, 1.0],
                           colors: [
                             Colors.black.withValues(alpha: 0),
-                            Colors.black.withValues(alpha: 0.60),
+                            Colors.black.withValues(alpha: 0.35),
                           ],
                         ),
                       ),
@@ -2377,7 +2347,10 @@ void dispose() {
   );
 
   int _cacheWidth(BuildContext context, double logicalWidth) {
-    return (logicalWidth * MediaQuery.of(context).devicePixelRatio).round();
+    final ratio = MediaQuery.of(context).devicePixelRatio;
+    // Cap at 2x to prevent over-sampling on high-DPI Android devices
+    // which causes a visible fade/flash while Flutter resizes the image
+    return (logicalWidth * math.min(ratio, 2.0)).round();
   }
 
   Widget _chatHeader() => Padding(
@@ -2533,7 +2506,7 @@ void dispose() {
   Widget _buildTryOnOverlay() => GestureDetector(
     onTap: _closeTryOn,
     child: Material(
-      color: bgColor.withValues(alpha: 0.65),
+      color: Colors.transparent,
       child: Align(
         alignment: Alignment.bottomCenter,
         child: GestureDetector(
@@ -2681,7 +2654,7 @@ void dispose() {
                             context,
                             constraints.maxWidth,
                           ),
-                          filterQuality: FilterQuality.low,
+                          filterQuality: FilterQuality.medium,
                         ),
                       ),
                     ),
@@ -2761,7 +2734,7 @@ void dispose() {
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: cardBorderColor),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -2838,7 +2811,7 @@ void dispose() {
                     outfit['img'] as String,
                     fit: BoxFit.cover,
                     cacheWidth: _cacheWidth(context, 320),
-                    filterQuality: FilterQuality.low,
+                    filterQuality: FilterQuality.medium,
                   ),
                 ),
                 Positioned(
@@ -2871,7 +2844,7 @@ void dispose() {
                   right: 0,
                   bottom: 0,
                   child: Container(
-                    color: Colors.black.withValues(alpha: 0.45),
+                    color: Colors.black.withValues(alpha: 0.50),
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2949,7 +2922,7 @@ void dispose() {
                     context,
                     MediaQuery.of(context).size.width,
                   ),
-                  filterQuality: FilterQuality.low,
+                  filterQuality: FilterQuality.medium,
                 ),
               ),
               Positioned.fill(
@@ -2961,7 +2934,7 @@ void dispose() {
                       stops: const [0.4, 1.0],
                       colors: [
                         Colors.black.withValues(alpha: 0),
-                        Colors.black.withValues(alpha: 0.70),
+                        Colors.black.withValues(alpha: 0.35),
                       ],
                     ),
                   ),

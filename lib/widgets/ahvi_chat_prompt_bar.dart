@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
-class AhviChatPromptBar extends StatelessWidget {
+class AhviChatPromptBar extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final String hintText;
@@ -62,215 +62,235 @@ class AhviChatPromptBar extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
   });
 
+  @override
+  State<AhviChatPromptBar> createState() => _AhviChatPromptBarState();
+}
+
+class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
   LinearGradient get _accentGradient2 => LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [accent, accentSecondary],
+        colors: [widget.accent, widget.accentSecondary],
       );
 
   void _openLensSheet(BuildContext context) {
     showAhviLensSheet(
       context,
-      t: themeTokens,
-      onVisualSearch: onVisualSearch,
-      onFindSimilar: onFindSimilar,
-      onAddToWardrobe: onAddToWardrobe,
+      t: widget.themeTokens,
+      onVisualSearch: widget.onVisualSearch,
+      onFindSimilar: widget.onFindSimilar,
+      onAddToWardrobe: widget.onAddToWardrobe,
     );
   }
 
-  /// Sends only if text is non-empty; clears the field and calls [onSendMessage].
   void _trySend() {
-    final text = controller.text.trim();
+    final text = widget.controller.text.trim();
     if (text.isEmpty) return;
-    controller.clear();
-    onSendMessage(text);
+    widget.controller.clear();
+    widget.onSendMessage(text);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: padding,
-      child: Container(
-        decoration: BoxDecoration(
-          color: surface.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: border, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withValues(alpha: 0.10),
-              blurRadius: 28,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: shadowMedium,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 260;
-            return Row(
-              children: [
-                // ── Plus button → Lens sheet open చేస్తుంది ───────────
-                if (!compact) ...[
-                  Builder(
-                    builder: (btnCtx) => _ChatPromptPressable(
-                      scalePressed: 0.88,
-                      onTap: () => onPlusTap != null ? onPlusTap!() : _openLensSheet(btnCtx),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutCubic,
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              accent.withValues(alpha: 0.18),
-                              accentSecondary.withValues(alpha: 0.18),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: Icon(Icons.add_rounded, color: accent, size: 20),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                // ── Text field ────────────────────────────────────────
-                // onTap intentionally omitted — keyboard opens normally,
-                // navigation happens only after send.
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    style: TextStyle(
-                      color: textHeading,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w400,
-                      height: 1.3,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                      border: InputBorder.none,
-                      hintText: hintText,
-                      hintStyle: TextStyle(
-                        color: textMuted,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                    textInputAction: TextInputAction.send,
-                    cursorColor: accent,
-                    cursorWidth: 1.5,
-                    cursorRadius: const Radius.circular(1),
-                    // Keyboard "send" key → same behaviour as send button
-                    onSubmitted: (_) => _trySend(),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                // ── Voice button ──────────────────────────────────────
-                _ChatPromptPressable(
-                  scalePressed: 0.90,
-                  onTap: onVoiceTap,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: isListening
-                          ? const LinearGradient(
-                              colors: [Colors.redAccent, Color(0xFFB71C1C)],
-                            )
-                          : LinearGradient(
+    // Keyboard height — animates the bar up automatically
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      child: Padding(
+        padding: widget.padding,
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.surface.withValues(alpha: 0.95),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: widget.border, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: widget.accent.withValues(alpha: 0.10),
+                blurRadius: 28,
+                offset: const Offset(0, 6),
+              ),
+              BoxShadow(
+                color: widget.shadowMedium,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 260;
+              return Row(
+                children: [
+                  // ── Plus button ───────────────────────────────────
+                  if (!compact) ...[
+                    Builder(
+                      builder: (btnCtx) => _ChatPromptPressable(
+                        scalePressed: 0.88,
+                        onTap: () => widget.onPlusTap != null
+                            ? widget.onPlusTap!()
+                            : _openLensSheet(btnCtx),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
                               colors: [
-                                accent.withValues(alpha: 0.18),
-                                accentSecondary.withValues(alpha: 0.18),
+                                widget.accent.withValues(alpha: 0.18),
+                                widget.accentSecondary.withValues(alpha: 0.18),
                               ],
                             ),
-                      borderRadius: BorderRadius.circular(13),
-                      boxShadow: isListening
-                          ? [
-                              BoxShadow(
-                                color: Colors.redAccent.withValues(alpha: 0.45),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: isListening
-                        ? const _PulsingMicIcon()
-                        : Icon(
-                            Icons.mic_none_rounded,
-                            color: accent,
-                            size: 18,
+                            borderRadius: BorderRadius.circular(13),
                           ),
+                          child: Icon(Icons.add_rounded,
+                              color: widget.accent, size: 20),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  // ── Text field ────────────────────────────────────
+                  Expanded(
+                    child: TextField(
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
+                      style: TextStyle(
+                        color: widget.textHeading,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w400,
+                        height: 1.3,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        border: InputBorder.none,
+                        hintText: widget.hintText,
+                        hintStyle: TextStyle(
+                          color: widget.textMuted,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                      textInputAction: TextInputAction.send,
+                      cursorColor: widget.accent,
+                      cursorWidth: 1.5,
+                      cursorRadius: const Radius.circular(1),
+                      onSubmitted: (_) => _trySend(),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                // ── Send button ───────────────────────────────────────
-                _ChatPromptPressable(
-                  liftY: -1.5,
-                  scalePressed: 0.90,
-                  onTap: _trySend,
-                  child: ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: hasTextListenable ?? controller,
-                    builder: (context, value, _) {
-                      final effectiveHasText =
-                          hasText ?? value.text.trim().isNotEmpty;
-                      final iconColor = accent.computeLuminance() > 0.4
-                          ? const Color(0xFF1A1A2E)
-                          : Colors.white;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutCubic,
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          gradient: effectiveHasText
-                              ? _accentGradient2
-                              : LinearGradient(
-                                  colors: [
-                                    accent.withValues(alpha: 0.35),
-                                    accentSecondary.withValues(alpha: 0.35),
-                                  ],
+                  const SizedBox(width: 6),
+                  // ── Voice button ──────────────────────────────────
+                  _ChatPromptPressable(
+                    scalePressed: 0.90,
+                    onTap: widget.onVoiceTap,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: widget.isListening
+                            ? const LinearGradient(
+                                colors: [
+                                  Colors.redAccent,
+                                  Color(0xFFB71C1C)
+                                ],
+                              )
+                            : LinearGradient(
+                                colors: [
+                                  widget.accent.withValues(alpha: 0.18),
+                                  widget.accentSecondary
+                                      .withValues(alpha: 0.18),
+                                ],
+                              ),
+                        borderRadius: BorderRadius.circular(13),
+                        boxShadow: widget.isListening
+                            ? [
+                                BoxShadow(
+                                  color: Colors.redAccent
+                                      .withValues(alpha: 0.45),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
                                 ),
-                          borderRadius: BorderRadius.circular(13),
-                          boxShadow: effectiveHasText
-                              ? [
-                                  BoxShadow(
-                                    color: accent.withValues(alpha: 0.45),
-                                    blurRadius: 22,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                  BoxShadow(
-                                    color: accentSecondary.withValues(
-                                      alpha: 0.28,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward_rounded,
-                          color: iconColor,
-                          size: 16,
-                        ),
-                      );
-                    },
+                              ]
+                            : [],
+                      ),
+                      child: widget.isListening
+                          ? const _PulsingMicIcon()
+                          : Icon(
+                              Icons.mic_none_rounded,
+                              color: widget.accent,
+                              size: 18,
+                            ),
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                  const SizedBox(width: 6),
+                  // ── Send button ───────────────────────────────────
+                  _ChatPromptPressable(
+                    liftY: -1.5,
+                    scalePressed: 0.90,
+                    onTap: _trySend,
+                    child: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable:
+                          widget.hasTextListenable ?? widget.controller,
+                      builder: (context, value, _) {
+                        final effectiveHasText =
+                            widget.hasText ?? value.text.trim().isNotEmpty;
+                        final iconColor =
+                            widget.accent.computeLuminance() > 0.4
+                                ? const Color(0xFF1A1A2E)
+                                : Colors.white;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            gradient: effectiveHasText
+                                ? _accentGradient2
+                                : LinearGradient(
+                                    colors: [
+                                      widget.accent.withValues(alpha: 0.35),
+                                      widget.accentSecondary
+                                          .withValues(alpha: 0.35),
+                                    ],
+                                  ),
+                            borderRadius: BorderRadius.circular(13),
+                            boxShadow: effectiveHasText
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          widget.accent.withValues(alpha: 0.45),
+                                      blurRadius: 22,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                    BoxShadow(
+                                      color: widget.accentSecondary
+                                          .withValues(alpha: 0.28),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Icon(
+                            Icons.arrow_forward_rounded,
+                            color: iconColor,
+                            size: 16,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

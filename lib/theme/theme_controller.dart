@@ -16,10 +16,14 @@ class ThemeController extends ChangeNotifier {
     currentTheme = await ThemeStorage.loadTheme();
     isDarkMode = await ThemeStorage.loadMode();
 
-    // load saved ThemeMode (default = light)
+    // load saved ThemeMode (default = light, system mode not supported)
     final prefs = await SharedPreferences.getInstance();
-    final index = prefs.getInt('themeMode') ?? ThemeMode.light.index;
-    _themeMode = ThemeMode.values[index];
+    final savedIndex = prefs.getInt('themeMode');
+    if (savedIndex != null && ThemeMode.values[savedIndex] != ThemeMode.system) {
+      _themeMode = ThemeMode.values[savedIndex];
+    } else {
+      _themeMode = ThemeMode.light;
+    }
 
     // Keep isDarkMode in sync for any existing code that uses it
     if (_themeMode == ThemeMode.dark) isDarkMode = true;
@@ -30,7 +34,8 @@ class ThemeController extends ChangeNotifier {
 
   // ── NEW: set system / light / dark and persist it ──
   Future<void> setThemeMode(ThemeMode mode) async {
-    if (mode == ThemeMode.system) return; // system mode disabled
+    assert(mode != ThemeMode.system, 'System mode is not supported');
+    if (mode == ThemeMode.system) return;
     _themeMode = mode;
     if (mode == ThemeMode.dark) {
       isDarkMode = true;

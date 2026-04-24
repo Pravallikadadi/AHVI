@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:myapp/app_localizations.dart';
@@ -27,11 +28,17 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   Color get cardBorder => _t.cardBorder;
   Color get textColor => _t.textPrimary;
   Color get muted => _t.mutedText;
-  Color get accent => _t.accent.primary;
-  Color get accent2 => _t.accent.secondary;
-  Color get accent3 => _t.accent.tertiary;
-  Color get accent4 => _t.accent.primary;
-  Color get accent5 => _t.accent.secondary;
+
+  // ── Future Candy palette ──────────────────────────────────────────────
+  static const Color _futurePink   = Color(0xFFE91E8C); // hot pink
+  static const Color _futureCyan   = Color(0xFF00D4C8); // cyan-teal
+  static const Color _futurePurple = Color(0xFF9C4DCC); // lavender
+
+  Color get accent  => _futurePink;
+  Color get accent2 => _futureCyan;
+  Color get accent3 => _futurePurple;
+  Color get accent4 => Color.lerp(_futureCyan, _futurePink, 0.45)!;
+  Color get accent5 => Color.lerp(_futurePink, _futurePurple, 0.45)!;
 
   // ── Navigation state ──
   String activeScreen = 'home';
@@ -562,16 +569,16 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0x2E6B91FF), Color(0x2E8D7DFF), Color(0x1F04D7C8)],
+          colors: [accent.withValues(alpha: 0.18), accent2.withValues(alpha: 0.18), accent3.withValues(alpha: 0.12)],
           stops: [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B91FF).withValues(alpha: 0.25),
+            color: accent.withValues(alpha: 0.25),
             blurRadius: 32,
             offset: const Offset(0, 10),
           ),
@@ -611,8 +618,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           size: const Size(82, 82),
                           painter: _RingPainter(
                             progress: _ringAnim.value,
-                            trackColor: const Color(0x33C8607A),
-                            progressColor: const Color(0xFFC8607A),
+                            trackColor: accent.withValues(alpha: 0.20),
+                            progressColor: accent,
                             strokeWidth: 7,
                           ),
                         ),
@@ -670,6 +677,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                       _PulseTakeMedsButton(
                         pulseAnim: _pulseAnim,
                         onTap: () => navTo('medicines'),
+                        accent: accent,
                       ),
                     ],
                   ),
@@ -1031,24 +1039,24 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     final cards = [
       {
         'icon': Icons.folder_open,
-        'iconBg': [const Color(0xFFec4899), const Color(0xFFdb2777)],
-        'shadowColor': const Color(0x59EC4899),
+        'iconBg': [accent2, accent],
+        'shadowColor': accent2.withValues(alpha: 0.35),
         'labelKey': 'medi_nav_my_medicines',
         'subKey': 'medi_nav_my_medicines_sub',
         'screen': 'medicines',
       },
       {
         'icon': Icons.bar_chart,
-        'iconBg': [const Color(0xFF8b5cf6), const Color(0xFF6d28d9)],
-        'shadowColor': const Color(0x598B5CF6),
+        'iconBg': [accent, accent3],
+        'shadowColor': accent.withValues(alpha: 0.35),
         'labelKey': 'medi_nav_adherence',
         'subKey': 'medi_nav_adherence_sub',
         'screen': 'adherence',
       },
       {
         'icon': Icons.calendar_today,
-        'iconBg': [const Color(0xFF3b82f6), const Color(0xFF2563eb)],
-        'shadowColor': const Color(0x593B82F6),
+        'iconBg': [accent3, accent2],
+        'shadowColor': accent3.withValues(alpha: 0.35),
         'labelKey': 'medi_nav_log',
         'subKey': 'medi_nav_log_sub',
         'screen': 'log',
@@ -1546,7 +1554,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
           color: active
               ? accent
               : isAction
-              ? const Color(0x1A8D7DFF)
+              ? accent2.withValues(alpha: 0.10)
               : panel,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
@@ -1593,22 +1601,22 @@ class _MediTrackScreenState extends State<MediTrackScreen>
 
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment(-0, -1),
           end: Alignment(1, 1),
-          colors: [Color(0x238B91FF), Color(0x1F8D7DFF), Color(0x1A04D7C8)],
+          colors: [accent.withValues(alpha: 0.14), accent2.withValues(alpha: 0.12), accent3.withValues(alpha: 0.10)],
           stops: [0.0, 0.5, 1.0],
         ),
         borderRadius: BorderRadius.circular(26),
         border: Border.all(color: cardBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B91FF).withValues(alpha: 0.16),
+            color: accent.withValues(alpha: 0.16),
             blurRadius: 40,
             offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: const Color(0xFFFF8EC7).withValues(alpha: 0.08),
+            color: accent4.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1674,9 +1682,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _legendItem(const Color(0xFF6dbf8a), AppLocalizations.t(context, 'medi_legend_taken')),
-                _legendItem(const Color(0xFFf07070), AppLocalizations.t(context, 'medi_legend_missed')),
-                _legendItem(const Color(0xFFc4b5fd), AppLocalizations.t(context, 'medi_legend_pending')),
+                _legendItem(accent3, AppLocalizations.t(context, 'medi_legend_taken')),
+                _legendItem(const Color(0xFFFF6B7A), AppLocalizations.t(context, 'medi_legend_missed')),
+                _legendItem(accent2, AppLocalizations.t(context, 'medi_legend_pending')),
               ],
             ),
           ),
@@ -1701,7 +1709,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         border: Border.all(color: cardBorder, width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B91FF).withValues(alpha: 0.12),
+            color: accent.withValues(alpha: 0.12),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1819,10 +1827,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: isSel
-                        ? [const Color(0x2EFF8EC7), const Color(0x1AFF8EC7)]
+                        ? [accent4.withValues(alpha: 0.18), accent4.withValues(alpha: 0.10)]
                         : isToday
-                        ? [const Color(0x2E6B91FF), const Color(0x1A8D7DFF)]
-                        : [const Color(0x146B91FF), const Color(0x0D8D7DFF)],
+                        ? [accent.withValues(alpha: 0.18), accent2.withValues(alpha: 0.10)]
+                        : [accent.withValues(alpha: 0.08), accent2.withValues(alpha: 0.05)],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
@@ -1872,8 +1880,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             margin: const EdgeInsets.symmetric(horizontal: 1),
                             decoration: BoxDecoration(
                               color: hasMissed
-                                  ? const Color(0xFFf07070)
-                                  : const Color(0xFF6dbf8a),
+                                  ? const Color(0xFFFF6B7A)
+                                  : accent3,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           ),
@@ -1921,10 +1929,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0x1A6B91FF), Color(0x148D7DFF)],
+          colors: [accent.withValues(alpha: 0.10), accent2.withValues(alpha: 0.08)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: cardBorder, width: 1),
@@ -2047,7 +2055,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
               border: Border.all(color: cardBorder, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6B91FF).withValues(alpha: 0.06),
+                  color: accent.withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -2160,55 +2168,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   }
 
   Widget _buildChatFab() {
-    return GestureDetector(
+    return _AskAhviFab(
       onTap: () => showAhviStylistChatSheet(context, moduleContext: 'medi'),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [accent, accent2],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(50),
-          boxShadow: [
-            BoxShadow(
-              color: accent.withValues(alpha: 0.45),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text(
-                  '✦',
-                  style: TextStyle(fontSize: 13, color: Colors.white),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              AppLocalizations.t(context, 'medi_ask_ahvi'),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 0.2,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -2464,11 +2425,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     List<String> items,
     ValueChanged<String?> onChanged,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final menuBg = isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF);
-    final selectedBg = isDark
-        ? const Color(0xFF2A2F45)
-        : const Color(0xFFF0F4FF);
+    final menuBg = _t.backgroundSecondary;
+    final selectedBg = _t.panel;
 
     return PopupMenuButton<String>(
       onSelected: onChanged,
@@ -2501,7 +2459,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E2130) : const Color(0xFFFFFFFF),
+          color: _t.backgroundSecondary,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: cardBorder),
         ),
@@ -2651,11 +2609,11 @@ class _HeroAddButtonState extends State<_HeroAddButton>
           height: 40,
           margin: const EdgeInsets.only(top: 2),
           decoration: BoxDecoration(
-            color: const Color(0xFF6b91ff),
+            color: context.themeTokens.accent.primary,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
+                color: context.themeTokens.accent.primary.withValues(alpha: 0.40),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
@@ -2710,7 +2668,8 @@ class _NavCardAnimatedState extends State<_NavCardAnimated> {
 class _PulseTakeMedsButton extends StatelessWidget {
   final Animation<double> pulseAnim;
   final VoidCallback onTap;
-  const _PulseTakeMedsButton({required this.pulseAnim, required this.onTap});
+  final Color accent;
+  const _PulseTakeMedsButton({required this.pulseAnim, required this.onTap, required this.accent});
 
   @override
   Widget build(BuildContext context) {
@@ -2724,9 +2683,7 @@ class _PulseTakeMedsButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: const Color(
-                  0xFF6b91ff,
-                ).withValues(alpha: 0.4 * (1 - pulseAnim.value)),
+                color: accent.withValues(alpha: 0.4 * (1 - pulseAnim.value)),
                 blurRadius: blurR,
                 spreadRadius: spread,
               ),
@@ -2740,19 +2697,19 @@ class _PulseTakeMedsButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0x14FFFFFF),
+            color: accent.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0x1FFFFFFF), width: 1),
+            border: Border.all(color: accent.withValues(alpha: 0.12), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.check, size: 13, color: Color(0xFF6b91ff)),
+              Icon(Icons.check, size: 13, color: accent),
               const SizedBox(width: 6),
               Text(
                 AppLocalizations.t(context, 'medi_take_medicines'),
-                style: const TextStyle(
-                  color: Color(0xFF6b91ff),
+                style: TextStyle(
+                  color: accent,
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                 ),
@@ -2850,4 +2807,120 @@ class _RingPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RingPainter old) =>
       old.progress != progress || old.progressColor != progressColor;
+}
+// ─── ASK AHVI FAB (matches Skincare style exactly) ───────────────────────────
+class _AskAhviFab extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AskAhviFab({required this.onTap});
+  @override
+  State<_AskAhviFab> createState() => _AskAhviFabState();
+}
+
+class _AskAhviFabState extends State<_AskAhviFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _pulseOpacity;
+  bool _pressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat();
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.12).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+    _pulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.themeTokens.accent.primary;
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        widget.onTap();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: AnimatedBuilder(
+          animation: _pulseCtrl,
+          builder: (_, child) => Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: _pulseOpacity.value,
+                  child: Transform.scale(
+                    scale: _pulseScale.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: accent.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child!,
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+            decoration: BoxDecoration(
+              color: accent,
+              borderRadius: BorderRadius.circular(50),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  child: const Text(
+                    '✦',
+                    style: TextStyle(fontSize: 11, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  AppLocalizations.t(context, 'ask_ahvi'),
+                  style: GoogleFonts.anton(
+                    fontSize: 11,
+                    letterSpacing: 0.4,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

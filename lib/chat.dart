@@ -792,8 +792,8 @@ class _ChatScreenState extends State<ChatScreen>
                 onPressed: () => Navigator.of(context).pop(),
               )
             : null,
-        title: Padding(
-          padding: const EdgeInsets.only(left: 4),
+        title: Hero(
+          tag: 'ahvi_logo',
           child: AhviHomeText(
             color: t.textPrimary,
             fontSize: 30.0,

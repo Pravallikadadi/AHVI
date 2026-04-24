@@ -374,6 +374,21 @@ class _SkincareScreenState extends State<SkincareScreen>
                 children: [_buildHeader(), _buildContent()],
               ),
             ),
+            // ── Chat FAB ────────────────────────────────────────────────────────
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: _chatOpen,
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 20, bottom: 30),
+                    child: _AskAhviFab(
+                      onTap: () => showAhviStylistChatSheet(context),
+                    ),
+                  ),
+                ),
+              ),
+            ),
             // ── F07: Chat overlay – AnimatedOpacity for backdrop fade ──────────
             AnimatedOpacity(
               duration: const Duration(milliseconds: 300),
@@ -497,8 +512,7 @@ class _SkincareScreenState extends State<SkincareScreen>
           ),
           const SizedBox(height: 16),
           _buildTipCard(),
-          const SizedBox(height: 16),
-          _buildChatButton(),
+          const SizedBox(height: 100),
         ],
       ),
     );
@@ -967,15 +981,6 @@ class _SkincareScreenState extends State<SkincareScreen>
   }
 
   // ── Chat Button ─────────────────────────────────────────────────────────────
-  Widget _buildChatButton() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _AskAhviFab(onTap: () => showAhviStylistChatSheet(context)),
-      ],
-    );
-  }
-
   Widget _buildSection(Widget child) => child;
 
   Widget _buildCard({
@@ -2284,26 +2289,27 @@ class _AskAhviFabState extends State<_AskAhviFab>
       },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.94 : 1.0,
+        scale: _pressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 120),
         curve: Curves.easeOutCubic,
         child: AnimatedBuilder(
           animation: _pulseCtrl,
           builder: (_, child) => Stack(
-            alignment: Alignment.center,
+            clipBehavior: Clip.none,
             children: [
-              Opacity(
-                opacity: _pulseOpacity.value,
-                child: Transform.scale(
-                  scale: _pulseScale.value,
-                  child: Container(
-                    width: 130,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(50),
-                      border: Border.all(
-                        color: t.accent.primary.withValues(alpha: 0.35),
-                        width: 1.5,
+              // Pulse ring — Positioned.fill, same as Daily Wear
+              Positioned.fill(
+                child: Opacity(
+                  opacity: _pulseOpacity.value,
+                  child: Transform.scale(
+                    scale: _pulseScale.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: t.accent.primary.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -2313,19 +2319,15 @@ class _AskAhviFabState extends State<_AskAhviFab>
             ],
           ),
           child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 13, 20, 13),
+            padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [t.accent.primary, t.accent.secondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: t.accent.primary,
               borderRadius: BorderRadius.circular(50),
               boxShadow: [
                 BoxShadow(
-                  color: t.accent.primary.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
+                  color: t.accent.primary.withValues(alpha: 0.40),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -2333,15 +2335,18 @@ class _AskAhviFabState extends State<_AskAhviFab>
               mainAxisSize: MainAxisSize.min,
               children: [
                 CircleAvatar(
-                  radius: 14,
-                  backgroundColor: Colors.white.withValues(alpha: 0.14),
-                  child: const Text('✦', style: TextStyle(color: Colors.white)),
+                  radius: 11,
+                  backgroundColor: Colors.white.withValues(alpha: 0.18),
+                  child: const Text(
+                    '✦',
+                    style: TextStyle(fontSize: 11, color: Colors.white),
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 7),
                 Text(
-                  AppLocalizations.t(context, 'diet_ask_ahvi'),
+                  AppLocalizations.t(context, 'ask_ahvi'),
                   style: GoogleFonts.anton(
-                    fontSize: 13,
+                    fontSize: 11,
                     letterSpacing: 0.4,
                     color: Colors.white,
                   ),

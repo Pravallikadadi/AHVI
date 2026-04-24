@@ -34,16 +34,36 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   });
 
   static AppThemeTokens light(AccentPalette accent) => AppThemeTokens(
-        backgroundPrimary: BaseTheme.lightBgPrimary,
-        backgroundSecondary: BaseTheme.lightBgSecondary,
+        backgroundPrimary: Color.lerp(
+          BaseTheme.lightBgPrimary,
+          accent.primary,
+          0.05,
+        )!,
+        backgroundSecondary: Color.lerp(
+          BaseTheme.lightBgSecondary,
+          accent.secondary,
+          0.07,
+        )!,
         textPrimary: BaseTheme.lightText,
-        mutedText: const Color(0xFF7A7F96), // was BaseTheme.lightMuted — darkened for contrast
-        panel: const Color(0xFFF0F2FA),     // was 0xFFFFFFFF — off-white so panels lift off bg
-        panelBorder: const Color(0xFFB8C0DC), // was 0xFFD8E0F5 — stronger border
-        card: const Color(0xFFF0F2FA),      // was 0xFFFFFFFF — matches panel
-        cardBorder: const Color(0xFFC4CCDF), // was 0xFFE5E9F7 — clearly visible edge
-        phoneShell: BaseTheme.lightPhoneShell,
-        phoneShellInner: BaseTheme.lightPhoneShellInner,
+        mutedText: BaseTheme.lightMuted,
+        panel: const Color.fromRGBO(255, 255, 255, 0.66),
+        panelBorder: const Color.fromRGBO(255, 255, 255, 0.92),
+        card: const Color.fromRGBO(255, 255, 255, 0.88),
+        cardBorder: Color.lerp(
+          const Color(0xFFE5E9F7),
+          accent.primary,
+          0.18,
+        )!,
+        phoneShell: Color.lerp(
+          BaseTheme.lightPhoneShell,
+          accent.primary,
+          0.06,
+        )!,
+        phoneShellInner: Color.lerp(
+          BaseTheme.lightPhoneShellInner,
+          accent.primary,
+          0.04,
+        )!,
         tileText: const Color(0xFF182031),
         accent: accent,
       );
@@ -97,10 +117,23 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   @override
   AppThemeTokens lerp(ThemeExtension<AppThemeTokens>? other, double t) {
     if (other is! AppThemeTokens) return this;
-    // Snap at the halfway point instead of blending — avoids the washed-out
-    // mid-transition state where light and dark colors average to grey.
-    if (t >= 0.5) return other;
-    return this;
+    return AppThemeTokens(
+      backgroundPrimary:
+          Color.lerp(backgroundPrimary, other.backgroundPrimary, t)!,
+      backgroundSecondary:
+          Color.lerp(backgroundSecondary, other.backgroundSecondary, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      mutedText: Color.lerp(mutedText, other.mutedText, t)!,
+      panel: Color.lerp(panel, other.panel, t)!,
+      panelBorder: Color.lerp(panelBorder, other.panelBorder, t)!,
+      card: Color.lerp(card, other.card, t)!,
+      cardBorder: Color.lerp(cardBorder, other.cardBorder, t)!,
+      phoneShell: Color.lerp(phoneShell, other.phoneShell, t)!,
+      phoneShellInner:
+          Color.lerp(phoneShellInner, other.phoneShellInner, t)!,
+      tileText: Color.lerp(tileText, other.tileText, t)!,
+      accent: other.accent,
+    );
   }
 }
 
