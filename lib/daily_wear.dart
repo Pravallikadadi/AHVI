@@ -688,6 +688,7 @@ void dispose() {
     _toastEntry = entry;
     Overlay.of(context).insert(entry);
     _toastTimer = Timer(const Duration(milliseconds: 2800), () {
+      if (!mounted) return; // guard: widget may have been disposed before timer fires
       try {
         entry.remove();
       } catch (_) {}
@@ -730,7 +731,7 @@ void dispose() {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      barrierColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.01), // transparent causes grey overlay on APK
       backgroundColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.88,
@@ -1234,7 +1235,14 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
-    final Widget content = PopScope(
+    // Guard must be at the very top — building `content` before _ready causes
+    // animation controllers and overlays to initialise on the blank first frame,
+    // which on APK (GPU-accelerated) leaves layers stuck and produces the grey overlay.
+    if (!_ready) {
+      return Scaffold(backgroundColor: bgColor);
+    }
+
+    return PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
@@ -1295,11 +1303,6 @@ void dispose() {
         ),
       ),
     );
-
-    if (!_ready) {
-      return Scaffold(backgroundColor: bgColor);
-    }
-    return content;
   }
 
   Widget _buildHeader() => Padding(

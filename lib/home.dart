@@ -1076,9 +1076,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // ── Floating Prompt Bar ─────────────────────────────────────────────
           // Nav bar fixed గా ఉంటుంది — keyboard వచ్చినా move అవ్వదు
           // Prompt bar మాత్రమే keyboard పైకి లిఫ్ట్ అవుతుంది
-          ValueListenableBuilder<double>(
-            valueListenable: _keyboardHeight,
-            builder: (ctx, kbH, _) {
+          Builder(
+            builder: (ctx) {
+              final kbH = MediaQuery.of(ctx).viewInsets.bottom; // ✅ Direct — no delay
               final safeB = MediaQuery.paddingOf(ctx).bottom;
               final navBarTotalH = safeB + 86.0 + 8.0;
               final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;

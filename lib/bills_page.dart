@@ -88,7 +88,11 @@ class _BillsScreenState extends State<BillsScreen>
   static const Color _sunsetOrange2    = Color(0xFFFF4E6A); // sunset secondary coral
 
   bool get _isCoolBlue  => _t.accent.primary == _coolBlue;
-  bool get _isSunset    => _t.accent.primary == _sunsetOrange;
+  // Sunset detection: checks if primary is orange-ish (hue 5°–40°, decent saturation)
+  bool get _isSunset {
+    final HSVColor hsv = HSVColor.fromColor(_t.accent.primary);
+    return hsv.hue >= 5 && hsv.hue <= 40 && hsv.saturation >= 0.5;
+  }
 
   // Chat FAB accent — Future Candy = light pink, Cool Blue = blue, Sunset = orange, others = palette
   Color get _chatAccent  => _isCoolBlue ? _coolBlue  : _isSunset ? _sunsetOrange  : _futureCandyPink;
