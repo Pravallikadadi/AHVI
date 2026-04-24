@@ -656,7 +656,26 @@ class _BoardsScreenState extends State<BoardsScreen>
         children: [
           Positioned.fill(child: _buildAmbientBg()),
           SafeArea(
-            child: CustomScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Fixed logo header — matches Home position exactly ──
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: MediaQuery.of(context).size.height < 700 ? 6.0 : 10.0,
+                    bottom: MediaQuery.of(context).size.height < 700 ? 4.0 : 6.0,
+                  ),
+                  child: AhviHomeText(
+                    color: _text,
+                    fontSize: MediaQuery.of(context).size.height < 700 ? 26.0 : 30.0,
+                    letterSpacing: 3.2,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                Expanded(
+                  child: CustomScrollView(
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
@@ -713,7 +732,10 @@ class _BoardsScreenState extends State<BoardsScreen>
                 ),
               ],
             ),
-          ),
+          ),  // Expanded(CustomScrollView)
+              ],
+            ),
+          ),  // SafeArea(Column)
         ],
       ),
     );
@@ -756,15 +778,6 @@ class _BoardsScreenState extends State<BoardsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 10.0, bottom: 6.0),
-          child: AhviHomeText(
-            color: _text,
-            fontSize: 30.0,
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
         Row(
           children: [
             Text(

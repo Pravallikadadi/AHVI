@@ -2428,6 +2428,8 @@ class _AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
+    final screenH = MediaQuery.of(context).size.height;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
     return SafeArea(
       bottom: false,
       child: Container(
@@ -2435,7 +2437,7 @@ class _AppHeader extends StatelessWidget {
         color: t.backgroundPrimary.withValues(alpha: 0.92),
         border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, topPad, 20, 0),
       child: Column(
         children: [
           Padding(
@@ -2447,14 +2449,11 @@ class _AppHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Hero(
-                        tag: 'ahvi_logo',
-                        child: AhviHomeText(
-                          color: t.textPrimary,
-                          fontSize: 30,
-                          letterSpacing: 3.2,
-                          fontWeight: FontWeight.w400,
-                        ),
+                      AhviHomeText(
+                        color: t.textPrimary,
+                        fontSize: 30,
+                        letterSpacing: 3.2,
+                        fontWeight: FontWeight.w400,
                       ),
                       const SizedBox(height: 2),
                       Text(

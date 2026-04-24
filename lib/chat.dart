@@ -780,48 +780,53 @@ class _ChatScreenState extends State<ChatScreen>
       key: _scaffoldKey,
       backgroundColor: t.backgroundPrimary,
       drawer: _historyDrawer(t),
-      appBar: AppBar(
-        backgroundColor: t.backgroundPrimary,
-        elevation: 0,
-        iconTheme: IconThemeData(color: t.textPrimary),
-        automaticallyImplyLeading: false,
-        leading: widget.showBackButton
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                tooltip: AppLocalizations.t(context, 'chat_back'),
-                onPressed: () => Navigator.of(context).pop(),
-              )
-            : null,
-        title: Hero(
-          tag: 'ahvi_logo',
-          child: AhviHomeText(
-            color: t.textPrimary,
-            fontSize: 30.0,
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-          ),
-        ],
-      ),
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          Expanded(
-            child: SafeArea(
-              bottom: false,
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length,
-                itemBuilder: (_, i) => _msg(_messages[i], t),
+          // ── Custom header — matches Home logo position exactly ──
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 20, right: 4, top: 10, bottom: 6,
               ),
+              child: Row(
+                children: [
+                  if (widget.showBackButton) ...[
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: t.textPrimary,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                  AhviHomeText(
+                    color: t.textPrimary,
+                    fontSize: 30.0,
+                    letterSpacing: 3.2,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.history_rounded, color: t.textPrimary),
+                    tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (_, i) => _msg(_messages[i], t),
             ),
           ),
           if (_isTyping)
