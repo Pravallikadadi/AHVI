@@ -783,7 +783,7 @@ class _ChatScreenState extends State<ChatScreen>
       resizeToAvoidBottomInset: true,
       body: Column(
         children: [
-          // ── Custom header — matches Home logo position exactly ──
+          // ── Custom header — matches Wardrobe logo position exactly ──
           Builder(
             builder: (context) {
               final screenH = MediaQuery.of(context).size.height;
@@ -793,9 +793,7 @@ class _ChatScreenState extends State<ChatScreen>
               return SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    left: 20, right: 4, top: topPad, bottom: botPad,
-                  ),
+                  padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
                   child: Row(
                     children: [
                       if (widget.showBackButton) ...[

@@ -1183,7 +1183,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   Widget _buildTopBar() {
     final screenH = MediaQuery.of(context).size.height;
-    final screenW = MediaQuery.of(context).size.width;
     final double topPad = screenH < 700 ? 6.0 : 10.0;
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoFontSize = screenH < 700 ? 26.0 : 30.0;

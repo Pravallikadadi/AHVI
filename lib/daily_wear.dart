@@ -730,7 +730,7 @@ void dispose() {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      barrierColor: Colors.black.withValues(alpha: 0.01), // transparent causes grey overlay on APK
+      barrierColor: Colors.transparent,
       backgroundColor: Colors.transparent,
       builder: (_) => FractionallySizedBox(
         heightFactor: 0.88,
