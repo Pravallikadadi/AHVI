@@ -80,16 +80,19 @@ class _BillsScreenState extends State<BillsScreen>
   static const Color _deleteRed = Color(0xFFFF6B7A);
 
   // ── Palette-specific hardcoded colors for chat button ───────────────
-  static const Color _futureCandyPink  = Color(0xFFE91E8C); // futureCandy pure pink (hardcoded)
-  static const Color _futureCandyPink2 = Color(0xFFFF6BAE); // futureCandy pink lighter
+  static const Color _futureCandyPink  = Color(0xFFFF80C0); // futureCandy light pink (hardcoded)
+  static const Color _futureCandyPink2 = Color(0xFFFFB3D9); // futureCandy pink lighter
   static const Color _coolBlue         = Color(0xFF6B91FF); // coolBlue primary
   static const Color _coolBlue2        = Color(0xFF8D7DFF); // coolBlue secondary
+  static const Color _sunsetOrange     = Color(0xFFFF6B35); // sunset primary orange
+  static const Color _sunsetOrange2    = Color(0xFFFF4E6A); // sunset secondary coral
 
-  bool get _isCoolBlue => _t.accent.primary == _coolBlue;
+  bool get _isCoolBlue  => _t.accent.primary == _coolBlue;
+  bool get _isSunset    => _t.accent.primary == _sunsetOrange;
 
-  // Chat FAB accent — Future Candy = pink hardcoded, Cool Blue = blue hardcoded, others = palette
-  Color get _chatAccent  => _isCoolBlue ? _coolBlue  : _futureCandyPink;
-  Color get _chatAccent2 => _isCoolBlue ? _coolBlue2 : _futureCandyPink2;
+  // Chat FAB accent — Future Candy = light pink, Cool Blue = blue, Sunset = orange, others = palette
+  Color get _chatAccent  => _isCoolBlue ? _coolBlue  : _isSunset ? _sunsetOrange  : _futureCandyPink;
+  Color get _chatAccent2 => _isCoolBlue ? _coolBlue2 : _isSunset ? _sunsetOrange2 : _futureCandyPink2;
 
 
 
