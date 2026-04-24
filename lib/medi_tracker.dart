@@ -28,17 +28,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   Color get cardBorder => _t.cardBorder;
   Color get textColor => _t.textPrimary;
   Color get muted => _t.mutedText;
-
-  // ── Future Candy palette ──────────────────────────────────────────────
-  static const Color _futurePink   = Color(0xFFE91E8C); // hot pink
-  static const Color _futureCyan   = Color(0xFF00D4C8); // cyan-teal
-  static const Color _futurePurple = Color(0xFF9C4DCC); // lavender
-
-  Color get accent  => _futurePink;
-  Color get accent2 => _futureCyan;
-  Color get accent3 => _futurePurple;
-  Color get accent4 => Color.lerp(_futureCyan, _futurePink, 0.45)!;
-  Color get accent5 => Color.lerp(_futurePink, _futurePurple, 0.45)!;
+  Color get accent => _t.accent.primary;
+  Color get accent2 => _t.accent.secondary;
+  Color get accent3 => _t.accent.tertiary;
+  Color get accent4 => _t.accent.primary;
+  Color get accent5 => _t.accent.secondary;
 
   // ── Navigation state ──
   String activeScreen = 'home';
