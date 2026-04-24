@@ -700,13 +700,12 @@ void dispose() {
   void _wearOutfit(String outfitId, {bool closeModal = false}) {
     final outfit = _buildAllOutfits(context).firstWhere((o) => o['id'] == outfitId);
     HapticFeedback.lightImpact();
+    setState(() => _wornOutfitId = outfitId);
     if (closeModal) {
-      _tryOnSlideCtrl.reverse(); // reverse first
+      _tryOnSlideCtrl.reverse().then((_) {
+        if (mounted) setState(() => _tryOnOpen = false);
+      });
     }
-    setState(() {
-      _wornOutfitId = outfitId;
-      if (closeModal) _tryOnOpen = false; // then update state
-    });
     _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
   }
 
@@ -782,9 +781,6 @@ void dispose() {
   void _openTryOn([String? outfitId]) {
     HapticFeedback.lightImpact();
     _resetTryOnSimulation();
-    // Ensure FAB entry animation is completed before TickerMode disables it,
-    // preventing a frozen mid-animation opacity layer over the screen.
-    _fabEntryCtrl.forward();
     setState(() {
       _tryOnOutfitId = outfitId ?? _currentOutfit['id'] as String;
       _tryOnOpen = true;
@@ -795,8 +791,9 @@ void dispose() {
 
   void _closeTryOn() {
     _resetTryOnSimulation();
-    _tryOnSlideCtrl.reverse(); // reverse first so AnimatedOpacity fades out cleanly
-    setState(() => _tryOnOpen = false); // then update state
+    _tryOnSlideCtrl.reverse().then((_) {
+      if (mounted) setState(() => _tryOnOpen = false);
+    });
   }
 
   void _resetTryOnSimulation() {
@@ -1295,20 +1292,22 @@ void dispose() {
                 ),
               ),
             ),
-            TickerMode(
-              enabled: !_chatOpen && !_tryOnOpen,
+            Visibility(
+              visible: !_chatOpen && !_tryOnOpen,
+              maintainState: true,
+              maintainAnimation: true,
+              maintainSize: true,
               child: RepaintBoundary(child: _buildChatFab()),
             ),
-            IgnorePointer(
-              ignoring: !_tryOnOpen,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: _tryOnOpen ? 1.0 : 0.0,
-                child: RepaintBoundary(
-                  child: _buildTryOnOverlay(),
+            if (_tryOnOpen)
+              AnimatedBuilder(
+                animation: _tryOnSlideCtrl,
+                builder: (_, child) => IgnorePointer(
+                  ignoring: _tryOnSlideCtrl.isDismissed,
+                  child: child,
                 ),
+                child: _buildTryOnOverlay(),
               ),
-            ),
           ],
         ),
       ),
