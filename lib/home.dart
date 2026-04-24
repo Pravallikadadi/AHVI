@@ -1015,7 +1015,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
                             child: _buildSecondaryRow(),
                           ),
                           // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
-                          const SizedBox(height: 11 + 64 + navBarH),
+                          const SizedBox(height: 13 + 64 + navBarH),
                         ],
                       ),
                     ),
@@ -1046,14 +1046,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin {
 
           if (_plusMenuOpen) _buildPlusMenu(),
 
-          // ── Floating Prompt Bar — keyboard పైన anchor అవుతుంది ──────────────
+          // ── Floating Prompt Bar ─────────────────────────────────────────────
+          // Nav bar fixed గా ఉంటుంది (viewInsets చూడదు)
+          // Prompt bar మాత్రమే keyboard వచ్చినప్పుడు పైకి లిఫ్ట్ అవుతుంది
           Builder(builder: (ctx) {
             final keyboardH = MediaQuery.of(ctx).viewInsets.bottom;
             final safeB = MediaQuery.paddingOf(ctx).bottom;
+            // keyboard లేనప్పుడు: nav bar (86px) పైన + 8px gap
+            // keyboard వచ్చినప్పుడు: keyboard పైన + 8px gap
+            final navBarTotalH = safeB + 86.0 + 8.0;
             final promptBottom = keyboardH > 0
                 ? keyboardH + 8.0
-                : safeB + 86.0 + 8.0;
-            return Positioned(
+                : navBarTotalH;
+            return AnimatedPositioned(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
               left: 20,
               right: 20,
               bottom: promptBottom,
