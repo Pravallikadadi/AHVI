@@ -483,15 +483,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   @override
   void didChangeMetrics() {
     if (!mounted) return;
-    // Trigger rebuild so the Builder reads fresh viewInsets directly.
-    // Also keep _keyboardHeight in sync for any other listeners.
+    // ValueNotifier update చేయి — setState() లేదు.
+    // Prompt bar Builder లో MediaQuery.of(ctx).viewInsets ని directly read చేస్తుంది,
+    // setState() అక్కర్లేదు — లేకపోతే logo కూడా rebuild అయి jump అవుతుంది.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final kbH = MediaQuery.of(context).viewInsets.bottom;
       if (_keyboardHeight.value != kbH) {
         _keyboardHeight.value = kbH;
       }
-      setState(() {}); // rebuild so Builder re-reads MediaQuery.viewInsets
     });
   }
 
@@ -1219,25 +1219,28 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ── Fixed logo bar — stays put regardless of home collapse animation ──
   Widget _buildFixedLogoBar() {
-    final screenH = MediaQuery.of(context).size.height;
+    // sizeOf() — viewInsets change కి react కాదు, keyboard వచ్చినా logo jump కాదు
+    final screenH = MediaQuery.sizeOf(context).height;
     final double topPad = screenH < 700 ? 6.0 : 10.0;
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            AhviHomeText(
-              color: _textHeading,
-              fontSize: logoFontSize,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
-            _buildProfileAvatar(),
-          ],
+    return RepaintBoundary(
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AhviHomeText(
+                color: _textHeading,
+                fontSize: logoFontSize,
+                letterSpacing: 3.2,
+                fontWeight: FontWeight.w400,
+              ),
+              _buildProfileAvatar(),
+            ],
+          ),
         ),
       ),
     );
