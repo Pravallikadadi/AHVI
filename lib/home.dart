@@ -1021,6 +1021,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
                       .clamp(160.0, 380.0);
 
+                  // Placeholder height matching _buildTopBar (logo font + top/bot padding)
+                  final double topPad = screenH < 700 ? 6.0 : 10.0;
+                  final double botPad = screenH < 700 ? 4.0 : 6.0;
+                  final double topBarPlaceholderH = (screenH < 700 ? 26.0 : 30.0) + topPad + botPad;
+
                   return SizedBox(
                     height: constraints.maxHeight,
                     child: Padding(
@@ -1028,7 +1033,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildTopBar(),
+                          // Space reserved for fixed logo overlay (not animated)
+                          SizedBox(height: topBarPlaceholderH),
                           _buildGreetingBlock(),
                           // Hero card — capped so secondary row + chat bar always stay visible
                           ConstrainedBox(
@@ -1051,6 +1057,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 },
               ),
             ),
+          ),
+
+          // ── Fixed AHVI Logo — not affected by home collapse animation ──
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: _buildFixedLogoBar(),
           ),
 
           if (_overlayState != _OverlayState.idle) _buildAiOverlay(),
@@ -1199,6 +1213,32 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           ),
           _buildProfileAvatar(),
         ],
+      ),
+    );
+  }
+
+  // ── Fixed logo bar — stays put regardless of home collapse animation ──
+  Widget _buildFixedLogoBar() {
+    final screenH = MediaQuery.of(context).size.height;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
+    final double botPad = screenH < 700 ? 4.0 : 6.0;
+    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            AhviHomeText(
+              color: _textHeading,
+              fontSize: logoFontSize,
+              letterSpacing: 3.2,
+              fontWeight: FontWeight.w400,
+            ),
+            _buildProfileAvatar(),
+          ],
+        ),
       ),
     );
   }

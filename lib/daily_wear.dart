@@ -1292,7 +1292,8 @@ void dispose() {
               enabled: !_chatOpen && !_tryOnOpen,
               child: RepaintBoundary(child: _buildChatFab()),
             ),
-            if (_tryOnOpen) _buildTryOnOverlay(),
+            if (_tryOnOpen && _tryOnSlideCtrl.status != AnimationStatus.dismissed)
+              RepaintBoundary(child: _buildTryOnOverlay()),
           ],
         ),
       ),
