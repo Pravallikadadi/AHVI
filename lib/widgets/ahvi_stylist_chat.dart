@@ -306,7 +306,8 @@ class _AhviStylistChatSheet extends StatefulWidget {
   State<_AhviStylistChatSheet> createState() => _AhviStylistChatSheetState();
 }
 
-class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
+class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
+    with WidgetsBindingObserver {
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -326,11 +327,18 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
     _inputController.addListener(() {
       final hasText = _inputController.text.trim().isNotEmpty;
       if (hasText != _chatHasText && mounted) {
         setState(() => _chatHasText = hasText);
+      }
+    });
+    // Keyboard వచ్చినప్పుడు scroll to bottom
+    _inputFocusNode.addListener(() {
+      if (_inputFocusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), _scrollToBottom);
       }
     });
     Timer(const Duration(milliseconds: 320), () {
@@ -390,10 +398,20 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _inputFocusNode.dispose();
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {}); // bottomInset re-read కావాలంటే rebuild కావాలి
+    });
   }
 
   void _scrollToBottom() {

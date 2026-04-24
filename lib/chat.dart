@@ -444,7 +444,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _chatController = TextEditingController();
   final FocusNode _chatFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -475,9 +475,17 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
     _loadSessions();
     _initSpeech();
+
+    // Keyboard వచ్చినప్పుడు scroll to bottom
+    _chatFocusNode.addListener(() {
+      if (_chatFocusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), _scrollToBottom);
+      }
+    });
   }
 
   @override
@@ -761,6 +769,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _speech.stop();
     _chatController.dispose();
     _chatFocusNode.dispose();
@@ -771,6 +780,15 @@ class _ChatScreenState extends State<ChatScreen>
       }
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() {}); // Builder లో kbH re-read కావాలంటే rebuild కావాలి
+    });
   }
 
   @override
