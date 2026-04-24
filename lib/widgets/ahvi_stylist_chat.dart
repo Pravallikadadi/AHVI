@@ -835,6 +835,12 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final quickPrompts = _config.quickPrompts(context);
 
+    // Prompt bar estimated height for ListView bottom padding
+    const double promptBarH = 72.0;
+    final double chipsH = _chipsVisible ? 46.0 : 0.0;
+    final double attachH = _pendingAttachment != null ? 52.0 : 0.0;
+    final double inputAreaH = promptBarH + chipsH + attachH;
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.transparent,
@@ -846,145 +852,165 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border.all(color: t.cardBorder),
         ),
-        child: Column(
+        child: Stack(
           children: [
-            // ── Handle ─────────────────────────────────────────────
-            const SizedBox(height: 8),
-            Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: t.panelBorder,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            // ── Header ─────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        color: t.panel,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: t.cardBorder, width: 1),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: t.textPrimary,
-                        size: 15,
-                      ),
-                    ),
-                  ),
-                  AhviHomeText(
-                    color: t.textPrimary,
-                    fontSize: 30.0,
-                    letterSpacing: 3.2,
-                    fontWeight: FontWeight.w400,
-                  ),
-                  const Spacer(),
-                  // History button
-                  GestureDetector(
-                    onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: t.panel,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: t.cardBorder, width: 1),
-                      ),
-                      child: Icon(Icons.history_rounded, color: t.mutedText, size: 18),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // ── Messages ───────────────────────────────────────────
-            Expanded(
-              child: ListView(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                children: [
-                  ..._messages.map((msg) => _Bubble(msg: msg)),
-                  if (_typing) _TypingBubble(color: t.accent.secondary),
-                ],
-              ),
-            ),
-            // ── Quick Prompts ──────────────────────────────────────
-            if (_chipsVisible)
-              SizedBox(
-                height: 46,
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: quickPrompts.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => GestureDetector(
-                    onTap: () => _sendMessage(quickPrompts[i]),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: t.panel,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: t.cardBorder),
-                      ),
-                      child: Text(
-                        quickPrompts[i],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: t.accent.secondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+            // ── Handle + Header + Messages (scrollable) ────────────
+            Column(
+              children: [
+                // ── Handle ─────────────────────────────────────────
+                const SizedBox(height: 8),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: t.panelBorder,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
-            // ── Pending Attachment Chip ────────────────────────────
-            if (_pendingAttachment != null)
-              _PendingAttachmentChip(
-                attachment: _pendingAttachment!,
-                onRemove: _clearPendingAttachment,
-                onTap: () => _openAttachment(_pendingAttachment!),
-                accent: context.themeTokens.accent.primary,
-                panel: context.themeTokens.panel,
-                cardBorder: context.themeTokens.cardBorder,
-                textPrimary: context.themeTokens.textPrimary,
-                mutedText: context.themeTokens.mutedText,
-              ),
-            // ── Input Bar ──────────────────────────────────────────
-            Container(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              decoration: BoxDecoration(
-                color: t.phoneShellInner,
-                border: Border(top: BorderSide(color: t.cardBorder)),
-              ),
-              child: AhviChatPromptBar(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    controller: _inputController,
-                    focusNode: _inputFocusNode,
-                    hintText: AppLocalizations.t(context, _config.hintTextKey),
-                    hasText: _chatHasText,
-                    surface: t.phoneShellInner,
-                    border: t.cardBorder,
-                    accent: t.accent.primary,
-                    accentSecondary: t.accent.secondary,
-                    textHeading: t.textPrimary,
-                    textMuted: t.mutedText,
-                    shadowMedium: t.backgroundPrimary.withValues(alpha: 0.20),
-                    onAccent: Colors.white,
-                    themeTokens: t,
-                    onSendMessage: (message) => _sendMessage(message),
-                    onVisualSearch: null,
-                    onFindSimilar: null,
-                    onAddToWardrobe: null,
+                // ── Header ─────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            color: t.panel,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: t.cardBorder, width: 1),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: t.textPrimary,
+                            size: 15,
+                          ),
+                        ),
+                      ),
+                      AhviHomeText(
+                        color: t.textPrimary,
+                        fontSize: 30.0,
+                        letterSpacing: 3.2,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: t.panel,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: t.cardBorder, width: 1),
+                          ),
+                          child: Icon(Icons.history_rounded, color: t.mutedText, size: 18),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                // ── Messages — bottom pad clears the pinned input bar ─
+                Expanded(
+                  child: ListView(
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, inputAreaH + 12),
+                    children: [
+                      ..._messages.map((msg) => _Bubble(msg: msg)),
+                      if (_typing) _TypingBubble(color: t.accent.secondary),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // ── Prompt bar — pinned above keyboard at all times ────
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomInset, // automatically rises with keyboard
+              child: Container(
+                decoration: BoxDecoration(
+                  color: t.phoneShellInner,
+                  border: Border(top: BorderSide(color: t.cardBorder)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(28),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Quick Prompts ───────────────────────────────
+                    if (_chipsVisible)
+                      SizedBox(
+                        height: 46,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: quickPrompts.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          itemBuilder: (_, i) => GestureDetector(
+                            onTap: () => _sendMessage(quickPrompts[i]),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: t.panel,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: t.cardBorder),
+                              ),
+                              child: Text(
+                                quickPrompts[i],
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: t.accent.secondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // ── Pending Attachment Chip ─────────────────────
+                    if (_pendingAttachment != null)
+                      _PendingAttachmentChip(
+                        attachment: _pendingAttachment!,
+                        onRemove: _clearPendingAttachment,
+                        onTap: () => _openAttachment(_pendingAttachment!),
+                        accent: context.themeTokens.accent.primary,
+                        panel: context.themeTokens.panel,
+                        cardBorder: context.themeTokens.cardBorder,
+                        textPrimary: context.themeTokens.textPrimary,
+                        mutedText: context.themeTokens.mutedText,
+                      ),
+                    // ── Input Bar ───────────────────────────────────
+                    AhviChatPromptBar(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      controller: _inputController,
+                      focusNode: _inputFocusNode,
+                      hintText: AppLocalizations.t(context, _config.hintTextKey),
+                      hasText: _chatHasText,
+                      surface: t.phoneShellInner,
+                      border: t.cardBorder,
+                      accent: t.accent.primary,
+                      accentSecondary: t.accent.secondary,
+                      textHeading: t.textPrimary,
+                      textMuted: t.mutedText,
+                      shadowMedium: t.backgroundPrimary.withValues(alpha: 0.20),
+                      onAccent: Colors.white,
+                      themeTokens: t,
+                      onSendMessage: (message) => _sendMessage(message),
+                      onVisualSearch: null,
+                      onFindSimilar: null,
+                      onAddToWardrobe: null,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

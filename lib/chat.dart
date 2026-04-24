@@ -802,6 +802,7 @@ class _ChatScreenState extends State<ChatScreen>
       body: Stack(
         children: [
           // ── Scrollable content — padded top so it starts below fixed header ──
+          // ── Scrollable content — padded so it never goes under prompt bar ──
           Positioned.fill(
             child: Builder(
               builder: (context) {
@@ -812,22 +813,27 @@ class _ChatScreenState extends State<ChatScreen>
                 final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
                 final double statusBarH = MediaQuery.paddingOf(context).top;
                 final double headerH = statusBarH + logoFontSize + topPad + botPad + 8;
-                // kbH మాత్రమే viewInsets నుండి — headerH calculation లో లేదు
                 final double kbH = MediaQuery.of(context).viewInsets.bottom;
+                final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
+                // Prompt bar approximate height (input + chips + padding)
+                const double promptBarH = 100.0;
+                final double bottomPad = kbH > 0
+                    ? kbH + promptBarH
+                    : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
                 return Column(
                   children: [
                     SizedBox(height: headerH),
                     Expanded(
                       child: ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
                         itemCount: _messages.length,
                         itemBuilder: (_, i) => _msg(_messages[i], t),
                       ),
                     ),
                     if (_isTyping)
                       Padding(
-                        padding: const EdgeInsets.only(left: 20, bottom: 10),
+                        padding: const EdgeInsets.only(left: 20, bottom: 4),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
@@ -836,14 +842,27 @@ class _ChatScreenState extends State<ChatScreen>
                           ),
                         ),
                       ),
-                    _input(t),
-                    SizedBox(
-                      height: kbH > 0
-                          ? kbH
-                          : MediaQuery.viewPaddingOf(context).bottom +
-                              (widget.showBackButton ? 0 : 80),
-                    ),
                   ],
+                );
+              },
+            ),
+          ),
+
+          // ── Prompt bar — fixed at bottom, floats above keyboard ──
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Builder(
+              builder: (context) {
+                final double kbH = MediaQuery.of(context).viewInsets.bottom;
+                final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
+                final double bottomOffset = kbH > 0
+                    ? kbH
+                    : navBarH + (widget.showBackButton ? 0 : 80);
+                return Padding(
+                  padding: EdgeInsets.only(bottom: bottomOffset),
+                  child: _input(t),
                 );
               },
             ),
