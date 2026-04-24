@@ -787,15 +787,14 @@ class _ChatScreenState extends State<ChatScreen>
           Positioned.fill(
             child: Builder(
               builder: (context) {
-                // sizeOf / paddingOf — viewInsets లో change కి react కాదు
-                // keyboard వచ్చినా headerH recalculate కాదు → logo jump కాదు
+                // sizeOf / paddingOf — viewInsets change కి react కాదు → logo jump కాదు
                 final screenH = MediaQuery.sizeOf(context).height;
                 final double topPad = screenH < 700 ? 6.0 : 10.0;
                 final double botPad = screenH < 700 ? 4.0 : 6.0;
                 final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-                final double topInset = MediaQuery.paddingOf(context).top;
-                final double headerH = topInset + logoFontSize + topPad + botPad + 8;
-                // kbH మాత్రమే viewInsets నుండి — header calculation లో లేదు
+                final double statusBarH = MediaQuery.paddingOf(context).top;
+                final double headerH = statusBarH + logoFontSize + topPad + botPad + 8;
+                // kbH మాత్రమే viewInsets నుండి — headerH calculation లో లేదు
                 final double kbH = MediaQuery.of(context).viewInsets.bottom;
                 return Column(
                   children: [
@@ -840,50 +839,50 @@ class _ChatScreenState extends State<ChatScreen>
             child: RepaintBoundary(
               child: Builder(
                 builder: (context) {
-                  // sizeOf / paddingOf — keyboard వచ్చినా logo rebuild కాదు
+                  // sizeOf / paddingOf — SafeArea తీసేశాం.
+                  // SafeArea internally MediaQuery.of() చదువుతుంది → keyboard వచ్చినా jump అవుతుంది.
+                  // paddingOf() status bar height మాత్రమే ఇస్తుంది — viewInsets కి react కాదు.
                   final screenH = MediaQuery.sizeOf(context).height;
                   final double topPad = screenH < 700 ? 6.0 : 10.0;
                   final double botPad = screenH < 700 ? 4.0 : 6.0;
                   final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-                  return SafeArea(
-                    bottom: false,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: t.backgroundPrimary.withValues(alpha: 0.92),
-                        border: Border(
-                          bottom: BorderSide(color: t.cardBorder, width: 1),
-                        ),
+                  final double statusBarH = MediaQuery.paddingOf(context).top;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: t.backgroundPrimary.withValues(alpha: 0.92),
+                      border: Border(
+                        bottom: BorderSide(color: t.cardBorder, width: 1),
                       ),
-                      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-                      child: Row(
-                        children: [
-                          if (widget.showBackButton) ...[
-                            GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  color: t.textPrimary,
-                                  size: 20,
-                                ),
+                    ),
+                    padding: EdgeInsets.fromLTRB(20, statusBarH + topPad, 20, botPad),
+                    child: Row(
+                      children: [
+                        if (widget.showBackButton) ...[
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: t.textPrimary,
+                                size: 20,
                               ),
                             ),
-                          ],
-                          AhviHomeText(
-                            color: t.textPrimary,
-                            fontSize: logoFontSize,
-                            letterSpacing: 3.2,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: Icon(Icons.history_rounded, color: t.textPrimary),
-                            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-                            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                           ),
                         ],
-                      ),
+                        AhviHomeText(
+                          color: t.textPrimary,
+                          fontSize: logoFontSize,
+                          letterSpacing: 3.2,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          icon: Icon(Icons.history_rounded, color: t.textPrimary),
+                          tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+                          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                        ),
+                      ],
                     ),
                   );
                 },

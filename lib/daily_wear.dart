@@ -780,6 +780,9 @@ void dispose() {
   void _openTryOn([String? outfitId]) {
     HapticFeedback.lightImpact();
     _resetTryOnSimulation();
+    // Ensure FAB entry animation is completed before TickerMode disables it,
+    // preventing a frozen mid-animation opacity layer over the screen.
+    _fabEntryCtrl.forward();
     setState(() {
       _tryOnOutfitId = outfitId ?? _currentOutfit['id'] as String;
       _tryOnOpen = true;
@@ -2244,7 +2247,7 @@ void dispose() {
 
   Widget _buildChatFab() => Positioned.fill(
     child: IgnorePointer(
-      ignoring: false,
+      ignoring: _chatOpen || _tryOnOpen,
       child: Align(
         alignment: Alignment.bottomRight,
         child: AnimatedBuilder(
