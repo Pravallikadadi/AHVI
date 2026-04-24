@@ -473,25 +473,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     }
   }
 
-  @override
   void _onChatFocusChange() {
     if (!mounted) return;
     if (!_chatFocusNode.hasFocus) {
       _keyboardHeight.value = 0.0;
     }
-    // focus వచ్చినప్పుడు didChangeMetrics లో keyboard height update అవుతుంది
   }
 
   @override
   void didChangeMetrics() {
     if (!mounted) return;
-    final kbH = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom /
-        WidgetsBinding.instance.platformDispatcher.views.first.devicePixelRatio;
-    if (_chatFocusNode.hasFocus || kbH > 0) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final kbH = MediaQuery.of(context).viewInsets.bottom;
       _keyboardHeight.value = kbH;
-    } else {
-      _keyboardHeight.value = 0.0;
-    }
+    });
   }
 
   void dispose() {

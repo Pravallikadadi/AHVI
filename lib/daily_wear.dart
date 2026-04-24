@@ -59,7 +59,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   int _carouselIndex = 0;
   bool _chatOpen = false;
   bool _tryOnOpen = false;
-  bool _ready = false; // prevents washed-out first frame
+  bool _ready = true;
   final PageController _pageController = PageController();
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -370,7 +370,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     // ── Deferred startup ──────────────────────────────────────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() => _ready = true); // page is fully rendered, show content
       _startAutoPlay();
       _restartOptionCardAnimations();
       Future.delayed(const Duration(milliseconds: 900), () {
@@ -1235,13 +1234,6 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
-    // Guard must be at the very top — building `content` before _ready causes
-    // animation controllers and overlays to initialise on the blank first frame,
-    // which on APK (GPU-accelerated) leaves layers stuck and produces the grey overlay.
-    if (!_ready) {
-      return Scaffold(backgroundColor: bgColor);
-    }
-
     return PopScope(
       canPop: true,
       child: Scaffold(
