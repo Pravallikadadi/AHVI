@@ -1012,14 +1012,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final screenH = constraints.maxHeight;
 
                   // Responsive secondary row height — shrink on small screens
-                  final secondaryH = screenH < 700 ? 132.0 : 144.0;
+                  final secondaryH = screenH < 700 ? 120.0 : 130.0;
                   // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + navBar + gaps
                   const chatBarH = 64.0;
                   const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
-                  const topSectionH = 178.0;
-                  const spacing = 30.0;
+                  const topSectionH = 170.0;
+                  const spacing = 20.0;
                   final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
-                      .clamp(160.0, 380.0);
+                      .clamp(180.0, 460.0);
 
                   // Placeholder height matching _buildTopBar (logo font + top/bot padding)
                   final double topPad = screenH < 700 ? 6.0 : 10.0;
@@ -1040,7 +1040,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           ConstrainedBox(
                             constraints: BoxConstraints(maxHeight: heroMaxH),
                             child: Padding(
-                              padding: const EdgeInsets.only(bottom: 10.0),
+                              padding: const EdgeInsets.only(bottom: 8.0),
                               child: _buildHeroCard(),
                             ),
                           ),
@@ -1049,7 +1049,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                             child: _buildSecondaryRow(),
                           ),
                           // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
-                          const SizedBox(height: 13 + 64 + navBarH),
+                          const SizedBox(height: 10 + 64 + navBarH),
                         ],
                       ),
                     ),
@@ -1955,7 +1955,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     ),
                     // Card content
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 11),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

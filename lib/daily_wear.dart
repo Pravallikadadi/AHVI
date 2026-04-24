@@ -682,7 +682,9 @@ void dispose() {
     _toastTimer?.cancel();
     late OverlayEntry entry;
     entry = OverlayEntry(
-      builder: (_) => _ToastWidget(message: message, green: green),
+      builder: (_) => Stack(
+        children: [_ToastWidget(message: message, green: green)],
+      ),
     );
     _toastEntry = entry;
     Overlay.of(context).insert(entry);
@@ -3513,30 +3515,32 @@ class _ToastWidgetState extends State<_ToastWidget>
       bottom: MediaQuery.of(context).padding.bottom + 30,
       left: 0,
       right: 0,
-      child: Center(
-        child: FadeTransition(
-          opacity: _fade,
-          child: SlideTransition(
-            position: _slide,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
-              decoration: BoxDecoration(
-                color: widget.green
-                    ? accent3Color.withValues(alpha: 0.15)
-                    : phoneShellColor,
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(
+      child: IgnorePointer(
+        child: Center(
+          child: FadeTransition(
+            opacity: _fade,
+            child: SlideTransition(
+              position: _slide,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+                decoration: BoxDecoration(
                   color: widget.green
-                      ? accent3Color.withValues(alpha: 0.35)
-                      : cardBorderColor,
+                      ? accent3Color.withValues(alpha: 0.15)
+                      : phoneShellColor,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: widget.green
+                        ? accent3Color.withValues(alpha: 0.35)
+                        : cardBorderColor,
+                  ),
                 ),
-              ),
-              child: Text(
-                widget.message,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: widget.green ? accent3Color : textColor,
+                child: Text(
+                  widget.message,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: widget.green ? accent3Color : textColor,
+                  ),
                 ),
               ),
             ),
