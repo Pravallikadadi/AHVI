@@ -698,6 +698,9 @@ void dispose() {
   void _wearOutfit(String outfitId, {bool closeModal = false}) {
     final outfit = _buildAllOutfits(context).firstWhere((o) => o['id'] == outfitId);
     HapticFeedback.lightImpact();
+    if (closeModal) {
+      _tryOnSlideCtrl.reverse();
+    }
     setState(() {
       _wornOutfitId = outfitId;
       if (closeModal) _tryOnOpen = false;
@@ -787,9 +790,8 @@ void dispose() {
 
   void _closeTryOn() {
     _resetTryOnSimulation();
-    _tryOnSlideCtrl.reverse().then((_) {
-      if (mounted) setState(() => _tryOnOpen = false);
-    });
+    setState(() => _tryOnOpen = false);
+    _tryOnSlideCtrl.reverse();
   }
 
   void _resetTryOnSimulation() {
@@ -1292,7 +1294,7 @@ void dispose() {
               enabled: !_chatOpen && !_tryOnOpen,
               child: RepaintBoundary(child: _buildChatFab()),
             ),
-            if (_tryOnOpen && _tryOnSlideCtrl.status != AnimationStatus.dismissed)
+            if (_tryOnOpen)
               RepaintBoundary(child: _buildTryOnOverlay()),
           ],
         ),
