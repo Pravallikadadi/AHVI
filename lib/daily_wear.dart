@@ -1241,11 +1241,13 @@ void dispose() {
         body: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(
-                painter: _BgGradientPainter(
-                  primary: accentColor,
-                  secondary: accent2Color,
-                  tertiary: accent3Color,
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _BgGradientPainter(
+                    primary: accentColor,
+                    secondary: accent2Color,
+                    tertiary: accent3Color,
+                  ),
                 ),
               ),
             ),
@@ -1702,17 +1704,9 @@ void dispose() {
           alignment: Alignment.topCenter,
           cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
           filterQuality: FilterQuality.medium,
-          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame != null) return child;
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: frame == null
-                  ? Container(
-                      key: const ValueKey('placeholder'),
-                      color: panelColor,
-                    )
-                  : child,
-            );
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(color: panelColor);
           },
           errorBuilder: (_, _, _) {
             final localImg = outfit['localImg'] as String?;
@@ -1741,9 +1735,9 @@ void dispose() {
                 colors: [
                   Colors.black.withValues(alpha: 0.02),
                   Colors.black.withValues(alpha: 0),
-                  Colors.black.withValues(alpha: 0.18),
-                  Colors.black.withValues(alpha: 0.42),
-                  Colors.black.withValues(alpha: 0.62),
+                  Colors.black.withValues(alpha: 0.10),
+                  Colors.black.withValues(alpha: 0.25),
+                  Colors.black.withValues(alpha: 0.35),
                 ],
               ),
             ),
@@ -2049,17 +2043,9 @@ void dispose() {
                     alignment: Alignment.topCenter,
                     cacheWidth: _cacheWidth(context, 180),
                     filterQuality: FilterQuality.medium,
-                    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                      if (wasSynchronouslyLoaded || frame != null) return child;
-                      return AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: frame == null
-                            ? Container(
-                                key: const ValueKey('placeholder'),
-                                color: panelColor,
-                              )
-                            : child,
-                      );
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(color: panelColor);
                     },
                     errorBuilder: (_, _, _) {
                       final outfitData = _buildAllOutfits(context).firstWhere(

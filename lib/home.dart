@@ -483,10 +483,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   @override
   void didChangeMetrics() {
     if (!mounted) return;
+    // Trigger rebuild so the Builder reads fresh viewInsets directly.
+    // Also keep _keyboardHeight in sync for any other listeners.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final kbH = MediaQuery.of(context).viewInsets.bottom;
-      _keyboardHeight.value = kbH;
+      if (_keyboardHeight.value != kbH) {
+        _keyboardHeight.value = kbH;
+      }
+      setState(() {}); // rebuild so Builder re-reads MediaQuery.viewInsets
     });
   }
 
@@ -1072,19 +1077,27 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           // ── Floating Prompt Bar ─────────────────────────────────────────────
           // Nav bar fixed గా ఉంటుంది — keyboard వచ్చినా move అవ్వదు
           // Prompt bar మాత్రమే keyboard పైకి లిఫ్ట్ అవుతుంది
-          ValueListenableBuilder<double>(
-            valueListenable: _keyboardHeight,
-            builder: (ctx, kbH, _) {
+          Builder(
+            builder: (ctx) {
+              // Read viewInsets directly — no ValueNotifier needed,
+              // didChangeMetrics triggers a rebuild via setState anyway.
+              final kbH = MediaQuery.of(ctx).viewInsets.bottom;
               final safeB = MediaQuery.paddingOf(ctx).bottom;
               final navBarTotalH = safeB + 86.0 + 8.0;
-              // kbH > 0 అంటే keyboard open — దాని పైన 8px gap
-              // kbH == 0 అంటే keyboard closed — nav bar పైన normal position
               final promptBottom = kbH > 0 ? kbH + 8.0 : navBarTotalH;
               return Positioned(
                 left: 20,
                 right: 20,
                 bottom: promptBottom,
-                child: _buildChatWrap(),
+                // Wrap in MediaQuery with zeroed viewInsets so Flutter does NOT
+                // call showOnScreen / scroll-to-visible when the TextField gets
+                // focus — that was causing the whole page to jump to the top.
+                child: MediaQuery(
+                  data: MediaQuery.of(ctx).copyWith(
+                    viewInsets: EdgeInsets.zero,
+                  ),
+                  child: _buildChatWrap(),
+                ),
               );
             },
           ),
@@ -1179,14 +1192,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Hero(
-            tag: 'ahvi_logo',
-            child: AhviHomeText(
-              color: _textHeading,
-              fontSize: logoFontSize,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
+          AhviHomeText(
+            color: _textHeading,
+            fontSize: logoFontSize,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
           ),
           _buildProfileAvatar(),
         ],

@@ -784,42 +784,50 @@ class _ChatScreenState extends State<ChatScreen>
       body: Column(
         children: [
           // ── Custom header — matches Home logo position exactly ──
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                left: 20, right: 4, top: 10, bottom: 6,
-              ),
-              child: Row(
-                children: [
-                  if (widget.showBackButton) ...[
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: t.textPrimary,
-                          size: 20,
+          Builder(
+            builder: (context) {
+              final screenH = MediaQuery.of(context).size.height;
+              final double topPad = screenH < 700 ? 6.0 : 10.0;
+              final double botPad = screenH < 700 ? 4.0 : 6.0;
+              final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
+              return SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 20, right: 4, top: topPad, bottom: botPad,
+                  ),
+                  child: Row(
+                    children: [
+                      if (widget.showBackButton) ...[
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              color: t.textPrimary,
+                              size: 20,
+                            ),
+                          ),
                         ),
+                      ],
+                      AhviHomeText(
+                        color: t.textPrimary,
+                        fontSize: logoFontSize,
+                        letterSpacing: 3.2,
+                        fontWeight: FontWeight.w400,
                       ),
-                    ),
-                  ],
-                  AhviHomeText(
-                    color: t.textPrimary,
-                    fontSize: 30.0,
-                    letterSpacing: 3.2,
-                    fontWeight: FontWeight.w400,
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(Icons.history_rounded, color: t.textPrimary),
+                        tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.history_rounded, color: t.textPrimary),
-                    tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
           Expanded(
             child: ListView.builder(
