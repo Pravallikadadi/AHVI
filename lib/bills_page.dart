@@ -84,8 +84,8 @@ class _BillsScreenState extends State<BillsScreen>
   static const Color _futureCandyPink2 = Color(0xFFFFB3D9); // futureCandy pink lighter
   static const Color _coolBlue         = Color(0xFF6B91FF); // coolBlue primary
   static const Color _coolBlue2        = Color(0xFF8D7DFF); // coolBlue secondary
-  static const Color _sunsetOrange     = Color(0xFFFF6B35); // sunset primary orange
-  static const Color _sunsetOrange2    = Color(0xFFFF4E6A); // sunset secondary coral
+  static const Color _sunsetOrange     = Color(0xFFFFAB76); // sunset primary orange (light)
+  static const Color _sunsetOrange2    = Color(0xFFFF8C5A); // sunset secondary orange (mid)
 
   bool get _isCoolBlue  => _t.accent.primary == _coolBlue;
   // Sunset detection: checks if primary is orange-ish (hue 5°–40°, decent saturation)
