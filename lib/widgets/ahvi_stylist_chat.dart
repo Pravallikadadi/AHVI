@@ -832,7 +832,6 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final quickPrompts = _config.quickPrompts(context);
 
     // Prompt bar estimated height for ListView bottom padding
@@ -927,11 +926,11 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               ],
             ),
 
-            // ── Prompt bar — pinned above keyboard at all times ────
+            // ── Prompt bar — pinned to sheet bottom (sheet itself rises with keyboard) ────
             Positioned(
               left: 0,
               right: 0,
-              bottom: bottomInset, // automatically rises with keyboard
+              bottom: 0,
               child: Container(
                 decoration: BoxDecoration(
                   color: t.phoneShellInner,

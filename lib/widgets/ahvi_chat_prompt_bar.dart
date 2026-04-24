@@ -92,14 +92,7 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
 
   @override
   Widget build(BuildContext context) {
-    // Keyboard height — animates the bar up automatically
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      padding: EdgeInsets.only(bottom: keyboardHeight),
-      child: Padding(
+    return Padding(
         padding: widget.padding,
         child: Container(
           decoration: BoxDecoration(
@@ -292,7 +285,6 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
             },
           ),
         ),
-      ),
     );
   }
 }

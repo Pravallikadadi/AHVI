@@ -802,11 +802,9 @@ class _ChatScreenState extends State<ChatScreen>
       body: Stack(
         children: [
           // ── Scrollable content — padded top so it starts below fixed header ──
-          // ── Scrollable content — padded so it never goes under prompt bar ──
           Positioned.fill(
             child: Builder(
               builder: (context) {
-                // sizeOf / paddingOf — viewInsets change కి react కాదు → logo jump కాదు
                 final screenH = MediaQuery.sizeOf(context).height;
                 final double topPad = screenH < 700 ? 6.0 : 10.0;
                 final double botPad = screenH < 700 ? 4.0 : 6.0;
@@ -815,9 +813,9 @@ class _ChatScreenState extends State<ChatScreen>
                 final double headerH = statusBarH + logoFontSize + topPad + botPad + 8;
                 final double kbH = MediaQuery.of(context).viewInsets.bottom;
                 final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
-                // Prompt bar approximate height (input + chips + padding)
-                const double promptBarH = 100.0;
-                final double bottomPad = kbH > 0
+                // Bottom padding = prompt bar height + nav bar (when keyboard hidden)
+                const double promptBarH = 80.0;
+                final double listBottomPad = kbH > 0
                     ? kbH + promptBarH
                     : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
                 return Column(
@@ -826,7 +824,7 @@ class _ChatScreenState extends State<ChatScreen>
                     Expanded(
                       child: ListView.builder(
                         controller: _scrollController,
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, listBottomPad),
                         itemCount: _messages.length,
                         itemBuilder: (_, i) => _msg(_messages[i], t),
                       ),
@@ -848,7 +846,7 @@ class _ChatScreenState extends State<ChatScreen>
             ),
           ),
 
-          // ── Prompt bar — fixed at bottom, floats above keyboard ──
+          // ── Prompt bar — always pinned above keyboard ──
           Positioned(
             left: 0,
             right: 0,
@@ -857,11 +855,11 @@ class _ChatScreenState extends State<ChatScreen>
               builder: (context) {
                 final double kbH = MediaQuery.of(context).viewInsets.bottom;
                 final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
-                final double bottomOffset = kbH > 0
+                final double bottomPad = kbH > 0
                     ? kbH
                     : navBarH + (widget.showBackButton ? 0 : 80);
                 return Padding(
-                  padding: EdgeInsets.only(bottom: bottomOffset),
+                  padding: EdgeInsets.only(bottom: bottomPad),
                   child: _input(t),
                 );
               },
