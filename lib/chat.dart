@@ -784,11 +784,10 @@ class _ChatScreenState extends State<ChatScreen>
 
   @override
   void didChangeMetrics() {
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {}); // Builder లో kbH re-read కావాలంటే rebuild కావాలి
-    });
+    // setState() లేదు — keyboard వచ్చినప్పుడు full rebuild అవ్వదు.
+    // Prompt bar & message list వున్న Builder widgets MediaQuery ని
+    // directly read చేస్తాయి కాబట్టి Flutter automatically re-layouts చేస్తుంది.
+    // setState() వేస్తే logo కూడా rebuild అయి jump అవుతుంది.
   }
 
   @override
@@ -809,8 +808,10 @@ class _ChatScreenState extends State<ChatScreen>
                 final double topPad = screenH < 700 ? 6.0 : 10.0;
                 final double botPad = screenH < 700 ? 4.0 : 6.0;
                 final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
+                // paddingOf() — keyboard కి react కాదు, statusBar only
                 final double statusBarH = MediaQuery.paddingOf(context).top;
-                final double headerH = statusBarH + logoFontSize + topPad + botPad + 8;
+                // wardrobe SafeArea తో exact match: statusBarH + logo + topPad + botPad + border
+                final double headerH = statusBarH + logoFontSize + topPad + botPad + 1;
                 final double kbH = MediaQuery.of(context).viewInsets.bottom;
                 final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
                 // Bottom padding = prompt bar height + nav bar (when keyboard hidden)
@@ -867,60 +868,61 @@ class _ChatScreenState extends State<ChatScreen>
           ),
 
           // ── Fixed AHVI Logo header — never moves ──
+          // Boards & Wardrobe లో లాగే SafeArea వాడుతున్నాం —
+          // keyboard open/close అయినా statusBar padding మారదు, logo stable గా ఉంటుంది.
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: RepaintBoundary(
-              child: Builder(
-                builder: (context) {
-                  // sizeOf / paddingOf — SafeArea తీసేశాం.
-                  // SafeArea internally MediaQuery.of() చదువుతుంది → keyboard వచ్చినా jump అవుతుంది.
-                  // paddingOf() status bar height మాత్రమే ఇస్తుంది — viewInsets కి react కాదు.
-                  final screenH = MediaQuery.sizeOf(context).height;
-                  final double topPad = screenH < 700 ? 6.0 : 10.0;
-                  final double botPad = screenH < 700 ? 4.0 : 6.0;
-                  final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-                  final double statusBarH = MediaQuery.paddingOf(context).top;
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: t.backgroundPrimary.withValues(alpha: 0.92),
-                      border: Border(
-                        bottom: BorderSide(color: t.cardBorder, width: 1),
+              child: SafeArea(
+                bottom: false,
+                child: Builder(
+                  builder: (context) {
+                    final screenH = MediaQuery.sizeOf(context).height;
+                    final double topPad = screenH < 700 ? 6.0 : 10.0;
+                    final double botPad = screenH < 700 ? 4.0 : 6.0;
+                    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: t.backgroundPrimary.withValues(alpha: 0.92),
+                        border: Border(
+                          bottom: BorderSide(color: t.cardBorder, width: 1),
+                        ),
                       ),
-                    ),
-                    padding: EdgeInsets.fromLTRB(20, statusBarH + topPad, 20, botPad),
-                    child: Row(
-                      children: [
-                        if (widget.showBackButton) ...[
-                          GestureDetector(
-                            onTap: () => Navigator.of(context).pop(),
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: t.textPrimary,
-                                size: 20,
+                      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+                      child: Row(
+                        children: [
+                          if (widget.showBackButton) ...[
+                            GestureDetector(
+                              onTap: () => Navigator.of(context).pop(),
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                  color: t.textPrimary,
+                                  size: 20,
+                                ),
                               ),
                             ),
+                          ],
+                          AhviHomeText(
+                            color: t.textPrimary,
+                            fontSize: logoFontSize,
+                            letterSpacing: 3.2,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.history_rounded, color: t.textPrimary),
+                            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+                            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                           ),
                         ],
-                        AhviHomeText(
-                          color: t.textPrimary,
-                          fontSize: logoFontSize,
-                          letterSpacing: 3.2,
-                          fontWeight: FontWeight.w400,
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          icon: Icon(Icons.history_rounded, color: t.textPrimary),
-                          tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-                          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),

@@ -1021,10 +1021,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
                       .clamp(180.0, 480.0);
 
-                  // Placeholder height matching _buildTopBar (logo font + top/bot padding)
+                  // Placeholder height — SafeArea + topPad + botPad (wardrobe తో exact match)
                   final double topPad = screenH < 700 ? 6.0 : 10.0;
                   final double botPad = screenH < 700 ? 4.0 : 6.0;
-                  final double topBarPlaceholderH = (screenH < 700 ? 26.0 : 30.0) + topPad + botPad;
+                  final double statusBarH = MediaQuery.paddingOf(context).top;
+                  final double topBarPlaceholderH = statusBarH + (screenH < 700 ? 26.0 : 30.0) + topPad + botPad;
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -1219,29 +1220,28 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ── Fixed logo bar — stays put regardless of home collapse animation ──
   Widget _buildFixedLogoBar() {
-    // sizeOf() — keyboard/viewInsets change కి react కాదు
+    // wardrobe తో exact same — SafeArea + topPad only
     final screenH = MediaQuery.sizeOf(context).height;
     final double topPad = screenH < 700 ? 6.0 : 10.0;
     final double botPad = screenH < 700 ? 4.0 : 6.0;
     final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-    // SafeArea తీసేశాం — SafeArea internally MediaQuery.of() చదువుతుంది,
-    // viewInsets change అయినప్పుడు logo jump అవుతుంది.
-    // paddingOf() మాత్రమే status bar height ఇస్తుంది — keyboard కి react కాదు.
-    final double statusBarH = MediaQuery.paddingOf(context).top;
     return RepaintBoundary(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(20, statusBarH + topPad, 20, botPad),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            AhviHomeText(
-              color: _textHeading,
-              fontSize: logoFontSize,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
-            _buildProfileAvatar(),
-          ],
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AhviHomeText(
+                color: _textHeading,
+                fontSize: logoFontSize,
+                letterSpacing: 3.2,
+                fontWeight: FontWeight.w400,
+              ),
+              _buildProfileAvatar(),
+            ],
+          ),
         ),
       ),
     );
@@ -1824,6 +1824,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
               ctaKey: 'sec_plan_cta',
               intent: 'organize',
+              imageUrl: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=300&h=340&fit=crop&crop=center&auto=format',
             ),
           ),
           const SizedBox(width: 12),
@@ -1834,6 +1835,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
               ctaKey: 'sec_prep_cta',
               intent: 'plan',
+              imageUrl: 'https://images.unsplash.com/photo-1553531384-397c80973a0b?w=300&h=340&fit=crop&crop=center&auto=format',
             ),
           ),
           if (isTablet) ...[
@@ -1858,6 +1860,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     required String subtitle,
     required String ctaKey,
     required String intent,
+    String? imageUrl,
   }) {
     final screenH = MediaQuery.of(context).size.height;
     // CTA label from localization key
@@ -1917,6 +1920,45 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         ),
                       ),
                     ),
+                    // Hero-card style: image on right, left-edge fade
+                    if (imageUrl != null)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 110,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                cacheWidth: (130 * MediaQuery.of(context).devicePixelRatio).round(),
+                                filterQuality: FilterQuality.low,
+                                errorBuilder: (_ctx, _err, _st) => const SizedBox.shrink(),
+                              ),
+                            ),
+                            // Left fade — blends into card surface
+                            Positioned(
+                              left: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: 48,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: [_surface, _transparent],
+                                    stops: const [0.72, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     // Animated breathing border overlay
                     Positioned.fill(
                       child: IgnorePointer(

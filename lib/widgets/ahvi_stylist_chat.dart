@@ -184,12 +184,21 @@ Future<void> showAhviStylistChatSheet(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    useSafeArea: true,
+    useSafeArea: false,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => FractionallySizedBox(
-      heightFactor: 0.88,
-      child: _AhviStylistChatSheet(moduleContext: moduleContext, rootContext: context),
-    ),
+    builder: (ctx) {
+      final screenH = MediaQuery.of(ctx).size.height;
+      final topPad = MediaQuery.of(ctx).padding.top;
+      final kbH = MediaQuery.of(ctx).viewInsets.bottom;
+      final sheetH = (screenH - topPad) * 0.92;
+      return Padding(
+        padding: EdgeInsets.only(bottom: kbH),
+        child: SizedBox(
+          height: sheetH,
+          child: _AhviStylistChatSheet(moduleContext: moduleContext, rootContext: context),
+        ),
+      );
+    },
   );
 }
 
