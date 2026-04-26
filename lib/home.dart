@@ -1021,11 +1021,14 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
                       .clamp(180.0, 480.0);
 
-                  // Placeholder height — SafeArea + topPad + botPad (wardrobe తో exact match)
+                  // Placeholder height — _buildFixedLogoBar తో exact match:
+                  // SafeArea.top (statusBarH) + topPad + logoFontSize + botPad
+                  // Chat _ChatLogoHeader కూడా same values use చేస్తోంది
                   final double topPad = screenH < 700 ? 6.0 : 10.0;
                   final double botPad = screenH < 700 ? 4.0 : 6.0;
+                  final double logoFontSizeH = screenH < 700 ? 26.0 : 30.0;
                   final double statusBarH = MediaQuery.paddingOf(context).top;
-                  final double topBarPlaceholderH = statusBarH + (screenH < 700 ? 26.0 : 30.0) + topPad + botPad;
+                  final double topBarPlaceholderH = statusBarH + topPad + logoFontSizeH + botPad;
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -1060,7 +1063,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             ),
           ),
 
-          // ── Fixed AHVI Logo — not affected by home collapse animation ──
+          // ── Fixed AHVI Logo — Chat screen లాగే Positioned గా ఉంది ──
+          // top: 0, SafeArea(bottom: false) తో — Chat _ChatLogoHeader తో
+          // exact match అవుతుంది: status bar + topPad + logoFontSize + botPad
           Positioned(
             top: 0,
             left: 0,

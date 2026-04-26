@@ -797,67 +797,68 @@ class _ChatScreenState extends State<ChatScreen>
       key: _scaffoldKey,
       backgroundColor: t.backgroundPrimary,
       drawer: _historyDrawer(t),
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          // ── Scrollable content — padded top so it starts below fixed header ──
-          Positioned.fill(
-            child: Builder(
-              builder: (context) {
-                final screenH = MediaQuery.sizeOf(context).height;
-                final double topPad = screenH < 700 ? 6.0 : 10.0;
-                final double botPad = screenH < 700 ? 4.0 : 6.0;
-                final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-                // paddingOf() — keyboard కి react కాదు, statusBar only
-                final double statusBarH = MediaQuery.paddingOf(context).top;
-                // wardrobe SafeArea తో exact match: statusBarH + logo + topPad + botPad + border
-                final double headerH = statusBarH + logoFontSize + topPad + botPad + 1;
-                final double kbH = MediaQuery.of(context).viewInsets.bottom;
-                final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
-                // Bottom padding = prompt bar height + nav bar (when keyboard hidden)
-                const double promptBarH = 80.0;
-                final double listBottomPad = kbH > 0
-                    ? kbH + promptBarH
-                    : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
-                return Column(
-                  children: [
-                    SizedBox(height: headerH),
-                    Expanded(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, listBottomPad),
-                        itemCount: _messages.length,
-                        itemBuilder: (_, i) => _msg(_messages[i], t),
-                      ),
-                    ),
-                    if (_isTyping)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20, bottom: 4),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            AppLocalizations.t(context, 'chat_typing'),
-                            style: TextStyle(color: t.mutedText, fontSize: 12),
-                          ),
+      // resizeToAvoidBottomInset: true — keyboard వచ్చినప్పుడు Scaffold body
+      // automatically shrink అవుతుంది. Logo header Column లో first child కాబట్టి
+      // keyboard తో పైకి వెళ్ళదు — SafeArea లో ఉంది, Scaffold body shrink
+      // అయినా SafeArea top padding change కాదు.
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // ── Logo header — boards/wardrobe లాగే Column లో first child ──
+            // Stack+Positioned కాదు కాబట్టి keyboard/setState తో move కాదు.
+            _ChatLogoHeader(
+              showBackButton: widget.showBackButton,
+              scaffoldKey: _scaffoldKey,
+            ),
+
+            // ── Message list + typing indicator ──
+            Expanded(
+              child: Builder(
+                builder: (context) {
+                  final double kbH = MediaQuery.of(context).viewInsets.bottom;
+                  final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
+                  const double promptBarH = 80.0;
+                  final double listBottomPad = kbH > 0
+                      ? promptBarH
+                      : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.fromLTRB(20, 16, 20, listBottomPad),
+                          itemCount: _messages.length,
+                          itemBuilder: (_, i) => _msg(_messages[i], t),
                         ),
                       ),
-                  ],
-                );
-              },
+                      if (_isTyping)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 20, bottom: 4),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              AppLocalizations.t(context, 'chat_typing'),
+                              style: TextStyle(color: t.mutedText, fontSize: 12),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
 
-          // ── Prompt bar — always pinned above keyboard ──
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Builder(
+            // ── Prompt bar — keyboard వచ్చినప్పుడు Scaffold shrink వల్ల
+            // automatically keyboard పైకి వస్తుంది. Extra padding వద్దు. ──
+            Builder(
               builder: (context) {
-                final double kbH = MediaQuery.of(context).viewInsets.bottom;
                 final double navBarH = MediaQuery.viewPaddingOf(context).bottom;
+                final double kbH = MediaQuery.of(context).viewInsets.bottom;
+                // Keyboard open అయినప్పుడు Scaffold already shrunk — navBar pad వద్దు
                 final double bottomPad = kbH > 0
-                    ? kbH
+                    ? 0
                     : navBarH + (widget.showBackButton ? 0 : 80);
                 return Padding(
                   padding: EdgeInsets.only(bottom: bottomPad),
@@ -865,68 +866,8 @@ class _ChatScreenState extends State<ChatScreen>
                 );
               },
             ),
-          ),
-
-          // ── Fixed AHVI Logo header — never moves ──
-          // Boards & Wardrobe లో లాగే SafeArea వాడుతున్నాం —
-          // keyboard open/close అయినా statusBar padding మారదు, logo stable గా ఉంటుంది.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: RepaintBoundary(
-              child: SafeArea(
-                bottom: false,
-                child: Builder(
-                  builder: (context) {
-                    final screenH = MediaQuery.sizeOf(context).height;
-                    final double topPad = screenH < 700 ? 6.0 : 10.0;
-                    final double botPad = screenH < 700 ? 4.0 : 6.0;
-                    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: t.backgroundPrimary.withValues(alpha: 0.92),
-                        border: Border(
-                          bottom: BorderSide(color: t.cardBorder, width: 1),
-                        ),
-                      ),
-                      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-                      child: Row(
-                        children: [
-                          if (widget.showBackButton) ...[
-                            GestureDetector(
-                              onTap: () => Navigator.of(context).pop(),
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  color: t.textPrimary,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ],
-                          AhviHomeText(
-                            color: t.textPrimary,
-                            fontSize: logoFontSize,
-                            letterSpacing: 3.2,
-                            fontWeight: FontWeight.w400,
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: Icon(Icons.history_rounded, color: t.textPrimary),
-                            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-                            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2423,6 +2364,70 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
         Icons.mic_rounded,
         color: Colors.white,
         size: 18,
+      ),
+    );
+  }
+}
+// ── Chat Logo Header — boards/wardrobe లాగే StatelessWidget ──────────────────
+// Column లో first child గా ఉంటుంది. parent setState() తో rebuild కాదు —
+// StatelessWidget కి same parameters వస్తే Flutter skip చేస్తుంది.
+// MediaQuery.of వాడుతున్నాం (sizeOf కాదు) — size changes కి subscribe కాదు.
+class _ChatLogoHeader extends StatelessWidget {
+  final bool showBackButton;
+  final GlobalKey<ScaffoldState> scaffoldKey;
+
+  const _ChatLogoHeader({
+    required this.showBackButton,
+    required this.scaffoldKey,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final screenH = MediaQuery.of(context).size.height;
+    final double topPad = screenH < 700 ? 6.0 : 10.0;
+    final double botPad = screenH < 700 ? 4.0 : 6.0;
+    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
+    return Container(
+      decoration: BoxDecoration(
+        color: t.backgroundPrimary.withValues(alpha: 0.92),
+        border: Border(
+          bottom: BorderSide(color: t.cardBorder, width: 1),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+      child: Row(
+        children: [
+          if (showBackButton) ...[
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: t.textPrimary,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+          Hero(
+            tag: 'ahvi_logo',
+            transitionOnUserGestures: true,
+            child: AhviHomeText(
+              color: t.textPrimary,
+              fontSize: logoFontSize,
+              letterSpacing: 3.2,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const Spacer(),
+          IconButton(
+            icon: Icon(Icons.history_rounded, color: t.textPrimary),
+            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+            onPressed: () => scaffoldKey.currentState?.openDrawer(),
+          ),
+        ],
       ),
     );
   }

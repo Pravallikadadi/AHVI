@@ -667,11 +667,15 @@ class _BoardsScreenState extends State<BoardsScreen>
                     top: MediaQuery.of(context).size.height < 700 ? 6.0 : 10.0,
                     bottom: MediaQuery.of(context).size.height < 700 ? 4.0 : 6.0,
                   ),
-                  child: AhviHomeText(
-                    color: _text,
-                    fontSize: MediaQuery.of(context).size.height < 700 ? 26.0 : 30.0,
-                    letterSpacing: 3.2,
-                    fontWeight: FontWeight.w400,
+                  child: Hero(
+                    tag: 'ahvi_logo',
+                    transitionOnUserGestures: true,
+                    child: AhviHomeText(
+                      color: _text,
+                      fontSize: MediaQuery.of(context).size.height < 700 ? 26.0 : 30.0,
+                      letterSpacing: 3.2,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
                 Expanded(
