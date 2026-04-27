@@ -15,6 +15,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
 // 🚀 Backend & Providers
@@ -2428,136 +2429,111 @@ class _AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final screenH = MediaQuery.of(context).size.height;
-    final double topPad = screenH < 700 ? 6.0 : 10.0;
-    final double botPad = screenH < 700 ? 4.0 : 6.0;
-    return SafeArea(
-      bottom: false,
-      child: Container(
-      decoration: BoxDecoration(
-        color: t.backgroundPrimary.withValues(alpha: 0.92),
-        border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
-      ),
-      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Hero(
-                        tag: 'ahvi_logo',
-                        transitionOnUserGestures: true,
-                        child: AhviHomeText(
-                          color: t.textPrimary,
-                          fontSize: screenH < 700 ? 26.0 : 30.0,
-                          letterSpacing: 3.2,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontFamily: GoogleFonts.inter().fontFamily,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: t.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 40),
-                  child: Row(
-                    children: [
-                      // Add item button
-                      _HoverScaleButton(
-                        scaleFactor: 1.02,
-                        duration: const Duration(milliseconds: 200),
-                        onTap: onAddTap,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [t.accent.primary, t.accent.tertiary],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.add, color: t.textPrimary, size: 16),
-                                const SizedBox(width: 6),
-                                Text(
-                                  AppLocalizations.t(context, 'wardrobe_add_item'),
-                                  style: TextStyle(
-                                    fontFamily: GoogleFonts.inter().fontFamily,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: t.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── AHVI logo — shared AhviHeader, pixel-perfect on all screens ──
+        const AhviHeader(
+          showBorder: false,
+          frosted: true,
+        ),
+        // ── Title row: "My Wardrobe" + Add item button ───────────────────
+        Container(
+          decoration: BoxDecoration(
+            color: t.backgroundPrimary.withValues(alpha: 0.92),
+            border: Border(bottom: BorderSide(color: t.cardBorder, width: 1)),
           ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              decoration: BoxDecoration(
-                color: t.panel,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: t.mutedText, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      onChanged: onSearch,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
                       style: TextStyle(
                         fontFamily: GoogleFonts.inter().fontFamily,
-                        fontSize: 15,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
                         color: t.textPrimary,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: AppLocalizations.t(context, 'wardrobe_search_hint'),
-                        hintStyle: TextStyle(color: t.mutedText),
-                        isDense: true,
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                  ),
-                ],
+                    _HoverScaleButton(
+                      scaleFactor: 1.02,
+                      duration: const Duration(milliseconds: 200),
+                      onTap: onAddTap,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [t.accent.primary, t.accent.tertiary],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add, color: t.textPrimary, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                AppLocalizations.t(context, 'wardrobe_add_item'),
+                                style: TextStyle(
+                                  fontFamily: GoogleFonts.inter().fontFamily,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: t.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              Container(
+                decoration: BoxDecoration(
+                  color: t.panel,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: t.mutedText, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        onChanged: onSearch,
+                        style: TextStyle(
+                          fontFamily: GoogleFonts.inter().fontFamily,
+                          fontSize: 15,
+                          color: t.textPrimary,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: AppLocalizations.t(context, 'wardrobe_search_hint'),
+                          hintStyle: TextStyle(color: t.mutedText),
+                          isDense: true,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ),
+        ),
+      ],
     );
   }
 }

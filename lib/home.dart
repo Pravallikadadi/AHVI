@@ -10,6 +10,7 @@ import 'package:myapp/wardrobe.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
@@ -1225,30 +1226,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   // ── Fixed logo bar — stays put regardless of home collapse animation ──
   Widget _buildFixedLogoBar() {
-    // wardrobe తో exact same — SafeArea + topPad only
-    final screenH = MediaQuery.sizeOf(context).height;
-    final double topPad = screenH < 700 ? 6.0 : 10.0;
-    final double botPad = screenH < 700 ? 4.0 : 6.0;
-    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-    return RepaintBoundary(
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              AhviHomeText(
-                color: _textHeading,
-                fontSize: logoFontSize,
-                letterSpacing: 3.2,
-                fontWeight: FontWeight.w400,
-              ),
-              _buildProfileAvatar(),
-            ],
-          ),
-        ),
-      ),
+    // Delegated to AhviHeader — same spacing on all screens, keyboard-safe
+    return AhviHeader(
+      frosted: true,
+      right: _buildProfileAvatar(),
     );
   }
 
@@ -1283,8 +1264,8 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         );
       },
       child: Container(
-        width: 44,
-        height: 44,
+        width: 56,
+        height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _panel,
@@ -1301,7 +1282,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         child: _avatarBytes == null
             ? Icon(
                 Icons.person_rounded,
-                size: 26,
+                size: 32,
                 color: _accent.withValues(alpha: 0.7),
               )
             : Image.memory(_avatarBytes!, fit: BoxFit.cover),
@@ -1818,7 +1799,6 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Widget _buildSecondaryRow() {
     final screenH = MediaQuery.of(context).size.height;
     final screenW = MediaQuery.of(context).size.width;
-    final isTablet = screenW >= 600;
     return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1829,7 +1809,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
               ctaKey: 'sec_plan_cta',
               intent: 'organize',
-              imageUrl: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=300&h=340&fit=crop&crop=center&auto=format',
+              assetImage: 'assets/images/plan_card.jpg',
             ),
           ),
           const SizedBox(width: 12),
@@ -1840,21 +1820,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
               ctaKey: 'sec_prep_cta',
               intent: 'plan',
-              imageUrl: 'https://images.unsplash.com/photo-1553531384-397c80973a0b?w=300&h=340&fit=crop&crop=center&auto=format',
+              assetImage: 'assets/images/prep_card.jpg',
             ),
           ),
-          if (isTablet) ...[
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSecCard(
-                icon: Icons.auto_awesome_outlined,
-                title: AppLocalizations.t(context, 'sec_organize_title'),
-                subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
-                ctaKey: 'hero_start_styling',
-                intent: 'style',
-              ),
-            ),
-          ],
         ],
       );
   }
@@ -1866,6 +1834,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     required String ctaKey,
     required String intent,
     String? imageUrl,
+    String? assetImage,
   }) {
     final screenH = MediaQuery.of(context).size.height;
     // CTA label from localization key
@@ -1926,7 +1895,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                       ),
                     ),
                     // Hero-card style: image on right, left-edge fade
-                    if (imageUrl != null)
+                    if (assetImage != null || imageUrl != null)
                       Positioned(
                         right: 0,
                         top: 0,
@@ -1935,14 +1904,22 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                alignment: Alignment.topCenter,
-                                cacheWidth: (130 * MediaQuery.of(context).devicePixelRatio).round(),
-                                filterQuality: FilterQuality.low,
-                                errorBuilder: (_ctx, _err, _st) => const SizedBox.shrink(),
-                              ),
+                              child: assetImage != null
+                                  ? Image.asset(
+                                      assetImage,
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.topCenter,
+                                      filterQuality: FilterQuality.low,
+                                      errorBuilder: (_ctx, _err, _st) => const SizedBox.shrink(),
+                                    )
+                                  : Image.network(
+                                      imageUrl!,
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.topCenter,
+                                      cacheWidth: (130 * MediaQuery.of(context).devicePixelRatio).round(),
+                                      filterQuality: FilterQuality.low,
+                                      errorBuilder: (_ctx, _err, _st) => const SizedBox.shrink(),
+                                    ),
                             ),
                             // Left fade — blends into card surface
                             Positioned(

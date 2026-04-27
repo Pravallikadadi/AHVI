@@ -11,6 +11,7 @@ import 'package:myapp/medi_tracker.dart' as medi_tracker_page;
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
@@ -806,11 +807,16 @@ class _ChatScreenState extends State<ChatScreen>
         bottom: false,
         child: Column(
           children: [
-            // ── Logo header — boards/wardrobe లాగే Column లో first child ──
-            // Stack+Positioned కాదు కాబట్టి keyboard/setState తో move కాదు.
-            _ChatLogoHeader(
-              showBackButton: widget.showBackButton,
-              scaffoldKey: _scaffoldKey,
+            // ── Logo header — AhviHeader (StatelessWidget, never rebuilds) ──
+            AhviHeader(
+              showBack: widget.showBackButton,
+              showBorder: true,
+              frosted: true,
+              right: IconButton(
+                icon: Icon(Icons.history_rounded, color: context.themeTokens.textPrimary),
+                tooltip: AppLocalizations.t(context, 'chat_history_btn'),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
             ),
 
             // ── Message list + typing indicator ──
@@ -2368,67 +2374,4 @@ class _PulsingMicIconState extends State<_PulsingMicIcon>
     );
   }
 }
-// ── Chat Logo Header — boards/wardrobe లాగే StatelessWidget ──────────────────
-// Column లో first child గా ఉంటుంది. parent setState() తో rebuild కాదు —
-// StatelessWidget కి same parameters వస్తే Flutter skip చేస్తుంది.
-// MediaQuery.of వాడుతున్నాం (sizeOf కాదు) — size changes కి subscribe కాదు.
-class _ChatLogoHeader extends StatelessWidget {
-  final bool showBackButton;
-  final GlobalKey<ScaffoldState> scaffoldKey;
-
-  const _ChatLogoHeader({
-    required this.showBackButton,
-    required this.scaffoldKey,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.themeTokens;
-    final screenH = MediaQuery.of(context).size.height;
-    final double topPad = screenH < 700 ? 6.0 : 10.0;
-    final double botPad = screenH < 700 ? 4.0 : 6.0;
-    final double logoFontSize = screenH < 700 ? 26.0 : 30.0;
-    return Container(
-      decoration: BoxDecoration(
-        color: t.backgroundPrimary.withValues(alpha: 0.92),
-        border: Border(
-          bottom: BorderSide(color: t.cardBorder, width: 1),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-      child: Row(
-        children: [
-          if (showBackButton) ...[
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: t.textPrimary,
-                  size: 20,
-                ),
-              ),
-            ),
-          ],
-          Hero(
-            tag: 'ahvi_logo',
-            transitionOnUserGestures: true,
-            child: AhviHomeText(
-              color: t.textPrimary,
-              fontSize: logoFontSize,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: Icon(Icons.history_rounded, color: t.textPrimary),
-            tooltip: AppLocalizations.t(context, 'chat_history_btn'),
-            onPressed: () => scaffoldKey.currentState?.openDrawer(),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// _ChatLogoHeader removed — replaced by AhviHeader (see build method above)

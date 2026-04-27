@@ -16,6 +16,7 @@ import 'package:myapp/everything_else.dart' as everything_else;
 import 'package:myapp/home_and_utilities.dart' as home_utils;
 import 'package:myapp/skincare.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/diet_fitness.dart' as diet_fitness;
 
 class ShellBackNavigationNotification extends Notification {
@@ -659,25 +660,8 @@ class _BoardsScreenState extends State<BoardsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Fixed logo header — matches Home position exactly ──
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: MediaQuery.of(context).size.height < 700 ? 6.0 : 10.0,
-                    bottom: MediaQuery.of(context).size.height < 700 ? 4.0 : 6.0,
-                  ),
-                  child: Hero(
-                    tag: 'ahvi_logo',
-                    transitionOnUserGestures: true,
-                    child: AhviHomeText(
-                      color: _text,
-                      fontSize: MediaQuery.of(context).size.height < 700 ? 26.0 : 30.0,
-                      letterSpacing: 3.2,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
+                // ── Fixed logo header — AhviHeader (same position on all screens) ──
+                const AhviHeader(),
                 Expanded(
                   child: CustomScrollView(
               physics: const BouncingScrollPhysics(
