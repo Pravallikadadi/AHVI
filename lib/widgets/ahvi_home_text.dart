@@ -29,14 +29,21 @@ class AhviHomeText extends StatelessWidget {
           (route) => false,
         );
       },
-      child: Text(
-        'AHVI',
-        style: GoogleFonts.anton(
-          color: textColor,
-          fontSize: fontSize,
-          fontWeight: fontWeight,
-          letterSpacing: letterSpacing,
-          height: 1.0,
+      child: Material(
+        type: MaterialType.transparency, // inherited elevation/shadow తీసేస్తుంది
+        child: Text(
+          'AHVI',
+          style: GoogleFonts.anton(
+            color: textColor,
+            fontSize: fontSize,
+            fontWeight: fontWeight,
+            letterSpacing: letterSpacing,
+            height: 1.0,
+            // Shadows & underlines పూర్తిగా తీసేయడం
+            shadows: [],
+            decoration: TextDecoration.none,
+            decorationColor: Colors.transparent,
+          ),
         ),
       ),
     );

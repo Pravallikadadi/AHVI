@@ -61,6 +61,19 @@ class AhviHeader extends StatelessWidget {
     Widget logo = Hero(
       tag: 'ahvi_logo',
       transitionOnUserGestures: true,
+      // Shadow తీసేయడానికి: Hero flight లో default overlay shadow వస్తుంది,
+      // flightShuttleBuilder తో suppress చేస్తున్నాం
+      flightShuttleBuilder: (_, animation, __, ___, ____) {
+        return FadeTransition(
+          opacity: animation,
+          child: AhviHomeText(
+            color: t.textPrimary,
+            fontSize: logoSize,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
+          ),
+        );
+      },
       child: AhviHomeText(
         color: t.textPrimary,
         fontSize: logoSize,
