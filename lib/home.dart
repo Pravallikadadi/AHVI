@@ -1264,12 +1264,12 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         );
       },
       child: Container(
-        width: 56,
-        height: 56,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _panel,
-          border: Border.all(color: _accent.withValues(alpha: 0.25), width: 1),
+          border: Border.all(color: _accent.withValues(alpha: 0.25), width: 1.5),
           boxShadow: [
             BoxShadow(
               color: _shadowMedium,
@@ -1282,10 +1282,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         child: _avatarBytes == null
             ? Icon(
                 Icons.person_rounded,
-                size: 32,
+                size: 22,
                 color: _accent.withValues(alpha: 0.7),
               )
-            : Image.memory(_avatarBytes!, fit: BoxFit.cover),
+            : Padding(
+                padding: const EdgeInsets.all(4),
+                child: Image.memory(_avatarBytes!, fit: BoxFit.contain),
+              ),
       ),
     );
   }
