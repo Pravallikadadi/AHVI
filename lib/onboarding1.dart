@@ -1211,28 +1211,32 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
             ),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: List.generate(kSkinTones.length, (i) {
-              final active = _selectedSkinTone == i + 1;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedSkinTone = i + 1),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  margin: const EdgeInsets.only(right: 10),
-                  width: 32, height: 32,
-                  decoration: BoxDecoration(
-                    color: kSkinTones[i],
-                    shape: BoxShape.circle,
-                    border: active
-                        ? Border.all(color: accent, width: 3)
-                        : Border.all(color: Colors.transparent, width: 3),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(kSkinTones.length, (i) {
+                final active = _selectedSkinTone == i + 1;
+                final isLast = i == kSkinTones.length - 1;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedSkinTone = i + 1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    margin: EdgeInsets.only(right: isLast ? 0 : 10),
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: kSkinTones[i],
+                      shape: BoxShape.circle,
+                      border: active
+                          ? Border.all(color: accent, width: 3)
+                          : Border.all(color: Colors.transparent, width: 3),
+                    ),
+                    transform: active
+                        ? (Matrix4.identity()..scale(1.15))
+                        : Matrix4.identity(),
                   ),
-                  transform: active
-                      ? (Matrix4.identity()..scale(1.15))
-                      : Matrix4.identity(),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ],
       ),

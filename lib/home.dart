@@ -227,7 +227,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   List<String> _responseTags = [];
   bool _tagsRevealed = false;
 
-  String _userName = '...';
+  String _userName = '';
   Uint8List? _avatarBytes;
 
   Future<void> _savePrepareExactToBoard({
@@ -1324,14 +1324,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     height: 1.1,
                   ),
                   children: [
-                    TextSpan(text: '$greetingText, '), // 🆕 translated
-                    WidgetSpan(
-                      child: _GradientText(
-                        '$_userName.',
-                        fontSize: greetFontSize,
-                        fontWeight: FontWeight.w400,
+                    if (_userName.isNotEmpty) ...[
+                      TextSpan(text: '$greetingText, '), // 🆕 translated
+                      WidgetSpan(
+                        child: _GradientText(
+                          '$_userName.',
+                          fontSize: greetFontSize,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
-                    ),
+                    ] else
+                      TextSpan(text: '$greetingText.'), // login కాలేదు — name లేదు
                   ],
                 ),
               ),

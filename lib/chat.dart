@@ -810,7 +810,7 @@ class _ChatScreenState extends State<ChatScreen>
             // ── Logo header — AhviHeader (StatelessWidget, never rebuilds) ──
             AhviHeader(
               showBack: widget.showBackButton,
-              showBorder: true,
+              showBorder: false,
               frosted: true,
               right: IconButton(
                 icon: Icon(Icons.history_rounded, color: context.themeTokens.textPrimary),
