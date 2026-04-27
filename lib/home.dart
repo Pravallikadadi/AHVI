@@ -1228,7 +1228,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   Widget _buildFixedLogoBar() {
     // Delegated to AhviHeader — same spacing on all screens, keyboard-safe
     return AhviHeader(
-      frosted: true,
+      frosted: false,
       right: _buildProfileAvatar(),
     );
   }

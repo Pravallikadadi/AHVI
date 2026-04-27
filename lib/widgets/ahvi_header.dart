@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
 import 'package:myapp/theme/theme_tokens.dart';
@@ -84,46 +85,47 @@ class AhviHeader extends StatelessWidget {
 
     return SafeArea(
       bottom: false,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: frosted
-              ? t.backgroundPrimary.withValues(alpha: 0.92)
-              : Colors.transparent,
-          border: showBorder
-              ? Border(bottom: BorderSide(color: t.cardBorder, width: 1))
-              : null,
-        ),
-        child: SizedBox(
-          // Fixed height: topPad + logoSize + botPad (≈ 42-46 px).
-          // Consistent across every screen — even 2 px difference is visible.
-          height: topPad + logoSize + botPad,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
-            child: Row(
-              children: [
-                // ── Back button (optional) ───────────────────────────────
-                if (showBack) ...[
-                  GestureDetector(
-                    onTap: onBack ?? () => Navigator.of(context).pop(),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: t.textPrimary,
-                        size: 20,
+      child: ClipRect(
+        child: BackdropFilter(
+          // frosted=true → blur; frosted=false → ImageFilter.matrix identity (no-op)
+          filter: frosted
+              ? ImageFilter.blur(sigmaX: 18, sigmaY: 18)
+              : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              // frosted=true → very subtle tint (no hard edge), false → fully transparent
+              color: frosted
+                  ? t.backgroundPrimary.withValues(alpha: 0.55)
+                  : Colors.transparent,
+              border: showBorder
+                  ? Border(bottom: BorderSide(color: t.cardBorder, width: 0.5))
+                  : null,
+            ),
+            child: SizedBox(
+              height: topPad + logoSize + botPad,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(20, topPad, 20, botPad),
+                child: Row(
+                  children: [
+                    if (showBack) ...[
+                      GestureDetector(
+                        onTap: onBack ?? () => Navigator.of(context).pop(),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: t.textPrimary,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-
-                // ── AHVI logo — always the visual anchor ─────────────────
-                logo,
-
-                const Spacer(),
-
-                // ── Right slot (avatar, history icon, add-item, etc.) ────
-                if (right != null) right!,
-              ],
+                    ],
+                    logo,
+                    const Spacer(),
+                    if (right != null) right!,
+                  ],
+                ),
+              ),
             ),
           ),
         ),
