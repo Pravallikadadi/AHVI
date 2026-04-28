@@ -254,6 +254,7 @@ class _BoardsScreenState extends State<BoardsScreen>
   bool _isLifeTab = true;
   bool _hasStartedAnimations =
       false; // <-- FIX: Tracks if entry animations fired
+  bool _tabSwitching = false;
   final List<String> _customBoardNames = [];
   final TextEditingController _createBoardController = TextEditingController();
   final FocusNode _createBoardFocusNode = FocusNode();
@@ -315,6 +316,18 @@ class _BoardsScreenState extends State<BoardsScreen>
     _createBoardController.dispose();
     _createBoardFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // When TickerMode re-enables this tab, push any stalled controllers to 1.0
+    // so the screen never appears faded on re-visit.
+    if (_hasStartedAnimations) {
+      if (_headerCtrl.value < 1.0) _headerCtrl.forward();
+      if (_toggleCtrl.value < 1.0) _toggleCtrl.forward();
+      if (_sectionCtrl.value < 1.0 && !_tabSwitching) _sectionCtrl.forward();
+    }
   }
 
   void _switchTab(bool isLife) {
@@ -1643,9 +1656,19 @@ class _StaggeredCardState extends State<_StaggeredCard>
       if (!mounted || _hasStarted) return;
       _hasStarted = true;
       Future.delayed(widget.delay, () {
-        if (mounted) _ctrl.forward();
+        if (!mounted) return;
+        if (_ctrl.value < 1.0) _ctrl.forward();
       });
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // When TickerMode re-enables (tab re-selected), ensure card is fully visible.
+    if (_hasStarted && _ctrl.value < 1.0) {
+      _ctrl.forward();
+    }
   }
 
   @override
