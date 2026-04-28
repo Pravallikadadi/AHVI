@@ -123,9 +123,13 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
                     Builder(
                       builder: (btnCtx) => _ChatPromptPressable(
                         scalePressed: 0.88,
-                        onTap: () => widget.onPlusTap != null
-                            ? widget.onPlusTap!()
-                            : _openLensSheet(btnCtx),
+                        onTap: () {
+                          if (widget.onPlusTap != null) {
+                            widget.onPlusTap!();
+                          } else {
+                            _openLensSheet(btnCtx);
+                          }
+                        },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           curve: Curves.easeOutCubic,

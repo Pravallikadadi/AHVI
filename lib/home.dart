@@ -167,9 +167,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       ValueNotifier<_SuggestionState>((index: 0, opacity: 1.0));
   Timer? _suggestionTimer;
 
-  // ── Plus menu (ChatGPT-style) ──────────────────────────────────────────────
-  bool _plusMenuOpen = false;
-  late AnimationController _plusMenuCtrl;
+  // ── Plus menu ─────────────────────────────────────────────────────────────
+  // (Lens sheet manages its own state — no local controller needed)
+  late AnimationController _plusMenuCtrl; // kept to avoid dispose() errors
 
   bool _toastVisible = false;
   Timer? _toastTimer;
@@ -607,23 +607,19 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
     setState(() => _activeNavIdx = idx);
   }
 
-  void _openPlusMenu() {
-    if (_plusMenuOpen) {
-      _closePlusMenu();
-      return;
-    }
+  void _openPlusMenu(BuildContext ctx) {
     HapticFeedback.lightImpact();
-    setState(() => _plusMenuOpen = true);
-    _plusMenuCtrl.animateTo(
-      1.0,
-      curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+    showAhviLensSheet(
+      ctx,
+      t: _t,
+      onVisualSearch: () => _showComingSoon(),
+      onFindSimilar: () => _showComingSoon(),
+      onAddToWardrobe: () => _showComingSoon(),
     );
   }
 
   void _closePlusMenu() {
-    _plusMenuCtrl.reverse().then((_) {
-      if (mounted) setState(() => _plusMenuOpen = false);
-    });
+    // No-op: lens sheet manages its own dismiss
   }
 
   void _openNavScreen(Widget page) {
@@ -1093,7 +1089,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               },
             ),
 
-          if (_plusMenuOpen) _buildPlusMenu(),
+          // Plus menu replaced by AhviLensSheet (opened via onPlusTap)
 
           // ── Floating Prompt Bar ─────────────────────────────────────────────
           // Nav bar fixed గా ఉంటుంది — keyboard వచ్చినా move అవ్వదు
@@ -2414,13 +2410,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       onAccent: _onAccent,
       onVoiceTap: _toggleListening,
       isListening: _isListening,
-      onPlusTap: () => showAhviLensSheet(
-        context,
-        t: _t,
-        onVisualSearch: () => _showComingSoon(),
-        onFindSimilar: () => _showComingSoon(),
-        onAddToWardrobe: () => _showComingSoon(),
-      ),
+      // onPlusTap not set — widget opens lens sheet using its own Builder context
       padding: EdgeInsets.zero,
       onSendMessage: (text) {
         _chatFocusNode.unfocus();

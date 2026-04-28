@@ -95,6 +95,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   String _weatherTemp = '--°';
   String _weatherContext = '';
   String? _suggestionBanner;
+  bool _bannerVisible = false;
+  bool _optCardAnimsDone = false;
 
   List<Map<String, dynamic>> _buildAllOutfits(BuildContext context) => [
     {
@@ -398,11 +400,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _restartOptionCardAnimations() {
-    // Guard: if all cards already fully visible, skip to avoid flicker on
-    // hot rebuilds / setState cycles that are faster on Android APK
-    if (_optCard0Ctrl.isCompleted &&
-        _optCard1Ctrl.isCompleted &&
-        _optCard2Ctrl.isCompleted) return;
+    // Guard: never re-run after first completion to prevent re-fading
+    // on subsequent setState calls (clock ticks, weather updates, etc.)
+    if (_optCardAnimsDone) return;
+
+    // Mark done immediately so concurrent setState calls (clock, weather)
+    // cannot sneak past the guard and trigger a second animation run.
+    _optCardAnimsDone = true;
+
     _optCard0Ctrl.forward(from: 0);
     Future.delayed(const Duration(milliseconds: 70), () {
       if (mounted) _optCard1Ctrl.forward(from: 0);
@@ -606,17 +611,17 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           _suggestionBanner = banner;
           _tryOnOutfitId ??= sorted.first['id'] as String;
         });
+        // Trigger banner fade-in after the setState rebuild settles
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) setState(() => _bannerVisible = true);
+        });
+        // Jump (not animate) to avoid onPageChanged → setState cascade
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pageController.hasClients) {
+            _pageController.jumpToPage(0);
+          }
+        });
       }
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (_pageController.hasClients) {
-          _pageController.animateToPage(
-            0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
     });
   }
 
@@ -1273,7 +1278,7 @@ void dispose() {
                           ? Padding(
                               padding: const EdgeInsets.only(top: 14),
                               child: AnimatedOpacity(
-                                opacity: 1.0,
+                                opacity: _bannerVisible ? 1.0 : 0.0,
                                 duration: const Duration(milliseconds: 400),
                                 curve: Curves.easeOut,
                                 child: _buildSuggestionBanner(),
