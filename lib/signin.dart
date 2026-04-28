@@ -5,6 +5,7 @@ import 'package:myapp/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:myapp/profile.dart';
 
 void main() => runApp(const AhviApp());
 
@@ -42,6 +43,18 @@ class SignInScreen extends StatelessWidget {
 
     // If successful, check if first-time user and route accordingly
     if (success && context.mounted) {
+      // Load real name & email into ProfileController so profile never shows "New User"
+      try {
+        final account = await appwrite.account.get();
+        if (context.mounted) {
+          context.read<ProfileController>().loadFromAccount(
+            name: account.name,
+            email: account.email,
+          );
+        }
+      } catch (_) {}
+
+      if (!context.mounted) return;
       final prefs = await SharedPreferences.getInstance();
       final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
 
@@ -75,6 +88,18 @@ class SignInScreen extends StatelessWidget {
     final success = await appwrite.loginWithApple();
 
     if (success && context.mounted) {
+      // Load real name & email into ProfileController so profile never shows "New User"
+      try {
+        final account = await appwrite.account.get();
+        if (context.mounted) {
+          context.read<ProfileController>().loadFromAccount(
+            name: account.name,
+            email: account.email,
+          );
+        }
+      } catch (_) {}
+
+      if (!context.mounted) return;
       final prefs = await SharedPreferences.getInstance();
       final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
 
@@ -197,6 +222,18 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
       final session = await appwrite.loginEmailPassword(email, password);
       if (!mounted) return;
       if (session != null) {
+        // Load real name & email into ProfileController so profile never shows "New User"
+        try {
+          final account = await appwrite.account.get();
+          if (mounted) {
+            context.read<ProfileController>().loadFromAccount(
+              name: account.name,
+              email: account.email,
+            );
+          }
+        } catch (_) {}
+
+        if (!mounted) return;
         Navigator.of(context).pushNamedAndRemoveUntil(
           AppRoutes.main,
           (route) => false,
