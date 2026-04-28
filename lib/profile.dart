@@ -1077,9 +1077,6 @@ class _ProfileView extends StatelessWidget {
                           Text(state.name,
                               style: TextStyle(color: textPrimary, fontSize: 24,
                                   fontWeight: FontWeight.w600, letterSpacing: -0.7)),
-                          const SizedBox(height: 5),
-                          Text(state.username,
-                              style: TextStyle(color: textMuted, fontSize: 13, letterSpacing: 0.4)),
                           const SizedBox(height: 20),
                           GestureDetector(
                             onTap: onEditTap,
@@ -1437,7 +1434,6 @@ class _EditView extends StatefulWidget {
 class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late TextEditingController _nameCtrl;
-  late TextEditingController _usernameCtrl;
   late TextEditingController _emailCtrl;
   late TextEditingController _phoneCtrl;
   late TextEditingController _dobCtrl;
@@ -1515,7 +1511,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     _bodyUploaded = false;
     _draft = widget.state.copyWith();
     _nameCtrl = TextEditingController(text: widget.state.name);
-    _usernameCtrl = TextEditingController(text: widget.state.username.replaceAll('@', ''));
     _emailCtrl = TextEditingController(text: widget.state.email);
     _dobCtrl = TextEditingController(text: widget.state.dob);
 
@@ -1566,7 +1561,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
     _countryDropdownOverlay?.remove();
     _tabController.dispose();
     _nameCtrl.dispose();
-    _usernameCtrl.dispose();
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _dobCtrl.dispose();
@@ -1772,7 +1766,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
 
   void _save() {
     final name = _nameCtrl.text.trim().isEmpty ? 'New User' : _nameCtrl.text.trim();
-    final username = _usernameCtrl.text.trim();
     // Build phone string "CODE NUMBER" matching onboarding1 format
     final phoneNumber = _phoneCtrl.text.trim();
     final phone = phoneNumber.isNotEmpty ? '$_selectedCountryCode $phoneNumber' : '';
@@ -1782,7 +1775,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
         : _dobCtrl.text.trim();
     widget.onSave(_draft.copyWith(
       name: name,
-      username: username.isEmpty ? '' : '@${username.replaceAll('@', '')}',
       email: _emailCtrl.text.trim(),
       phone: phone,
       dob: dob,
@@ -1899,13 +1891,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                       // ── Full Name ──
                       _FieldLabel(text: _t.fullName, textMuted: _textMuted),
                       _FieldInput(ctrl: _nameCtrl, hint: _t.yourName,
-                          panel: _panel, cardBorder: _cardBorder,
-                          textPrimary: _textPrimary, textMuted: _textMuted,
-                          accentColor: c.accent1, onChanged: (_) => _markDirty()),
-
-                      // ── Username ──
-                      _FieldLabel(text: _t.username, textMuted: _textMuted),
-                      _FieldInput(ctrl: _usernameCtrl, hint: '@username',
                           panel: _panel, cardBorder: _cardBorder,
                           textPrimary: _textPrimary, textMuted: _textMuted,
                           accentColor: c.accent1, onChanged: (_) => _markDirty()),
