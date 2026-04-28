@@ -365,17 +365,25 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   Future<void> _fetchUserProfile() async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
+    final profileCtrl = Provider.of<profile.ProfileController>(context, listen: false);
     final user = await appwrite.getCurrentUser();
 
     if (user != null && mounted) {
-      final firstName = user.name.isNotEmpty
-          ? user.name.split(' ').first
+      // ProfileController లో name ఉంటే దాన్ని వాడు (onboarding లో enter చేసిన name)
+      // లేకపోతే Appwrite user.name వాడు
+      final profileName = profileCtrl.state.name;
+      final rawName = (profileName != null && profileName.isNotEmpty)
+          ? profileName
+          : user.name;
+
+      final firstName = rawName.isNotEmpty
+          ? rawName.split(' ').first
           : 'Stylist';
 
       // avatarPath లేనప్పుడు Appwrite fallback avatar తెచ్చుకో
       Uint8List? avatarBytes;
       try {
-        avatarBytes = await appwrite.getUserAvatar(user.name);
+        avatarBytes = await appwrite.getUserAvatar(rawName);
       } catch (_) {}
 
       if (mounted) {
@@ -1293,25 +1301,29 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         ),
         clipBehavior: Clip.antiAlias,
         child: avatarPath != null && avatarPath.isNotEmpty
-            ? Image.file(
-                File(avatarPath),
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
+            ? Align(
                 alignment: Alignment.center,
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.person_rounded,
-                  size: 22,
-                  color: _accent.withValues(alpha: 0.7),
+                child: Image.file(
+                  File(avatarPath),
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.person_rounded,
+                    size: 22,
+                    color: _accent.withValues(alpha: 0.7),
+                  ),
                 ),
               )
             : _avatarBytes != null
-                ? Image.memory(
-                    _avatarBytes!,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
+                ? Align(
                     alignment: Alignment.center,
+                    child: Image.memory(
+                      _avatarBytes!,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
                   )
                 : Icon(
                     Icons.person_rounded,
@@ -1333,6 +1345,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         builder: (context, clock, _) {
           // 🆕 greeting key ని translate చేస్తున్నాం
           final greetingText = AppLocalizations.t(context, clock.greeting);
+
+          // ProfileController నుండి name చదువు — onboarding లో enter చేసిన name వస్తుంది
+          final profileName = context.watch<profile.ProfileController>().state.name ?? '';
+          final displayName = profileName.isNotEmpty
+              ? profileName.split(' ').first
+              : _userName;
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1356,11 +1375,11 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                     height: 1.1,
                   ),
                   children: [
-                    if (_userName.isNotEmpty) ...[
+                    if (displayName.isNotEmpty) ...[
                       TextSpan(text: '$greetingText, '), // 🆕 translated
                       WidgetSpan(
                         child: _GradientText(
-                          '$_userName.',
+                          '$displayName.',
                           fontSize: greetFontSize,
                           fontWeight: FontWeight.w400,
                         ),
