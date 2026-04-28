@@ -56,7 +56,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get phoneShellColor => _phoneShell;
   Color get phoneShellInnerColor => _phoneShellInner;
 
-  int _carouselIndex = 0;
+  final ValueNotifier<int> _carouselIndexNotifier = ValueNotifier(0);
+  int get _carouselIndex => _carouselIndexNotifier.value;
   bool _chatOpen = false;
   bool _tryOnOpen = false;
   bool _ready = true;
@@ -84,9 +85,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
   // ── Plus button ───────────────────────────────────────────────────────────
 
-  String _liveDay = 'THU';
-  String _liveDate = 'FEB 19';
-  String _liveTime = '00:00';
+  final ValueNotifier<String> _liveDayNotifier = ValueNotifier('THU');
+  final ValueNotifier<String> _liveDateNotifier = ValueNotifier('FEB 19');
+  final ValueNotifier<String> _liveTimeNotifier = ValueNotifier('00:00');
+  String get _liveDay => _liveDayNotifier.value;
+  String get _liveDate => _liveDateNotifier.value;
+  String get _liveTime => _liveTimeNotifier.value;
   Timer? _clockTimer;
 
   String _weatherIcon = '☀️';
@@ -95,8 +99,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   String _weatherTemp = '--°';
   String _weatherContext = '';
   String? _suggestionBanner;
-  bool _bannerVisible = false;
-  bool _optCardAnimsDone = false;
+  bool _bannerVisible = false; // kept for API compat, unused
 
   List<Map<String, dynamic>> _buildAllOutfits(BuildContext context) => [
     {
@@ -192,34 +195,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   final List<Timer> _arTagTimers = [];
   late String _tryOnLoadingMessage;
 
-  late AnimationController _optCard0Ctrl;
-  late AnimationController _optCard1Ctrl;
-  late AnimationController _optCard2Ctrl;
-  late Animation<Offset> _optCard0Slide;
-  late Animation<Offset> _optCard1Slide;
-  late Animation<Offset> _optCard2Slide;
-  late Animation<double> _optCard0Fade;
-  late Animation<double> _optCard1Fade;
-  late Animation<double> _optCard2Fade;
-
-  late AnimationController _fabEntryCtrl;
-  late Animation<double> _fabEntryScale;
-  late Animation<double> _fabEntryOpacity;
-
-  late AnimationController _fabPulseCtrl;
-  late Animation<double> _fabPulseScale;
-  late Animation<double> _fabPulseOpacity;
-
-  late AnimationController _chatSlideCtrl;
-  late Animation<Offset> _chatSlideAnim;
-  late Animation<double> _chatFadeAnim;
-
-  late AnimationController _tryOnSlideCtrl;
-  late Animation<Offset> _tryOnSlideAnim;
-  late Animation<double> _tryOnFadeAnim;
-
-  late AnimationController _micPulseCtrl;
-  late Animation<double> _micPulseScale;
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
 
@@ -321,48 +296,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void initState() {
     super.initState();
 
-    // ── Controllers first ──────────────────────────────────────
-    _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
-    _optCard0Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
-    _optCard1Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
-    _optCard2Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-    _optCard0Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
-    _optCard1Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
-    _optCard2Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
-
-    _fabEntryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _fabEntryScale = Tween<double>(begin: 0.4, end: 1.0).animate(
-      CurvedAnimation(parent: _fabEntryCtrl, curve: Curves.elasticOut));
-    _fabEntryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fabEntryCtrl, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
-
-    _fabPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
-    _fabPulseScale = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
-    _fabPulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
-      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
-
-    _chatSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
-    _chatSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _chatSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
-    _chatFadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _chatSlideCtrl, curve: const Interval(0, 0.4)));
-
-    _tryOnSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-    _tryOnSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
-    _tryOnFadeAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Interval(0, 0.4)));
-
-    _micPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-    _micPulseScale = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _micPulseCtrl, curve: Curves.easeInOut));
-
     _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
     _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
@@ -373,10 +306,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _startAutoPlay();
-      _restartOptionCardAnimations();
-      Future.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) _fabEntryCtrl.forward();
-      });
 
       _updateClock();
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -399,47 +328,18 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     });
   }
 
-  void _restartOptionCardAnimations() {
-    // Guard: never re-run after first completion to prevent re-fading
-    // on subsequent setState calls (clock ticks, weather updates, etc.)
-    if (_optCardAnimsDone) return;
-
-    // Mark done immediately so concurrent setState calls (clock, weather)
-    // cannot sneak past the guard and trigger a second animation run.
-    _optCardAnimsDone = true;
-
-    _optCard0Ctrl.forward(from: 0);
-    Future.delayed(const Duration(milliseconds: 70), () {
-      if (mounted) _optCard1Ctrl.forward(from: 0);
-    });
-    Future.delayed(const Duration(milliseconds: 140), () {
-      if (mounted) _optCard2Ctrl.forward(from: 0);
-    });
-  }
-
   void _updateClock() {
     final now = DateTime.now();
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
     ];
-    setState(() {
-      _liveDay = days[now.weekday % 7];
-      _liveDate = '${months[now.month - 1]} ${now.day}';
-      _liveTime =
-          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    });
+    // Update without setState — no Scaffold rebuild
+    _liveDayNotifier.value = days[now.weekday % 7];
+    _liveDateNotifier.value = '${months[now.month - 1]} ${now.day}';
+    _liveTimeNotifier.value =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
   void _onPageScroll() {
@@ -607,15 +507,11 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           _weatherTemp = '$temp°';
           _weatherContext = weatherCtx;
           _displayedOutfits = sorted;
-          _carouselIndex = 0;
+          _carouselIndexNotifier.value = 0;
           _suggestionBanner = banner;
+          _bannerVisible = true;
           _tryOnOutfitId ??= sorted.first['id'] as String;
         });
-        // Trigger banner fade-in after the setState rebuild settles
-        Future.delayed(const Duration(milliseconds: 50), () {
-          if (mounted) setState(() => _bannerVisible = true);
-        });
-        // Jump (not animate) to avoid onPageChanged → setState cascade
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _pageController.hasClients) {
             _pageController.jumpToPage(0);
@@ -654,14 +550,13 @@ void dispose() {
   _chatController.dispose();
   _removeOverlay();
   _chatScrollController.dispose();
-  _fabEntryCtrl.dispose();
-  _fabPulseCtrl.dispose();
-  _chatSlideCtrl.dispose();
-  _tryOnSlideCtrl.dispose();
-  _micPulseCtrl.dispose();
   _scanCtrl.dispose();
   _autoPlayTimer?.cancel();
   _toastTimer?.cancel();
+  _liveDayNotifier.dispose();
+  _liveDateNotifier.dispose();
+  _liveTimeNotifier.dispose();
+  _carouselIndexNotifier.dispose();
 
   try {
     _toastEntry?.remove();
@@ -674,10 +569,6 @@ void dispose() {
   for (final timer in _arTagTimers) {
     timer.cancel();
   }
-  _optCard0Ctrl.dispose();
-  _optCard1Ctrl.dispose();
-  _optCard2Ctrl.dispose();
-
   super.dispose(); // ✅ ADD THIS
 }
 
@@ -707,9 +598,7 @@ void dispose() {
     HapticFeedback.lightImpact();
     setState(() => _wornOutfitId = outfitId);
     if (closeModal) {
-      _tryOnSlideCtrl.reverse().then((_) {
-        if (mounted) setState(() => _tryOnOpen = false);
-      });
+      setState(() => _tryOnOpen = false);
     }
     _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
   }
@@ -791,14 +680,11 @@ void dispose() {
       _tryOnOpen = true;
       _tryOnStage = _TryOnStage.preview;
     });
-    _tryOnSlideCtrl.forward(from: 0);
   }
 
   void _closeTryOn() {
     _resetTryOnSimulation();
-    _tryOnSlideCtrl.reverse().then((_) {
-      if (mounted) setState(() => _tryOnOpen = false);
-    });
+    setState(() => _tryOnOpen = false);
   }
 
   void _resetTryOnSimulation() {
@@ -876,11 +762,7 @@ void dispose() {
   void _toggleMic() {
     setState(() => _micActive = !_micActive);
     if (_micActive) {
-      _micPulseCtrl.repeat(reverse: true);
       _showToast(AppLocalizations.t(context, 'daily_wear_toast_voice_on'));
-    } else {
-      _micPulseCtrl.stop();
-      _micPulseCtrl.reset();
     }
   }
 
@@ -1271,21 +1153,12 @@ void dispose() {
                     _buildHeader(),
                     const SizedBox(height: 16),
                     _buildWeatherBar(),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeInOut,
-                      child: _suggestionBanner != null
-                          ? Padding(
-                              padding: const EdgeInsets.only(top: 14),
-                              child: AnimatedOpacity(
-                                opacity: _bannerVisible ? 1.0 : 0.0,
-                                duration: const Duration(milliseconds: 400),
-                                curve: Curves.easeOut,
-                                child: _buildSuggestionBanner(),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
+                    _suggestionBanner != null
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 14),
+                            child: _buildSuggestionBanner(),
+                          )
+                        : const SizedBox.shrink(),
                     const SizedBox(height: 16),
                     _buildCarousel(),
                     const SizedBox(height: 24),
@@ -1305,14 +1178,7 @@ void dispose() {
               child: RepaintBoundary(child: _buildChatFab()),
             ),
             if (_tryOnOpen)
-              AnimatedBuilder(
-                animation: _tryOnSlideCtrl,
-                builder: (_, child) => IgnorePointer(
-                  ignoring: _tryOnSlideCtrl.isDismissed,
-                  child: child,
-                ),
-                child: _buildTryOnOverlay(),
-              ),
+              _buildTryOnOverlay(),
           ],
         ),
       ),
@@ -1388,7 +1254,9 @@ void dispose() {
     ),
   );
 
-  Widget _buildDatePill() => Container(
+  Widget _buildDatePill() => ValueListenableBuilder<String>(
+    valueListenable: _liveTimeNotifier,
+    builder: (_, __, ___) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
     decoration: BoxDecoration(
       gradient: LinearGradient(
@@ -1451,6 +1319,7 @@ void dispose() {
         ),
       ],
     ),
+  ),
   );
 
   Widget _buildWeatherBar() => Padding(
@@ -1613,7 +1482,7 @@ void dispose() {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _displayedOutfits.length,
-                onPageChanged: (i) => setState(() => _carouselIndex = i),
+                onPageChanged: (i) => _carouselIndexNotifier.value = i,
                 itemBuilder: (_, i) =>
                     _buildCarouselSlide(_displayedOutfits[i], i),
               ),
@@ -1625,28 +1494,31 @@ void dispose() {
             bottom: 82,
             left: 0,
             right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(_displayedOutfits.length, (i) {
-                final isOn = i == _carouselIndex;
-                return GestureDetector(
-                  onTap: () => _pageController.animateToPage(
-                    i,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  ),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 280),
-                    width: isOn ? 22 : 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: isOn ? accentColor : mutedColor,
-                      borderRadius: BorderRadius.circular(isOn ? 3 : 50),
+            child: ValueListenableBuilder<int>(
+              valueListenable: _carouselIndexNotifier,
+              builder: (_, idx, __) => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_displayedOutfits.length, (i) {
+                  final isOn = i == idx;
+                  return GestureDetector(
+                    onTap: () => _pageController.animateToPage(
+                      i,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
                     ),
-                  ),
-                );
-              }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      width: isOn ? 22 : 6,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color: isOn ? accentColor : mutedColor,
+                        borderRadius: BorderRadius.circular(isOn ? 3 : 50),
+                      ),
+                    ),
+                  );
+                }),
+              ),
             ),
           ),
         ],
@@ -1655,9 +1527,12 @@ void dispose() {
   );
 
   Widget _buildCarouselArrow({required bool left}) {
-    final disabled = left
-        ? _carouselIndex == 0
-        : _carouselIndex == _displayedOutfits.length - 1;
+    return ValueListenableBuilder<int>(
+      valueListenable: _carouselIndexNotifier,
+      builder: (_, idx, __) {
+        final disabled = left
+            ? idx == 0
+            : idx == _displayedOutfits.length - 1;
     return Positioned(
       left: left ? 10 : null,
       right: left ? null : 10,
@@ -1709,6 +1584,8 @@ void dispose() {
           ),
         ),
       ),
+    );
+      },
     );
   }
 
@@ -1981,11 +1858,6 @@ void dispose() {
   );
 
   Widget _buildOptionCards() {
-    final controllers = [
-      (_optCard0Slide, _optCard0Fade),
-      (_optCard1Slide, _optCard1Fade),
-      (_optCard2Slide, _optCard2Fade),
-    ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
@@ -2001,13 +1873,7 @@ void dispose() {
                 itemBuilder: (context, i) {
                   return SizedBox(
                     width: 180,
-                    child: FadeTransition(
-                      opacity: controllers[i].$2,
-                      child: SlideTransition(
-                        position: controllers[i].$1,
-                        child: _buildOptCard(optionCards[i]),
-                      ),
-                    ),
+                    child: _buildOptCard(optionCards[i]),
                   );
                 },
               ),
@@ -2016,15 +1882,7 @@ void dispose() {
           return Row(
             children: [
               for (var i = 0; i < optionCards.length; i++) ...[
-                Expanded(
-                  child: FadeTransition(
-                    opacity: controllers[i].$2,
-                    child: SlideTransition(
-                      position: controllers[i].$1,
-                      child: _buildOptCard(optionCards[i]),
-                    ),
-                  ),
-                ),
+                Expanded(child: _buildOptCard(optionCards[i])),
                 if (i < optionCards.length - 1) const SizedBox(width: 10),
               ],
             ],
@@ -2264,81 +2122,38 @@ void dispose() {
       ignoring: _chatOpen || _tryOnOpen,
       child: Align(
         alignment: Alignment.bottomRight,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_fabEntryCtrl, _fabPulseCtrl]),
-          builder: (_, _) => Opacity(
-            opacity: _fabEntryOpacity.value,
-            child: Transform.scale(
-              scale: _fabEntryScale.value,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 20, bottom: 30),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(
-                      child: Opacity(
-                        opacity: _fabPulseOpacity.value,
-                        child: Transform.scale(
-                          scale: _fabPulseScale.value,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(50),
-                              border: Border.all(
-                                color: accentColor.withValues(alpha: 0.35),
-                                width: 1.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    _PressScaleButton(
-                      scaleDown: 0.95,
-                      onTap: _openChat,
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
-                        decoration: BoxDecoration(
-                          color: _t.accent.primary,
-                          borderRadius: BorderRadius.circular(50),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _t.accent.primary.withValues(alpha: 0.40),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 11,
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.18,
-                              ),
-                              child: Text(
-                                '✦',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            Text(
-                              AppLocalizations.t(context, 'ask_ahvi'),
-                              style: GoogleFonts.anton(
-                                fontSize: 11,
-                                letterSpacing: 0.4,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        child: Padding(
+          padding: const EdgeInsets.only(right: 20, bottom: 30),
+          child: _PressScaleButton(
+            scaleDown: 0.95,
+            onTap: _openChat,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+              decoration: BoxDecoration(
+                color: _t.accent.primary,
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: _t.accent.primary.withValues(alpha: 0.40),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 11,
+                    backgroundColor: Colors.white.withValues(alpha: 0.18),
+                    child: Text('✦', style: TextStyle(fontSize: 11, color: Colors.white)),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    AppLocalizations.t(context, 'ask_ahvi'),
+                    style: GoogleFonts.anton(fontSize: 11, letterSpacing: 0.4, color: Colors.white),
+                  ),
+                ],
               ),
             ),
           ),
@@ -2506,39 +2321,30 @@ void dispose() {
 
   Widget _buildTryOnOverlay() => Stack(
     children: [
-      // Scrim — animates independently, never composited with the sheet
+      // Scrim
       Positioned.fill(
-        child: AnimatedBuilder(
-          animation: _tryOnSlideCtrl,
-          builder: (_, __) => GestureDetector(
-            onTap: _closeTryOn,
-            child: ColoredBox(
-              color: Colors.black.withValues(
-                alpha: (_tryOnSlideCtrl.value * 0.45).clamp(0.0, 0.45),
-              ),
-            ),
-          ),
+        child: GestureDetector(
+          onTap: _closeTryOn,
+          child: const ColoredBox(color: Color(0x73000000)),
         ),
       ),
-      // Sheet — slide + fade applied only to the sheet widget itself
+      // Sheet — no animation
       Align(
         alignment: Alignment.bottomCenter,
         child: GestureDetector(
           onTap: () {},
-          child: SlideTransition(
-            position: _tryOnSlideAnim,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                height: MediaQuery.of(context).size.height * 0.90,
-                decoration: BoxDecoration(
-                  color: bg2Color,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  border: Border.all(color: cardBorderColor),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.90,
+              decoration: BoxDecoration(
+                color: bg2Color,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
                 ),
-                child: SingleChildScrollView(
+                border: Border.all(color: cardBorderColor),
+              ),
+              child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     20,
                     24,
@@ -2604,9 +2410,8 @@ void dispose() {
             ),
           ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
 
   Widget _tryOnBody() {
     final outfit = _selectedTryOnOutfit;
@@ -3661,8 +3466,5 @@ class _BgGradientPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BgGradientPainter oldDelegate) =>
-      oldDelegate.primary != primary ||
-      oldDelegate.secondary != secondary ||
-      oldDelegate.tertiary != tertiary;
+  bool shouldRepaint(_BgGradientPainter oldDelegate) => false;
 }

@@ -105,8 +105,8 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<BackendService>(create: (_) => BackendService()),
       ],
-      child: Consumer2<ThemeController, ProfileController>(
-        builder: (context, controller, profileCtrl, child) {
+      child: Consumer<ThemeController>(
+        builder: (context, controller, child) {
           final accent = getAccentPalette(controller.currentTheme);
           final lightTokens = AppThemeTokens.light(accent);
           final darkTokens = AppThemeTokens.dark(accent);
@@ -126,7 +126,11 @@ class _MyAppState extends State<MyApp> {
             ),
             extensions: [darkTokens],
           );
-          return MaterialApp(
+          return Selector<ProfileController, String>(
+            // Only rebuild MaterialApp when lang actually changes — not on every notifyListeners()
+            selector: (_, p) => p.state.lang,
+            builder: (context, lang, __) {
+              return MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,
@@ -136,7 +140,7 @@ class _MyAppState extends State<MyApp> {
             themeAnimationDuration: Duration.zero,
 
             // Locale driven directly by ProfileController — updates all screens
-            locale: _langToLocale(profileCtrl.state.lang),
+            locale: _langToLocale(lang),
             supportedLocales: const [
               Locale('en'), Locale('hi'), Locale('ta'), Locale('te'),
               Locale('kn'), Locale('ml'), Locale('bn'), Locale('mr'),
@@ -182,8 +186,10 @@ class _MyAppState extends State<MyApp> {
               }
               return null; // fall through to routes map
             },
-          );
-        },
+          ); // MaterialApp
+            }, // Selector builder
+          ); // Selector
+        }, // Consumer
       ),
     );
   }
