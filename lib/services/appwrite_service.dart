@@ -103,6 +103,24 @@ class AppwriteService extends ChangeNotifier {
      }
   }
 
+  // Deletes all active sessions — effectively signs the user out everywhere.
+  // Note: Appwrite SDK v22 does not support client-side account deletion.
+  // Full account deletion requires an Appwrite Function (server-side).
+  Future<void> deleteAccount() async {
+    try {
+      // Delete all sessions so the user is fully signed out on all devices
+      await account.deleteSessions();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Delete account error: $e");
+      // Fallback: delete only current session
+      try {
+        await account.deleteSession(sessionId: 'current');
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
   Future<Uint8List?> getUserAvatar(String name) async {
     try {
       return await avatars.getInitials(name: name);

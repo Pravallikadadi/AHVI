@@ -56,10 +56,9 @@ class SignInScreen extends StatelessWidget {
 
       if (!context.mounted) return;
       final prefs = await SharedPreferences.getInstance();
-      final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
+      final isFirstTime = prefs.getBool('onboardingComplete') == true ? false : true;
 
       if (isFirstTime) {
-        await prefs.setBool('isFirstTimeUser', false);
         if (context.mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil(
             AppRoutes.onboarding1,
@@ -101,10 +100,9 @@ class SignInScreen extends StatelessWidget {
 
       if (!context.mounted) return;
       final prefs = await SharedPreferences.getInstance();
-      final isFirstTime = prefs.getBool('isFirstTimeUser') ?? true;
+      final isFirstTime = prefs.getBool('onboardingComplete') == true ? false : true;
 
       if (isFirstTime) {
-        await prefs.setBool('isFirstTimeUser', false);
         if (context.mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil(
             AppRoutes.onboarding1,
@@ -234,10 +232,22 @@ class _EmailAuthScreenState extends State<EmailAuthScreen> {
         } catch (_) {}
 
         if (!mounted) return;
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          AppRoutes.main,
-          (route) => false,
-        );
+        // Check if first-time user → show onboarding, else go to main
+        final prefs = await SharedPreferences.getInstance();
+        final isFirstTime = prefs.getBool('onboardingComplete') == true ? false : true;
+        if (!mounted) return;
+        if (isFirstTime) {
+          if (!mounted) return;
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.onboarding1,
+            (route) => false,
+          );
+        } else {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            AppRoutes.main,
+            (route) => false,
+          );
+        }
       }
     } on AppwriteException catch (e) {
       if (e.code == 401) {

@@ -13,6 +13,9 @@ import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/theme/profile_theme.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:myapp/services/appwrite_service.dart';
+import 'package:myapp/app_routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // THEME CONFIG
@@ -837,6 +840,12 @@ class ProfileController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears all profile data on logout — resets to factory defaults
+  void reset() {
+    _state = ProfileState();
+    notifyListeners();
+  }
+
   /// Call this right after a successful Google / Apple / Email login.
   /// Pulls the display name and email from the Appwrite account object
   /// so the profile never shows the "New User" placeholder.
@@ -1273,9 +1282,32 @@ class _ProfileView extends StatelessWidget {
         cancelLabel: t.cancel,
         bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
         panel: panel, danger: danger, accentColor: colors.accent1,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(context);
-          onToast(t.loggedOut);
+          try {
+            // 1. Delete Appwrite session so getCurrentUser() returns null
+            final appwrite = Provider.of<AppwriteService>(context, listen: false);
+            // Try logout() method first; fallback to deleteSession directly
+            try {
+              await appwrite.logout();
+            } catch (_) {
+              await appwrite.account.deleteSession(sessionId: 'current');
+            }
+          } catch (_) {}
+          // 2. Reset ProfileController — clears name, avatar, email, etc.
+          if (context.mounted) {
+            Provider.of<ProfileController>(context, listen: false).reset();
+          }
+          // 3. Clear onboardingComplete so next login shows onboarding
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('onboardingComplete', false);
+          // 4. Navigate to SignIn, clear entire stack
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.signin,
+              (route) => false,
+            );
+          }
         },
         onCancel: () => Navigator.pop(context),
       ),
@@ -1395,9 +1427,23 @@ class _ProfileView extends StatelessWidget {
         cancelLabel: t.cancel,
         bg2: bg2, cardBorder: cardBorder, textPrimary: textPrimary, textMuted: textMuted,
         panel: panel, danger: danger, accentColor: colors.accent1,
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.pop(context);
-          onToast(t.accountDeleted);
+          try {
+            final appwrite = Provider.of<AppwriteService>(context, listen: false);
+            // deleteAccount() deletes all sessions (signs out everywhere)
+            await appwrite.deleteAccount();
+          } catch (_) {}
+          // Clear onboardingComplete flag
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('onboardingComplete', false);
+          // Navigate to SignIn, clear entire stack
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              AppRoutes.signin,
+              (route) => false,
+            );
+          }
         },
         onCancel: () => Navigator.pop(context),
       ),

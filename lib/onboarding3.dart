@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/app_routes.dart';
 import 'package:myapp/profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -60,6 +61,9 @@ class _Screen3State extends State<Screen3> {
       faceUploaded: _faceUploaded,
       bodyUploaded: _bodyUploaded,
     );
+    // Mark onboarding as fully complete — ONLY here, after all 3 screens done
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setBool('onboardingComplete', true));
     Navigator.of(context).pushNamedAndRemoveUntil(
       AppRoutes.main,
       (route) => false,

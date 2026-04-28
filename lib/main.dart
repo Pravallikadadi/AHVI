@@ -28,6 +28,7 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart'; // <-- Added Backend Service
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; // 🆕 Localization
 import 'package:myapp/app_localizations.dart';                      // 🆕 Localization
 
@@ -1049,28 +1050,46 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  // Whether the splash animation has called onFinished
   bool _splashDone = false;
-
-  // Whether the auth check has completed
   bool _authDone = false;
+  bool _authCheckStarted = false;
 
-  // Auth result (null = not yet determined)
+  // null = not yet known, true = logged in, false = not logged in
   bool? _isLoggedIn;
+  // null = not yet known, true = first time, false = returning user
+  bool? _isFirstTime;
 
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    // Provider.of(context) is NOT safe in initState.
+    // _checkAuth() is called from didChangeDependencies instead.
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_authCheckStarted) {
+      _authCheckStarted = true;
+      _checkAuth();
+    }
   }
 
   Future<void> _checkAuth() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
       final user = await appwrite.getCurrentUser();
+
+      // 'onboardingComplete' = true only after onboarding3 Save & Continue
+      // We use a separate key from 'isFirstTimeUser' so it is only set
+      // after the user actually finishes all 3 onboarding screens.
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingDone = prefs.getBool('onboardingComplete') ?? false;
+
       if (mounted) {
         setState(() {
           _isLoggedIn = user != null;
+          _isFirstTime = !onboardingDone; // true = onboarding not yet done
           _authDone = true;
         });
         _maybeNavigate();
@@ -1078,8 +1097,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     } catch (e) {
       debugPrint("Auth Check Error: $e");
       if (mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        final onboardingDone = prefs.getBool('onboardingComplete') ?? false;
         setState(() {
           _isLoggedIn = false;
+          _isFirstTime = !onboardingDone;
           _authDone = true;
         });
         _maybeNavigate();
@@ -1087,20 +1109,32 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
   }
 
-  /// Called when either the splash finishes or auth completes.
-  /// Only navigates once BOTH are ready.
+  /// Navigates only after BOTH splash animation AND auth check are done.
   void _maybeNavigate() {
     if (!_splashDone || !_authDone) return;
     if (!mounted) return;
 
-    final destination =
-        _isLoggedIn == true ? const MainNavigationShell() : const SignInScreen();
+    Widget destination;
 
-    // Replace the entire stack so the user cannot pop back to the splash.
+    if (_isLoggedIn == true) {
+      // Logged in user — check if they completed onboarding
+      if (_isFirstTime == true) {
+        // DON'T mark onboardingComplete here — only mark it in onboarding3
+        // when user actually taps "Save & Continue"
+        destination = const Screen1();
+      } else {
+        destination = const MainNavigationShell();
+      }
+    } else {
+      // Not logged in → SignIn page
+      // After sign-in, signin.dart handles onboarding routing via isFirstTimeUser
+      destination = const SignInScreen();
+    }
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, _, _) => destination,
-        transitionsBuilder: (_, animation, _, child) => FadeTransition(
+        pageBuilder: (_, __, ___) => destination,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
           child: child,
         ),
@@ -1117,7 +1151,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    // Always show the splash screen until navigation fires.
     return SplashScreen(onFinished: _onSplashFinished);
   }
 }
