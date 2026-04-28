@@ -1293,23 +1293,23 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
         ),
         clipBehavior: Clip.antiAlias,
         child: avatarPath != null && avatarPath.isNotEmpty
-            ? Image.file(
-                File(avatarPath),
-                fit: BoxFit.cover,
-                width: 40,
-                height: 40,
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.person_rounded,
-                  size: 22,
-                  color: _accent.withValues(alpha: 0.7),
+            ? SizedBox.expand(
+                child: Image.file(
+                  File(avatarPath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.person_rounded,
+                    size: 22,
+                    color: _accent.withValues(alpha: 0.7),
+                  ),
                 ),
               )
             : _avatarBytes != null
-                ? Image.memory(
-                    _avatarBytes!,
-                    fit: BoxFit.cover,
-                    width: 40,
-                    height: 40,
+                ? SizedBox.expand(
+                    child: Image.memory(
+                      _avatarBytes!,
+                      fit: BoxFit.cover,
+                    ),
                   )
                 : Icon(
                     Icons.person_rounded,

@@ -7,7 +7,7 @@ class BaseTheme {
   static const Color darkPhoneShell = Color(0xFF192131);
   static const Color darkPhoneShellInner = Color(0xFF111723);
 
-  static const Color lightBgPrimary = Color(0xFFEEF3FF);
+  static const Color lightBgPrimary = Color(0xFFE2EAF8);
   static const Color lightBgSecondary = Color(0xFFFFFFFF);
   static const Color lightText = Color(0xFF1A1D26);
   static const Color lightMuted = Color(0xFF66708A);
