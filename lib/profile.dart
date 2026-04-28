@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_controller.dart';
 import 'package:myapp/theme/profile_theme.dart';
@@ -1793,9 +1794,38 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
   Future<void> _pickAvatar() async {
     final picker = ImagePicker();
     final img = await picker.pickImage(source: ImageSource.gallery);
-    if (img != null) {
+    if (img == null) return;
+
+    // Launch crop UI — circular crop locked to 1:1 (v12.x API)
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: img.path,
+      compressQuality: 90,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Photo',
+          toolbarColor: _draft.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8),
+          toolbarWidgetColor: _draft.isDark ? const Color(0xFFF0F0F8) : const Color(0xFF18192A),
+          activeControlsWidgetColor: const Color(0xFF6B91FF),
+          backgroundColor: _draft.isDark ? const Color(0xFF0D0E14) : const Color(0xFFF4F4F8),
+          cropStyle: CropStyle.circle,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          aspectRatioPresets: [CropAspectRatioPreset.square],
+        ),
+        IOSUiSettings(
+          title: 'Crop Photo',
+          cropStyle: CropStyle.circle,
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+          aspectRatioPickerButtonHidden: true,
+          aspectRatioPresets: [CropAspectRatioPreset.square],
+        ),
+      ],
+    );
+
+    if (cropped != null) {
       setState(() {
-        _draft = _draft.copyWith(avatarPath: img.path);
+        _draft = _draft.copyWith(avatarPath: cropped.path);
         _isDirty = true;
       });
       widget.onToast(_t.photoUpdated);
