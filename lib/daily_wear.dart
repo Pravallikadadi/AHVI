@@ -60,7 +60,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   int get _carouselIndex => _carouselIndexNotifier.value;
   bool _chatOpen = false;
   bool _tryOnOpen = false;
-  bool _ready = true;
   final PageController _pageController = PageController();
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _chatScrollController = ScrollController();
@@ -198,6 +197,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
 
+  late AnimationController _screenFadeCtrl;
+  late Animation<double> _screenFade;
+
 
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
@@ -299,7 +301,15 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
     _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
-    // Start fade-in immediately on page load
+
+    // Screen fade-in on page load
+    _screenFadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _screenFade = CurvedAnimation(parent: _screenFadeCtrl, curve: Curves.easeOut);
+    _screenFadeCtrl.forward();
+
     _pageController.addListener(_onPageScroll);
 
     // ── Deferred startup ──────────────────────────────────────────────────
@@ -551,6 +561,7 @@ void dispose() {
   _removeOverlay();
   _chatScrollController.dispose();
   _scanCtrl.dispose();
+  _screenFadeCtrl.dispose();
   _autoPlayTimer?.cancel();
   _toastTimer?.cancel();
   _liveDayNotifier.dispose();
@@ -1125,7 +1136,9 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return FadeTransition(
+      opacity: _screenFade,
+      child: PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
@@ -1182,6 +1195,7 @@ void dispose() {
           ],
         ),
       ),
+    ),
     );
   }
 

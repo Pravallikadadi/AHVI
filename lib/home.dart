@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -229,6 +230,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   String _userName = '';
   Uint8List? _avatarBytes;
+  bool _avatarIsRealPhoto = false; // true only when loaded from user's saved photo file
 
   Future<void> _savePrepareExactToBoard({
     required String boardId,
@@ -370,12 +372,39 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       final firstName = user.name.isNotEmpty
           ? user.name.split(' ').first
           : 'Stylist';
-      final avatar = await appwrite.getUserAvatar(user.name);
 
-      setState(() {
-        _userName = firstName;
-        _avatarBytes = avatar;
-      });
+      // ProfileController నుండి saved avatar path చదువు
+      final profileCtrl = Provider.of<profile.ProfileController>(context, listen: false);
+      final savedPath = profileCtrl.state.avatarPath;
+
+      Uint8List? avatarBytes;
+      bool isRealPhoto = false;
+
+      if (savedPath != null && savedPath.isNotEmpty) {
+        // User upload చేసిన actual photo file నుండి bytes చదువు
+        try {
+          final file = File(savedPath);
+          if (await file.exists()) {
+            avatarBytes = await file.readAsBytes();
+            isRealPhoto = true;
+          }
+        } catch (_) {}
+      }
+
+      // Real photo లేకపోతే Appwrite avatar తెచ్చుకో
+      if (!isRealPhoto) {
+        try {
+          avatarBytes = await appwrite.getUserAvatar(user.name);
+        } catch (_) {}
+      }
+
+      if (mounted) {
+        setState(() {
+          _userName = firstName;
+          _avatarBytes = avatarBytes;
+          _avatarIsRealPhoto = isRealPhoto;
+        });
+      }
     }
   }
 
@@ -1257,7 +1286,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
               );
             },
           ),
-        );
+        ).then((_) {
+          // ✅ FIX: Profile నుండి వెనక్కి వచ్చినప్పుడు avatar refresh చేయి
+          if (mounted) _fetchUserProfile();
+        });
       },
       child: Container(
         width: 40,
@@ -1275,15 +1307,17 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: _avatarBytes == null
-            ? Icon(
+        child: _avatarBytes != null
+            ? Image.memory(
+                _avatarBytes!,
+                fit: BoxFit.cover,
+                width: 40,
+                height: 40,
+              )
+            : Icon(
                 Icons.person_rounded,
                 size: 22,
                 color: _accent.withValues(alpha: 0.7),
-              )
-            : Padding(
-                padding: const EdgeInsets.all(4),
-                child: Image.memory(_avatarBytes!, fit: BoxFit.contain),
               ),
       ),
     );
