@@ -388,9 +388,9 @@ class _SplashScreenState extends State<SplashScreen>
         opacity: _tagFade.value,
         child: Column(
           children: [
-            // Tagline: "Style. Prep. Plan."
+            // Tagline: "Style. Plan. Prep."
             const Text(
-              'Style. Prep. Plan.',
+              'Style. Plan. Prep.',
               style: TextStyle(
                 color: _C.text,
                 fontSize: 22,

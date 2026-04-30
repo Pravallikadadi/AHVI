@@ -2194,10 +2194,19 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   final _doseCtrl = TextEditingController();
   final _timeCtrl = TextEditingController();
   final _supplyCtrl = TextEditingController();
-  String _selFreq = 'Once daily';
-  String _selCat = 'Other';
+  final _customCatCtrl = TextEditingController();
+  String? _selFreq;
+  String? _selCat;
+  bool _isCustomCat = false;
 
   void _showAddMedSheet() {
+    final l = AppLocalizations.t;
+    // Initialize dropdowns from localized strings on first open
+    _selFreq ??= l(context, 'medi_freq_once');
+    _selCat  ??= l(context, 'medi_cat_diabetes');
+    _isCustomCat = false;
+    _customCatCtrl.clear();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2276,20 +2285,14 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           ),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_frequency')),
-                          _buildDropdown(_selFreq, [
+                          _buildDropdown(_selFreq ?? l(context, 'medi_freq_once'), [
                             l(context, 'medi_freq_once'),
                             l(context, 'medi_freq_twice'),
                             l(context, 'medi_freq_as_needed'),
                           ], (v) => setSheetState(() => _selFreq = v!)),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_category')),
-                          _buildDropdown(_selCat, [
-                            l(context, 'medi_cat_diabetes'),
-                            l(context, 'medi_cat_bp'),
-                            l(context, 'medi_cat_heart'),
-                            l(context, 'medi_cat_vitamin'),
-                            l(context, 'medi_cat_other'),
-                          ], (v) => setSheetState(() => _selCat = v!)),
+                          _buildCategorySelector(setSheetState, AppLocalizations.t),
                           const SizedBox(height: 16),
                           _buildInputLabel(l(context, 'medi_label_supply')),
                           _buildTextField(
@@ -2307,9 +2310,12 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         final dose = _doseCtrl.text.trim();
                         final supply =
                             int.tryParse(_supplyCtrl.text.trim()) ?? 0;
-                        if (name.isEmpty || dose.isEmpty || supply <= 0) {
-                          Navigator.pop(context);
-                          _showToast(AppLocalizations.t(context, 'medi_please_fill'), '⚠️');
+                        final effectiveCat = _isCustomCat
+                            ? _customCatCtrl.text.trim()
+                            : (_selCat ?? l(this.context, 'medi_cat_diabetes'));
+                        if (name.isEmpty || dose.isEmpty || supply <= 0 ||
+                            (_isCustomCat && effectiveCat.isEmpty)) {
+                          _showToast(AppLocalizations.t(this.context, 'medi_please_fill'), '⚠️');
                           return;
                         }
 
@@ -2323,11 +2329,11 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           await appwrite.createMed({
                             'name': name,
                             'dose': dose,
-                            'freq': _selFreq,
+                            'freq': _selFreq ?? l(this.context, 'medi_freq_once'),
                             'time': _timeCtrl.text.trim().isEmpty
                                 ? '12:00 PM'
                                 : _timeCtrl.text.trim(),
-                            'cat': _selCat,
+                            'cat': effectiveCat,
                             'left': supply,
                             'total': supply,
                             'reminder': true,
@@ -2339,6 +2345,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           _doseCtrl.clear();
                           _timeCtrl.clear();
                           _supplyCtrl.clear();
+                          _customCatCtrl.clear();
+                          _selFreq = null;
+                          _selCat  = null;
+                          _isCustomCat = false;
                         } catch (e) {
                           _showToast(AppLocalizations.t(this.context, 'medi_error_adding'), '❌');
                         }
@@ -2411,6 +2421,97 @@ class _MediTrackScreenState extends State<MediTrackScreen>
           hintStyle: TextStyle(color: muted.withValues(alpha: 0.5)),
         ),
       ),
+    );
+  }
+
+  Widget _buildCategorySelector(StateSetter setSheetState, String Function(BuildContext, String) l) {
+    final categories = [
+      l(context, 'medi_cat_diabetes'),
+      l(context, 'medi_cat_bp'),
+      l(context, 'medi_cat_heart'),
+      l(context, 'medi_cat_vitamin'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...categories.map((cat) {
+              final isSelected = !_isCustomCat && _selCat == cat;
+              return GestureDetector(
+                onTap: () => setSheetState(() {
+                  _selCat = cat;
+                  _isCustomCat = false;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: isSelected ? accent.withValues(alpha: 0.15) : panel,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? accent : cardBorder,
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    cat,
+                    style: TextStyle(
+                      color: isSelected ? accent : textColor,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              );
+            }),
+            // Custom button
+            GestureDetector(
+              onTap: () => setSheetState(() {
+                _isCustomCat = true;
+                _selCat = null;
+              }),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: _isCustomCat ? accent2.withValues(alpha: 0.15) : panel,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _isCustomCat ? accent2 : cardBorder,
+                    width: _isCustomCat ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 13,
+                      color: _isCustomCat ? accent2 : muted,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Custom',
+                      style: TextStyle(
+                        color: _isCustomCat ? accent2 : muted,
+                        fontWeight: _isCustomCat ? FontWeight.w700 : FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_isCustomCat) ...[
+          const SizedBox(height: 10),
+          _buildTextField(_customCatCtrl, 'Enter category name (e.g. Thyroid)'),
+        ],
+      ],
     );
   }
 
