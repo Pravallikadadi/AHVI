@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/wardrobe.dart';
+import 'package:myapp/wardrobe.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
 class AhviChatPromptBar extends StatefulWidget {
@@ -74,12 +76,17 @@ class _AhviChatPromptBarState extends State<AhviChatPromptBar> {
       );
 
   void _openLensSheet(BuildContext context) {
+    final capturedContext = context;
+    debugPrint('🔍 [LensSheet] opening, capturedContext mounted: ${capturedContext.mounted}');
     showAhviLensSheet(
       context,
       t: widget.themeTokens,
       onVisualSearch: widget.onVisualSearch,
       onFindSimilar: widget.onFindSimilar,
-      onAddToWardrobe: widget.onAddToWardrobe,
+      onAddToWardrobe: widget.onAddToWardrobe ?? () {
+        debugPrint('👗 [LensSheet] onAddToWardrobe tapped, context mounted: ${capturedContext.mounted}');
+        showAddToWardrobeModal(capturedContext);
+      },
     );
   }
 

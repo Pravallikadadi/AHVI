@@ -4,15 +4,6 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/wardrobe.dart';
 
 // ── Convenience function ───────────────────────────────────────────────────
-/// Call this from any screen to show the AHVI Lens popup above the plus button.
-///
-/// Usage:
-/// ```dart
-/// GestureDetector(
-///   onTap: () => showAhviLensSheet(context, t: themeTokens),
-///   child: Icon(Icons.add),
-/// )
-/// ```
 void showAhviLensSheet(
   BuildContext context, {
   required AppThemeTokens t,
@@ -20,11 +11,11 @@ void showAhviLensSheet(
   VoidCallback? onFindSimilar,
   VoidCallback? onAddToWardrobe,
 }) {
-  // onAddToWardrobe pass చేయకపోతే directly Add Item modal open చేయి
-  final effectiveOnAddToWardrobe =
-      onAddToWardrobe ?? () => showAddToWardrobeModal(context);
+  // Capture navigator BEFORE overlay insert — its context stays valid after overlay is removed
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final effectiveOnAddToWardrobe = onAddToWardrobe ??
+      () => showAddToWardrobeModal(navigator.context);
 
-  // Get button's position on screen from its BuildContext
   final renderBox = context.findRenderObject() as RenderBox;
   final buttonPos = renderBox.localToGlobal(Offset.zero);
   final buttonSize = renderBox.size;
@@ -101,8 +92,6 @@ class _AhviLensOverlayState extends State<_AhviLensOverlay>
   Future<void> _dismiss({VoidCallback? afterDismiss}) async {
     await _ctrl.reverse();
     widget.onDismiss();
-    // Overlay remove అయిన తర్వాతే callback fire చేయాలి —
-    // లేకపోతే Navigator context invalid గా ఉంటుంది.
     if (afterDismiss != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => afterDismiss());
     }
@@ -113,17 +102,12 @@ class _AhviLensOverlayState extends State<_AhviLensOverlay>
     const popupWidth = 260.0;
     const gap = 8.0;
     final screenSize = MediaQuery.of(context).size;
-
-    // Popup appears ABOVE the button
     final bottom = screenSize.height - widget.buttonPos.dy + gap;
-
-    // Left-align with button, but clamp so it doesn't go off screen
-    final left = widget.buttonPos.dx
-        .clamp(12.0, screenSize.width - popupWidth - 12.0);
+    final left =
+        widget.buttonPos.dx.clamp(12.0, screenSize.width - popupWidth - 12.0);
 
     return Stack(
       children: [
-        // Barrier — tap outside to dismiss
         Positioned.fill(
           child: GestureDetector(
             onTap: _dismiss,
@@ -131,7 +115,6 @@ class _AhviLensOverlayState extends State<_AhviLensOverlay>
             child: const SizedBox.expand(),
           ),
         ),
-        // Popup above the plus button
         Positioned(
           left: left,
           bottom: bottom,
@@ -142,14 +125,17 @@ class _AhviLensOverlayState extends State<_AhviLensOverlay>
               position: _slide,
               child: _AhviLensMenu(
                 t: widget.t,
-                onVisualSearch: () {
-                  _dismiss(afterDismiss: widget.onVisualSearch);
-                },
-                onFindSimilar: () {
-                  _dismiss(afterDismiss: widget.onFindSimilar);
-                },
+                onVisualSearch: () =>
+                    _dismiss(afterDismiss: widget.onVisualSearch),
+                onFindSimilar: () =>
+                    _dismiss(afterDismiss: widget.onFindSimilar),
                 onAddToWardrobe: () {
-                  _dismiss(afterDismiss: widget.onAddToWardrobe);
+                  // Skip animation — remove overlay immediately so dialog can open cleanly
+                  _ctrl.stop();
+                  widget.onDismiss(); // removes overlay entry right now
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    widget.onAddToWardrobe?.call();
+                  });
                 },
               ),
             ),
@@ -207,7 +193,6 @@ class _AhviLensMenu extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ─── Header ─────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
               child: Row(
@@ -227,8 +212,6 @@ class _AhviLensMenu extends StatelessWidget {
               ),
             ),
             _Divider(color: accent),
-
-            // ─── Visual AI Search ───────────────────────────────────
             _LensTile(
               icon: Icons.image_search_rounded,
               label: AppLocalizations.t(context, 'lens_visual_ai_search'),
@@ -241,8 +224,6 @@ class _AhviLensMenu extends StatelessWidget {
               onTap: onVisualSearch,
             ),
             _Divider(color: accent),
-
-            // ─── Find Similar ───────────────────────────────────────
             _LensTile(
               icon: Icons.search_rounded,
               label: AppLocalizations.t(context, 'lens_find_similar'),
@@ -255,8 +236,6 @@ class _AhviLensMenu extends StatelessWidget {
               onTap: onFindSimilar,
             ),
             _Divider(color: accent),
-
-            // ─── Add to Wardrobe ────────────────────────────────────
             _LensTile(
               icon: Icons.add_photo_alternate_outlined,
               label: AppLocalizations.t(context, 'lens_add_wardrobe'),

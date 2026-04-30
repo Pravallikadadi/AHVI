@@ -1981,8 +1981,7 @@ class _ChatScreenState extends State<ChatScreen>
           onVisualSearch: () {},
           // TODO: implement Find Similar (wardrobe → similar items screen)
           onFindSimilar: () {},
-          // TODO: implement Add to Wardrobe (image picker → wardrobe save)
-          onAddToWardrobe: () {},
+          onAddToWardrobe: null, // uses showAddToWardrobeModal default in lens sheet
         ),
         const SizedBox(height: 8),
       ],

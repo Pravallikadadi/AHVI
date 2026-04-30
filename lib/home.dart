@@ -625,12 +625,13 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
   void _openPlusMenu(BuildContext ctx) {
     HapticFeedback.lightImpact();
+    final navigator = Navigator.of(ctx, rootNavigator: true);
     showAhviLensSheet(
       ctx,
       t: _t,
       onVisualSearch: () => _showComingSoon(),
       onFindSimilar: () => _showComingSoon(),
-      onAddToWardrobe: () => _showComingSoon(),
+      onAddToWardrobe: () => showAddToWardrobeModal(navigator.context),
     );
   }
 
@@ -2482,7 +2483,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
       themeTokens: _t,
       onVisualSearch: () => _showComingSoon(),
       onFindSimilar: () => _showComingSoon(),
-      onAddToWardrobe: () => _showComingSoon(),
+      onAddToWardrobe: null, // uses showAddToWardrobeModal default in lens sheet
     );
   }
 

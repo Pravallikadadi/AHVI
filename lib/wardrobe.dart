@@ -48,20 +48,16 @@ String _encodeBytes(Uint8List bytes) => base64Encode(bytes);
 const Color kTransparent = Colors.transparent;
 
 // ── PUBLIC HELPER ──
-/// Anywhere నుండి (lens sheet తో సహా) ఈ function call చేస్తే
-/// Add Item modal directly open అవుతుంది.
 void showAddToWardrobeModal(
   BuildContext context, {
   void Function(Map<String, dynamic> item)? onSaved,
 }) {
-  final t = context.themeTokens;
   showDialog(
     context: context,
-    barrierColor: t.backgroundPrimary.withValues(alpha: 0.7),
+    useRootNavigator: true,
+    barrierColor: Colors.black54,
     builder: (_) => _AddItemModal(
-      onSave: (item) {
-        onSaved?.call(item);
-      },
+      onSave: (item) => onSaved?.call(item),
     ),
   );
 }
@@ -4617,7 +4613,10 @@ class _WardrobeLensSheet extends StatelessWidget {
             textMuted: textMuted,
             panel: panel,
             accentBorder: accent,
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              Navigator.pop(context);
+              showAddToWardrobeModal(context);
+            },
           ),
         ],
       ),
