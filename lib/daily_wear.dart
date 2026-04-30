@@ -302,13 +302,13 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
 
-    // Screen fade-in on page load
+    // Screen fade-in removed — instant display
     _screenFadeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: Duration.zero,
+      value: 1.0,
     );
-    _screenFade = CurvedAnimation(parent: _screenFadeCtrl, curve: Curves.easeOut);
-    _screenFadeCtrl.forward();
+    _screenFade = CurvedAnimation(parent: _screenFadeCtrl, curve: Curves.linear);
 
     _pageController.addListener(_onPageScroll);
 
@@ -1140,9 +1140,7 @@ void dispose() {
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
-        body: FadeTransition(
-          opacity: _screenFade,
-          child: Stack(
+        body: Stack(
           children: [
             Positioned.fill(
               child: RepaintBoundary(
@@ -1199,7 +1197,6 @@ void dispose() {
               ),
           ],
         ),     // Stack
-        ),     // FadeTransition
       ),       // Scaffold
     );         // PopScope
   }
