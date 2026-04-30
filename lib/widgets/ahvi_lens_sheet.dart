@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/wardrobe.dart';
 
 // ── Convenience function ───────────────────────────────────────────────────
 /// Call this from any screen to show the AHVI Lens popup above the plus button.
@@ -19,6 +20,10 @@ void showAhviLensSheet(
   VoidCallback? onFindSimilar,
   VoidCallback? onAddToWardrobe,
 }) {
+  // onAddToWardrobe pass చేయకపోతే directly Add Item modal open చేయి
+  final effectiveOnAddToWardrobe =
+      onAddToWardrobe ?? () => showAddToWardrobeModal(context);
+
   // Get button's position on screen from its BuildContext
   final renderBox = context.findRenderObject() as RenderBox;
   final buttonPos = renderBox.localToGlobal(Offset.zero);
@@ -34,7 +39,7 @@ void showAhviLensSheet(
       t: t,
       onVisualSearch: onVisualSearch,
       onFindSimilar: onFindSimilar,
-      onAddToWardrobe: onAddToWardrobe,
+      onAddToWardrobe: effectiveOnAddToWardrobe,
       onDismiss: () => entry.remove(),
     ),
   );
