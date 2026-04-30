@@ -1136,13 +1136,13 @@ void dispose() {
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _screenFade,
-      child: PopScope(
+    return PopScope(
       canPop: true,
       child: Scaffold(
         backgroundColor: bgColor,
-        body: Stack(
+        body: FadeTransition(
+          opacity: _screenFade,
+          child: Stack(
           children: [
             Positioned.fill(
               child: RepaintBoundary(
@@ -1191,12 +1191,17 @@ void dispose() {
               child: RepaintBoundary(child: _buildChatFab()),
             ),
             if (_tryOnOpen)
-              _buildTryOnOverlay(),
+              AnimatedSlide(
+                offset: _tryOnOpen ? Offset.zero : const Offset(0, 1),
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOutCubic,
+                child: _buildTryOnOverlay(),
+              ),
           ],
-        ),
-      ),
-    ),
-    );
+        ),     // Stack
+        ),     // FadeTransition
+      ),       // Scaffold
+    );         // PopScope
   }
 
   Widget _buildHeader() => Padding(
@@ -1613,8 +1618,7 @@ void dispose() {
           outfit['img'] as String,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
-          cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
-          filterQuality: FilterQuality.medium,
+          filterQuality: FilterQuality.high,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return Container(color: panelColor);
@@ -1933,8 +1937,7 @@ void dispose() {
                     card['img'] as String,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    cacheWidth: _cacheWidth(context, 180),
-                    filterQuality: FilterQuality.medium,
+                    filterQuality: FilterQuality.high,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(color: panelColor);
@@ -2483,11 +2486,7 @@ void dispose() {
                         child: Image.network(
                           outfit['img'] as String,
                           fit: BoxFit.cover,
-                          cacheWidth: _cacheWidth(
-                            context,
-                            constraints.maxWidth,
-                          ),
-                          filterQuality: FilterQuality.medium,
+                          filterQuality: FilterQuality.high,
                         ),
                       ),
                     ),
@@ -2751,11 +2750,7 @@ void dispose() {
                   outfit['img'] as String,
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
-                  cacheWidth: _cacheWidth(
-                    context,
-                    MediaQuery.of(context).size.width,
-                  ),
-                  filterQuality: FilterQuality.medium,
+                  filterQuality: FilterQuality.high,
                 ),
               ),
               Positioned.fill(
