@@ -15,6 +15,8 @@ import 'package:myapp/widgets/ahvi_header.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
 import 'package:myapp/skincare.dart' as skincare_page;
+import 'package:myapp/fitness_page.dart' as fitness_page;
+import 'package:myapp/diet_page.dart' as diet_page;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 
@@ -748,20 +750,22 @@ class _ChatScreenState extends State<ChatScreen>
     Widget? page;
     switch (pageKey) {
       case 'meal':
-        page = daily_wear_page.DailyWearScreen();
-        page = medi_tracker_page.MediTrackScreen();
+        page = diet_page.MainScreen(); // Meal Planner
+        break;
+      case 'medi':
+        page = medi_tracker_page.MediTrackScreen(); // Medicine Tracker
         break;
       case 'bill':
-        page = const bills_page.BillsScreen();
+        page = const bills_page.BillsScreen(); // Bills Page
         break;
       case 'workout':
-        page = daily_wear_page.DailyWearScreen();
+        page = fitness_page.WorkoutStudioScreen(); // Fitness / Workout
         break;
       case 'calendar':
-        page = const calendar_page.CalendarShell();
+        page = const calendar_page.CalendarShell(); // Calendar Screen
         break;
       case 'skincare':
-        page = const skincare_page.SkincareScreen();
+        page = const skincare_page.SkincareScreen(); // Skincare Screen
         break;
     }
     if (page == null) return;
@@ -840,14 +844,11 @@ class _ChatScreenState extends State<ChatScreen>
                         ),
                       ),
                       if (_isTyping)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 20, bottom: 4),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 20, bottom: 8),
                           child: Align(
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              AppLocalizations.t(context, 'chat_typing'),
-                              style: TextStyle(color: t.mutedText, fontSize: 12),
-                            ),
+                            child: _TypingBubble(),
                           ),
                         ),
                     ],
@@ -1043,16 +1044,41 @@ class _ChatScreenState extends State<ChatScreen>
             ),
             border: m.isMe ? null : Border.all(color: t.cardBorder),
           ),
-          child: Text(
-            m.isGreeting
-                ? AppLocalizations.t(context, 'chat_greeting')
-                : m.text,
-            style: TextStyle(
-              color: m.isMe ? Colors.white : t.textPrimary,
-              fontSize: 14.5,
-              height: 1.4,
-            ),
-          ),
+          child: m.isMe
+              ? Text(
+                  m.text,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.5,
+                    height: 1.4,
+                  ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1, right: 8),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 15,
+                        color: t.accent.primary,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        m.isGreeting
+                            ? AppLocalizations.t(context, 'chat_greeting')
+                            : m.text,
+                        style: TextStyle(
+                          color: t.textPrimary,
+                          fontSize: 14.5,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
       if (!m.isMe && m.local != null) _localView(m.local!, t),
@@ -2324,6 +2350,80 @@ class _OutfitDetailPageState extends State<_OutfitDetailPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Animated typing bubble (3 bouncing dots) ────────────────────────────────
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with TickerProviderStateMixin {
+  late final List<AnimationController> _ctrls;
+  late final List<Animation<double>> _anims;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrls = List.generate(3, (i) => AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    ));
+    _anims = _ctrls.map((c) =>
+      Tween<double>(begin: 0, end: -6).animate(
+        CurvedAnimation(parent: c, curve: Curves.easeInOut),
+      ),
+    ).toList();
+    for (var i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 160), () {
+        if (mounted) _ctrls[i].repeat(reverse: true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _ctrls) c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: t.backgroundSecondary,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(18),
+          topRight: Radius.circular(18),
+          bottomRight: Radius.circular(18),
+          bottomLeft: Radius.circular(4),
+        ),
+        border: Border.all(color: t.cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(3, (i) => AnimatedBuilder(
+          animation: _anims[i],
+          builder: (_, __) => Transform.translate(
+            offset: Offset(0, _anims[i].value),
+            child: Container(
+              margin: EdgeInsets.only(right: i < 2 ? 5 : 0),
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: t.mutedText.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        )),
       ),
     );
   }

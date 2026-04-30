@@ -3376,6 +3376,7 @@ class _ToastWidgetState extends State<_ToastWidget>
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: widget.green ? accent3Color : textColor,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),

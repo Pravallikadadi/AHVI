@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
+import 'package:image_picker/image_picker.dart';
 
 // ── PALETTE (driven by theme tokens — see _BillsScreenState getters) ─────────
 
@@ -126,6 +128,10 @@ class _BillsScreenState extends State<BillsScreen>
 
   bool _isSavingBill = false;
   bool _isSavingCoupon = false;
+
+  // Holds the picked bill image (camera or gallery)
+  File? _pickedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Holds the StatefulBuilder's setState so the sheet rebuilds on toggle
   StateSetter? _sheetSetState;
@@ -517,6 +523,7 @@ class _BillsScreenState extends State<BillsScreen>
           _amountCtrl.clear();
           _itemsCtrl.clear();
           _notesCtrl.clear();
+          _pickedImage = null;
         });
       }
     });
@@ -524,6 +531,21 @@ class _BillsScreenState extends State<BillsScreen>
 
   void _closeOverlay() {
     Navigator.of(context, rootNavigator: true).maybePop();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+      if (picked == null) return;
+      _setOverlayState(() => _pickedImage = File(picked.path));
+      _showToast('✦ Image ready for AI scan!');
+    } catch (e) {
+      _showToast('Could not access ${source == ImageSource.camera ? 'camera' : 'gallery'}. Check permissions.');
+    }
   }
 
   void _showToast(String msg) async {
@@ -1686,6 +1708,7 @@ class _BillsScreenState extends State<BillsScreen>
                 border: isDark ? _accent3.withValues(alpha: 0.20) : _accent3.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_camera_label'),
                 sub: AppLocalizations.t(context, 'bills_camera_sub'),
+                onTap: () => _pickImage(ImageSource.camera),
               ),
             ),
             SizedBox(width: 10),
@@ -1697,10 +1720,59 @@ class _BillsScreenState extends State<BillsScreen>
                 border: isDark ? _accent.withValues(alpha: 0.20) : _accent.withValues(alpha: 0.30),
                 label: AppLocalizations.t(context, 'bills_upload_label'),
                 sub: AppLocalizations.t(context, 'bills_upload_sub'),
+                onTap: () => _pickImage(ImageSource.gallery),
               ),
             ),
           ],
         ),
+        // ── Picked image preview ──
+        if (_pickedImage != null) ...[
+          SizedBox(height: 12),
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Image.file(
+                  _pickedImage!,
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: GestureDetector(
+                  onTap: () => _setOverlayState(() => _pickedImage = null),
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 6,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _accent2.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '✦ Ready to scan',
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -1712,9 +1784,10 @@ class _BillsScreenState extends State<BillsScreen>
     required Color border,
     required String label,
     required String sub,
+    required VoidCallback onTap,
   }) {
     return _PressScaleButton(
-      onTap: () => _showToast('Camera/Upload coming soon'),
+      onTap: onTap,
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(

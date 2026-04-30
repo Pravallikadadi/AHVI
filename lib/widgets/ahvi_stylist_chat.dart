@@ -320,7 +320,6 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final ImagePicker _imagePicker = ImagePicker();
   final List<_SheetMessage> _messages = [];
   bool _typing = false;
@@ -692,151 +691,188 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     return AppLocalizations.t(context, 'chat_greeting');
   }
 
-  // ── History Drawer ────────────────────────────────────────────────
-  Widget _historyDrawer() {
+  // ── History Panel (custom in-sheet slide-in, replaces Flutter Drawer) ──
+  bool _drawerOpen = false;
+
+  void _openDrawer() => setState(() => _drawerOpen = true);
+  void _closeDrawer() => setState(() => _drawerOpen = false);
+
+  Widget _historyPanel() {
     final t = context.themeTokens;
-    return Drawer(
-      backgroundColor: t.backgroundPrimary,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
-              child: Row(children: [
-                Text(
-                  AppLocalizations.t(context, 'common_chats'),
-                  style: GoogleFonts.anton(
-                    fontSize: 20,
-                    color: t.textPrimary,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: _startNewChat,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [t.accent.primary, t.accent.tertiary],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
+    return AnimatedSlide(
+      offset: _drawerOpen ? Offset.zero : const Offset(-1, 0),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      child: AnimatedOpacity(
+        opacity: _drawerOpen ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 220),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.80,
+          decoration: BoxDecoration(
+            color: t.backgroundPrimary,
+            border: Border(right: BorderSide(color: t.cardBorder, width: 1)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 24,
+                offset: const Offset(4, 0),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Header — aligned with chat header ────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 16, 12),
+                child: Row(children: [
+                  Text(
+                    AppLocalizations.t(context, 'common_chats'),
+                    style: GoogleFonts.anton(
+                      fontSize: 22,
+                      color: t.textPrimary,
+                      letterSpacing: 0.4,
                     ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.add, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        AppLocalizations.t(context, 'common_new'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ]),
                   ),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 8),
-            Divider(color: t.cardBorder, height: 1),
-            Expanded(
-              child: _history.isEmpty
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.t(context, 'chat_no_history'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: t.mutedText, fontSize: 13),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _startNewChat,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [t.accent.primary, t.accent.tertiary],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _history.length,
-                      separatorBuilder: (_, _) =>
-                          Divider(color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
-                      itemBuilder: (ctx, i) {
-                        final session = _history[i];
-                        final isActive = session.id == _currentSessionId;
-                        return GestureDetector(
-                          onTap: () => _loadSession(session),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            color: isActive
-                                ? t.accent.primary.withValues(alpha: 0.08)
-                                : Colors.transparent,
-                            child: Row(children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? t.accent.primary.withValues(alpha: 0.15)
-                                      : t.panel,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.add, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          AppLocalizations.t(context, 'common_new'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _closeDrawer,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: t.panel,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: t.cardBorder),
+                      ),
+                      child: Icon(Icons.close_rounded, color: t.mutedText, size: 16),
+                    ),
+                  ),
+                ]),
+              ),
+              Divider(color: t.cardBorder, height: 1),
+              Expanded(
+                child: _history.isEmpty
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.t(context, 'chat_no_history'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: t.mutedText, fontSize: 13),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _history.length,
+                        separatorBuilder: (_, _) =>
+                            Divider(color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
+                        itemBuilder: (ctx, i) {
+                          final session = _history[i];
+                          final isActive = session.id == _currentSessionId;
+                          return GestureDetector(
+                            onTap: () {
+                              _closeDrawer();
+                              _loadSession(session);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              color: isActive
+                                  ? t.accent.primary.withValues(alpha: 0.08)
+                                  : Colors.transparent,
+                              child: Row(children: [
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
                                     color: isActive
-                                        ? t.accent.primary.withValues(alpha: 0.4)
-                                        : t.cardBorder,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '✦',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isActive ? t.accent.primary : t.mutedText,
+                                        ? t.accent.primary.withValues(alpha: 0.15)
+                                        : t.panel,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isActive
+                                          ? t.accent.primary.withValues(alpha: 0.4)
+                                          : t.cardBorder,
                                     ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      session.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                  child: Center(
+                                    child: Text(
+                                      '✦',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        fontWeight: isActive
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: isActive
-                                            ? t.accent.primary
-                                            : t.textPrimary,
+                                        color: isActive ? t.accent.primary : t.mutedText,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${session.messages.length} messages',
-                                      style: TextStyle(fontSize: 10, color: t.mutedText),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (isActive)
-                                Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: t.accent.primary,
                                   ),
                                 ),
-                            ]),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        session.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                          color: isActive ? t.accent.primary : t.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${session.messages.length} messages',
+                                        style: TextStyle(fontSize: 10, color: t.mutedText),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isActive)
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: t.accent.primary,
+                                    ),
+                                  ),
+                              ]),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -845,15 +881,13 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 
     // Prompt bar estimated height for ListView bottom padding
     const double promptBarH = 72.0;
-    final double chipsH = _chipsVisible ? 46.0 : 0.0;
+    final double chipsH = _chipsVisible ? 38.0 : 0.0;
     final double attachH = _pendingAttachment != null ? 52.0 : 0.0;
-    final double inputAreaH = promptBarH + chipsH + attachH;
+    final double inputAreaH = promptBarH + chipsH + attachH + 8.0;
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false,
-      drawer: _historyDrawer(),
       body: Container(
         decoration: BoxDecoration(
           color: t.backgroundPrimary,
@@ -906,7 +940,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                       ),
                       const Spacer(),
                       GestureDetector(
-                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                        onTap: _openDrawer,
                         child: Container(
                           width: 36,
                           height: 36,
@@ -943,7 +977,6 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               child: Container(
                 decoration: BoxDecoration(
                   color: t.phoneShellInner,
-                  border: Border(top: BorderSide(color: t.cardBorder)),
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(28),
                   ),
@@ -952,28 +985,29 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ── Quick Prompts ───────────────────────────────
-                    if (_chipsVisible)
+                    if (_chipsVisible) ...[
+                      const SizedBox(height: 6),
                       SizedBox(
-                        height: 46,
+                        height: 28,
                         child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           scrollDirection: Axis.horizontal,
                           itemCount: quickPrompts.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          separatorBuilder: (_, _) => const SizedBox(width: 6),
                           itemBuilder: (_, i) => GestureDetector(
                             onTap: () => _sendMessage(quickPrompts[i]),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: t.panel,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: t.cardBorder),
                               ),
                               child: Text(
                                 quickPrompts[i],
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: t.accent.secondary,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -982,6 +1016,8 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                           ),
                         ),
                       ),
+                      const SizedBox(height: 4),
+                    ],
                     // ── Pending Attachment Chip ─────────────────────
                     if (_pendingAttachment != null)
                       _PendingAttachmentChip(
@@ -1020,6 +1056,27 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                 ),
               ),
             ),
+
+            // ── Scrim — dismiss panel on outside tap ─────────────
+            if (_drawerOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeDrawer,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 260),
+                    color: Colors.black.withValues(alpha: _drawerOpen ? 0.32 : 0.0),
+                  ),
+                ),
+              ),
+
+            // ── History panel — slides in from left ───────────────
+            Positioned(
+              top: 0,
+              bottom: 0,
+              left: 0,
+              child: _historyPanel(),
+            ),
           ],
         ),
       ),
@@ -1053,40 +1110,80 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    return Align(
-      alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        constraints: const BoxConstraints(maxWidth: 280),
-        decoration: BoxDecoration(
+    final bubble = Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      constraints: const BoxConstraints(maxWidth: 280),
+      decoration: BoxDecoration(
+        color: msg.isUser
+            ? t.accent.primary.withValues(alpha: 0.12)
+            : t.panel,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(msg.isUser ? 16 : 4),
+          bottomRight: Radius.circular(msg.isUser ? 4 : 16),
+        ),
+        border: Border.all(
           color: msg.isUser
-              ? t.accent.primary.withValues(alpha: 0.12)
-              : t.panel,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(msg.isUser ? 16 : 4),
-            bottomRight: Radius.circular(msg.isUser ? 4 : 16),
+              ? t.accent.primary.withValues(alpha: 0.35)
+              : t.cardBorder,
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-          border: Border.all(
-            color: msg.isUser
-                ? t.accent.primary.withValues(alpha: 0.35)
-                : t.cardBorder,
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+        ],
+      ),
+      child: Text(
+        msg.resolve(context),
+        style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.45),
+      ),
+    );
+
+    if (msg.isUser) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: bubble,
+      );
+    }
+
+    // AI bubble — sparkle icon to the left, aligned to top of bubble
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6, right: 6),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [t.accent.secondary, t.accent.primary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  '✦',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
-        child: Text(
-          msg.resolve(context),
-          style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.45),
-        ),
+          ),
+          bubble,
+        ],
       ),
     );
   }
@@ -1404,11 +1501,7 @@ class _WebSearchSheetState extends State<_WebSearchSheet> {
                 color: textPrimary,
               ),
             ),
-            const Spacer(),
-            GestureDetector(
-              onTap: widget.onCancel,
-              child: Icon(Icons.close_rounded, color: mutedText),
-            ),
+
           ]),
           const SizedBox(height: 14),
           // ── Search field ──────────────────────────────────────────

@@ -505,6 +505,8 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
   Widget _buildTabBar() {
     final tabs = ['Basics', 'Style', 'Try-On'];
     // ── [ADDED B01] stagger index 3 — tab bar ──
+    // Only the current screen's tab (index 0 = Basics) is active and tappable.
+    // Subsequent tabs are locked — they become accessible as the user progresses.
     return _staggered(
       3,
       Container(
@@ -524,46 +526,59 @@ class _Screen1State extends State<Screen1> with TickerProviderStateMixin {
         child: Row(
           children: List.generate(tabs.length, (i) {
             final isActive = i == _selectedTab;
+            // Tabs beyond the current one are locked — not tappable
+            final isLocked = i > _selectedTab;
             return Expanded(
               child: GestureDetector(
-                onTap: () => setState(() => _selectedTab = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 240),
-                  curve: Curves.easeInOut, // [ADDED B03] match CSS cubic-bezier
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-                  decoration: BoxDecoration(
-                    gradient: isActive
-                        ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [accent, accent2],
-                    )
-                        : null,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: isActive
-                        ? const [
-                      BoxShadow(
-                          color: Color(0x4D6B91FF),
-                          blurRadius: 10,
-                          offset: Offset(0, 2)),
-                      BoxShadow(
-                          color: Color(0x2E6B91FF),
-                          blurRadius: 3,
-                          offset: Offset(0, 1)),
-                    ]
-                        : null,
-                  ),
-                  child: Text(
-                    tabs[i],
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                      isActive ? FontWeight.w600 : FontWeight.w500,
-                      color: isActive ? textColor : muted,
-                      letterSpacing: 0.005 * 13,
-                      fontFamily: 'DM Sans',
+                // Only allow tapping the current (active) tab; locked tabs do nothing
+                onTap: isLocked ? null : () => setState(() => _selectedTab = i),
+                child: Opacity(
+                  // Locked tabs are visually dimmed to signal they're unavailable
+                  opacity: isLocked ? 0.45 : 1.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 240),
+                    curve: Curves.easeInOut,
+                    padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    decoration: BoxDecoration(
+                      gradient: isActive
+                          ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [accent, accent2],
+                      )
+                          : null,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: isActive
+                          ? const [
+                        BoxShadow(
+                            color: Color(0x4D6B91FF),
+                            blurRadius: 10,
+                            offset: Offset(0, 2)),
+                        BoxShadow(
+                            color: Color(0x2E6B91FF),
+                            blurRadius: 3,
+                            offset: Offset(0, 1)),
+                      ]
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          tabs[i],
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w500,
+                            color: isActive ? textColor : muted,
+                            letterSpacing: 0.005 * 13,
+                            fontFamily: 'DM Sans',
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

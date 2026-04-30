@@ -73,6 +73,10 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
     <string>Your location is used to show nearby stores.</string>
 	<key>NSCameraUsageDescription</key>
-    <string>Camera access for photos</string>    
+    <string>Camera access for photos</string>
+	<key>NSCameraUsageDescription</key>
+    <string>Used to scan bill photos</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Used to upload bill images</string>    
 </dict>
 </plist>

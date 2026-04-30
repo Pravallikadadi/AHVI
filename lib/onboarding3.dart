@@ -51,6 +51,20 @@ class _Screen3State extends State<Screen3> {
     );
   }
 
+  void _onSkip() {
+    context.read<ProfileController>().updatePersonalization(
+      enabled: false,
+      faceUploaded: false,
+      bodyUploaded: false,
+    );
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setBool('onboardingComplete', true));
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.main,
+      (route) => false,
+    );
+  }
+
   void _onSaveContinue() {
     if (!_isValid) {
       _showValidationError('Please upload both face and body photos.');
@@ -137,7 +151,7 @@ class _Screen3State extends State<Screen3> {
                         ),
 
                         // Skip row
-                        _SkipRow(),
+                        _SkipRow(onSkip: _onSkip),
 
                         // Progress dots
                         _ProgressDots(),
@@ -1016,13 +1030,17 @@ class _CtaSection extends StatelessWidget {
 
 // ── Skip Row ────────────────────────────────────────────────────
 class _SkipRow extends StatelessWidget {
+  final VoidCallback onSkip;
+
+  const _SkipRow({required this.onSkip});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Center(
         child: GestureDetector(
-          onTap: () {},
+          onTap: onSkip,
           child: Container(
             decoration: const BoxDecoration(
               border: Border(
