@@ -11,6 +11,9 @@ class AppwriteService extends ChangeNotifier {
   late Databases databases;
   late Avatars avatars;
 
+  // Cached user — avoid repeated network calls
+  User? _cachedUser;
+
   AppwriteService() {
     client = Client()
       ..setEndpoint(Env.appwriteEndpoint)   
@@ -26,12 +29,26 @@ class AppwriteService extends ChangeNotifier {
   // =========================================================================
 
   Future<User?> getCurrentUser() async {
+    if (_cachedUser != null) return _cachedUser;
     try {
-      return await account.get();
+      _cachedUser = await account.get();
+      return _cachedUser;
     } catch (e) {
       debugPrint("No active session or error: $e");
       return null;
     }
+  }
+
+  // Call this after login to pre-cache user
+  Future<void> cacheCurrentUser() async {
+    try {
+      _cachedUser = await account.get();
+    } catch (_) {}
+  }
+
+  // Clear cache on logout
+  void clearUserCache() {
+    _cachedUser = null;
   }
   
   Future<Session?> loginEmailPassword(String email, String password) async {
@@ -97,6 +114,7 @@ class AppwriteService extends ChangeNotifier {
   Future<void> logout() async {
      try {
        await account.deleteSession(sessionId: 'current');
+       clearUserCache();
        notifyListeners();
      } catch(e) {
        debugPrint("Logout error: $e");

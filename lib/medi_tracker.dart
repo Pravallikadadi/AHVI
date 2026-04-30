@@ -143,6 +143,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   Future<void> _fetchData() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      // Cache user session upfront so subsequent calls don't fail
+      await appwrite.cacheCurrentUser();
       final medsDocs = await appwrite.getMeds();
       final logsDocs = await appwrite.getMedLogs();
 
@@ -340,10 +342,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     ),
                     if (activeScreen != 'medicines')
                       Positioned(bottom: 30, right: 18, child: _buildChatFab()),
-                    if (activeScreen == 'medicines') ...[
-                      Positioned(bottom: 30, left: 18, child: _buildChatFab()),
-                      Positioned(bottom: 20, right: 18, child: _buildAddFab()),
-                    ],
+                    if (activeScreen == 'medicines')
+                      Positioned(bottom: 30, right: 18, child: _buildChatFab()),
                   ],
                 ),
               ),
@@ -1134,7 +1134,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
   Widget _buildMedicinesScreen() {
     return Column(
       children: [
-        _buildBackBar(AppLocalizations.t(context, 'medi_screen_my_medicines')),
+        _buildMedicinesBackBar(AppLocalizations.t(context, 'medi_screen_my_medicines')),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -2129,6 +2129,53 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     );
   }
 
+  Widget _buildMedicinesBackBar(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Row(
+        children: [
+          _PressScaleButton(
+            onTap: () => navTo('home'),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: panel,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: cardBorder, width: 1),
+              ),
+              child: Icon(Icons.chevron_left_rounded, color: textColor, size: 22),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: textColor,
+              ),
+            ),
+          ),
+          _PressScaleButton(
+            onTap: _showAddMedSheet,
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: accent.withValues(alpha: 0.35), width: 1.5),
+              ),
+              child: Icon(Icons.add, color: accent, size: 17),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLensFab() {
     return GestureDetector(
       onTap: () => showAhviLensSheet(
@@ -2339,8 +2386,10 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             'left': supply,
                             'total': supply,
                             'reminder': true,
+                            'lastTaken': '',
                           });
 
+                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
                           Navigator.pop(context);
 
                           _nameCtrl.clear();
@@ -2353,9 +2402,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           _isCustomCat = false;
 
                           _fetchData();
-                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
                         } catch (e) {
-                          _showToast(AppLocalizations.t(this.context, 'medi_error_adding'), '❌');
+                          _showToast('Save failed: $e', '❌');
                         }
                       },
                       child: Container(
