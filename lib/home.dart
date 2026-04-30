@@ -1860,7 +1860,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             child: _buildSecCard(
               icon: Icons.grid_view_rounded,
               title: AppLocalizations.t(context, 'sec_plan_title'),
-              subtitle: AppLocalizations.t(context, 'sec_organize_subtitle'),
+              subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
               ctaKey: 'sec_plan_cta',
               intent: 'organize',
               assetImage: 'assets/images/plan_card.jpg',
@@ -1871,7 +1871,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
             child: _buildSecCard(
               icon: Icons.calendar_month_outlined,
               title: AppLocalizations.t(context, 'sec_prep_title'),
-              subtitle: AppLocalizations.t(context, 'sec_plan_subtitle'),
+              subtitle: AppLocalizations.t(context, 'sec_prep_subtitle'),
               ctaKey: 'sec_prep_cta',
               intent: 'plan',
               assetImage: 'assets/images/prep_card.jpg',
@@ -2039,7 +2039,10 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Column(
+                          // Limit text content width to not overlap the image (image width=110, fade=48)
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 130),
+                            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
@@ -2128,6 +2131,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
+                          ),
                           ),
                           // Gradient CTA button — Daily Wear style (primary → tertiary)
                           _AnimatedPressable(
