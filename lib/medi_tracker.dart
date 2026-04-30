@@ -2310,16 +2310,18 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         final dose = _doseCtrl.text.trim();
                         final supply =
                             int.tryParse(_supplyCtrl.text.trim()) ?? 0;
+                        final customText = _customCatCtrl.text.trim();
                         final effectiveCat = _isCustomCat
-                            ? _customCatCtrl.text.trim()
+                            ? customText
                             : (_selCat ?? l(this.context, 'medi_cat_diabetes'));
-                        if (name.isEmpty || dose.isEmpty || supply <= 0 ||
-                            (_isCustomCat && effectiveCat.isEmpty)) {
+                        if (name.isEmpty || dose.isEmpty || supply <= 0) {
                           _showToast(AppLocalizations.t(this.context, 'medi_please_fill'), '⚠️');
                           return;
                         }
-
-                        Navigator.pop(context);
+                        if (_isCustomCat && customText.isEmpty) {
+                          _showToast('Please enter a custom category name', '⚠️');
+                          return;
+                        }
 
                         try {
                           final appwrite = Provider.of<AppwriteService>(
@@ -2338,8 +2340,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             'total': supply,
                             'reminder': true,
                           });
-                          _fetchData();
-                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
+
+                          Navigator.pop(context);
 
                           _nameCtrl.clear();
                           _doseCtrl.clear();
@@ -2349,6 +2351,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                           _selFreq = null;
                           _selCat  = null;
                           _isCustomCat = false;
+
+                          _fetchData();
+                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
                         } catch (e) {
                           _showToast(AppLocalizations.t(this.context, 'medi_error_adding'), '❌');
                         }
@@ -2509,7 +2514,27 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         ),
         if (_isCustomCat) ...[
           const SizedBox(height: 10),
-          _buildTextField(_customCatCtrl, 'Enter category name (e.g. Thyroid)'),
+          Container(
+            decoration: BoxDecoration(
+              color: panel,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cardBorder),
+            ),
+            child: TextField(
+              controller: _customCatCtrl,
+              autofocus: true,
+              style: TextStyle(color: textColor, fontSize: 14),
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                hintText: 'Enter category name (e.g. Thyroid)',
+                hintStyle: TextStyle(color: muted.withValues(alpha: 0.5)),
+              ),
+            ),
+          ),
         ],
       ],
     );
