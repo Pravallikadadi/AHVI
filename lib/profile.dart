@@ -1828,6 +1828,22 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
         _draft = _draft.copyWith(avatarPath: cropped.path);
         _isDirty = true;
       });
+      // Auto-save avatar immediately to ProfileController so home screen
+      // reflects the new pic right away — user shouldn't have to tap Save
+      // just for a photo change.
+      widget.onSave(_draft.copyWith(
+        name: _nameCtrl.text.trim().isEmpty ? 'New User' : _nameCtrl.text.trim(),
+        email: _emailCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim().isNotEmpty
+            ? '$_selectedCountryCode ${_phoneCtrl.text.trim()}'
+            : '',
+        dob: (_dobDay != null && _dobMonth != null && _dobYear != null)
+            ? '$_dobDay $_dobMonth $_dobYear'
+            : _dobCtrl.text.trim(),
+        avatarPath: cropped.path,
+      ));
+      // Mark as clean so back button doesn't show discard warning for only a photo change
+      setState(() => _isDirty = false);
       widget.onToast(_t.photoUpdated);
     }
   }

@@ -1024,15 +1024,9 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                 builder: (context, constraints) {
                   final screenH = constraints.maxHeight;
 
-                  // Responsive secondary row height — shrink on small screens
-                  final secondaryH = screenH < 700 ? 132.0 : 144.0;
-                  // Reserve space for: topBar + greeting + suggestion banner + secondaryRow + chatBar + navBar + gaps
-                  const chatBarH = 64.0;
                   const navBarH = 86.0; // nav bar total height (pillH + maxBulge + safeBottom)
                   const topSectionH = 170.0;
                   const spacing = 18.0;
-                  final heroMaxH = (screenH - topSectionH - secondaryH - chatBarH - navBarH - spacing)
-                      .clamp(180.0, 480.0);
 
                   // Placeholder height — _buildFixedLogoBar తో exact match:
                   // SafeArea.top (statusBarH) + topPad + logoFontSize + botPad
@@ -1042,6 +1036,15 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                   final double logoFontSizeH = screenH < 700 ? 26.0 : 30.0;
                   final double statusBarH = MediaQuery.paddingOf(context).top;
                   final double topBarPlaceholderH = statusBarH + topPad + logoFontSizeH + botPad;
+
+                  // Available height after fixed sections
+                  const chatBarH = 64.0;
+                  const navBarH2 = 86.0;
+                  const bottomReserve = 10 + chatBarH + navBarH2;
+                  final availableH = screenH - topBarPlaceholderH - topSectionH - bottomReserve - spacing;
+                  // Hero gets 62%, secondary gets 38% of available space
+                  final heroFlex = 62;
+                  final secFlex  = 38;
 
                   return SizedBox(
                     height: constraints.maxHeight,
@@ -1053,17 +1056,21 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                           // Space reserved for fixed logo overlay (not animated)
                           SizedBox(height: topBarPlaceholderH),
                           _buildGreetingBlock(),
-                          // Hero card — capped so secondary row + chat bar always stay visible
-                          ConstrainedBox(
-                            constraints: BoxConstraints(maxHeight: heroMaxH),
+                          // Hero card — grows with screen
+                          Expanded(
+                            flex: heroFlex,
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 8.0),
                               child: _buildHeroCard(),
                             ),
                           ),
-                          SizedBox(
-                            height: secondaryH,
-                            child: _buildSecondaryRow(),
+                          // Plan & Prep cards — also grow with screen
+                          Expanded(
+                            flex: secFlex,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: _buildSecondaryRow(),
+                            ),
                           ),
                           // Space reserved for floating prompt bar + nav bar (Positioned in Stack)
                           const SizedBox(height: 10 + 64 + navBarH),
@@ -1773,7 +1780,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
                                             fontWeight: FontWeight.w300,
                                             height: 1.4,
                                           ),
-                                          maxLines: 1,
+                                          maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ],
