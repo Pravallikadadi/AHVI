@@ -256,8 +256,8 @@ class _Header extends StatelessWidget {
           colors: [t.phoneShellInner, t.phoneShell, t.backgroundSecondary],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
@@ -273,30 +273,38 @@ class _Header extends StatelessWidget {
                   color: t.textPrimary, size: 22),
             ),
           ),
-          const SizedBox(height: 16),
-          RichText(
-            text: TextSpan(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextSpan(
-                  text: '${context.tr('boards_everything_else')} ',
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: context.tr('boards_everything_else'),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  countText,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                    letterSpacing: -0.5,
+                    fontSize: 12,
+                    color: t.mutedText,
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            countText,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: t.mutedText,
             ),
           ),
         ],
@@ -320,8 +328,16 @@ class _FilterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    return SizedBox(
+    return Container(
       height: 44,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+          colors: [t.phoneShellInner, t.phoneShell, t.backgroundSecondary],
+        ),
+      ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

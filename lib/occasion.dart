@@ -234,7 +234,8 @@ class _Header extends StatelessWidget {
     final t = context.themeTokens;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 48, 14, 16),
+      padding: EdgeInsets.fromLTRB(
+          14, MediaQuery.of(context).padding.top + 12, 14, 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -243,8 +244,8 @@ class _Header extends StatelessWidget {
           colors: [t.phoneShellInner, t.phoneShell, t.backgroundSecondary],
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
@@ -260,40 +261,48 @@ class _Header extends StatelessWidget {
                   color: t.textPrimary, size: 22),
             ),
           ),
-          const SizedBox(height: 16),
-          RichText(
-            text: TextSpan(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                TextSpan(
-                  text: '${titleLabel ?? context.tr(titleKey)} ',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: t.textPrimary,
-                    letterSpacing: -0.5,
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${titleLabel ?? context.tr(titleKey)} ',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      TextSpan(
+                        text: subtitleLabel ?? context.tr(subtitleKey),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w300,
+                          color: t.accent.primary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                TextSpan(
-                  text: subtitleLabel ?? context.tr(subtitleKey),
+                const SizedBox(height: 2),
+                Text(
+                  countText,
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 26,
-                    fontWeight: FontWeight.w300,
-                    color: t.accent.primary,
-                    letterSpacing: -0.5,
+                    fontSize: 12,
+                    color: t.mutedText,
                   ),
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            countText,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
-              color: t.mutedText,
             ),
           ),
         ],

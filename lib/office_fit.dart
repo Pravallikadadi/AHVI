@@ -49,8 +49,21 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
           // ── Header ──
           Container(
             padding: EdgeInsets.fromLTRB(
-                20, MediaQuery.of(context).padding.top + 12, 20, 14),
+                14, MediaQuery.of(context).padding.top + 12, 14, 14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                stops: const [0.0, 0.5, 1.0],
+                colors: [
+                  t.phoneShellInner,
+                  t.phoneShell,
+                  t.backgroundSecondary
+                ],
+              ),
+            ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
@@ -67,32 +80,32 @@ class _OfficeFitScreenState extends State<OfficeFitScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        // "Office" word
-                        text: '${context.tr('calendar_occasion_office')} ',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: t.textPrimary,
-                          letterSpacing: -0.3,
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${context.tr('calendar_occasion_office')} ',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: t.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
-                      TextSpan(
-                        // "Fits" word
-                        text: context.tr('boards_office_fits_sub'),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w300,
-                          color: t.accent.primary,
-                          letterSpacing: -0.3,
+                        TextSpan(
+                          text: context.tr('boards_office_fits_sub'),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 20,
+                            fontWeight: FontWeight.w300,
+                            color: t.accent.primary,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
