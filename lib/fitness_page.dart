@@ -233,7 +233,7 @@ class _HomeView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── PAGE HEADER ──────────────────────────────────────────────
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
           Row(
             children: [
               Container(

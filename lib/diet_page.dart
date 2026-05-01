@@ -351,7 +351,7 @@ class _PlansScreenState extends State<PlansScreen> {
           children: [
             // ─── PAGE HEADER ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
               child: Row(
                 children: [
                   Container(

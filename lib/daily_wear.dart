@@ -244,7 +244,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         'nameKey': outfit['nameKey'],
         'name': outfit['nameKey'],
         'sub': outfit['descKey'],
-        'img': outfit['img'],
+        'img': outfit['localImg'],
         'borderColor': borders[index],
         'gradient': gradients[index],
       };
@@ -1175,31 +1175,17 @@ void dispose() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          outfit['img'] as String,
+        Image.asset(
+          outfit['localImg'] as String,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
           filterQuality: FilterQuality.high,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(color: panelColor);
-          },
-          errorBuilder: (_, _, _) {
-            final localImg = outfit['localImg'] as String?;
-            if (localImg != null) {
-              return Image.asset(
-                localImg,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              );
-            }
-            return Container(
-              color: panelColor,
-              child: Center(
-                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
-              ),
-            );
-          },
+          errorBuilder: (_, _, _) => Container(
+            color: panelColor,
+            child: Center(
+              child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+            ),
+          ),
         ),
         Positioned.fill(
           child: DecoratedBox(
@@ -1494,35 +1480,17 @@ void dispose() {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
+                  Image.asset(
                     card['img'] as String,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     filterQuality: FilterQuality.high,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(color: panelColor);
-                    },
-                    errorBuilder: (_, _, _) {
-                      final outfitData = _buildAllOutfits(context).firstWhere(
-                        (o) => o['id'] == card['outfitId'],
-                        orElse: () => {},
-                      );
-                      final localImg = outfitData['localImg'] as String?;
-                      if (localImg != null) {
-                        return Image.asset(
-                          localImg,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                        );
-                      }
-                      return Container(
-                        color: panelColor,
-                        child: Center(
-                          child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 32),
-                        ),
-                      );
-                    },
+                    errorBuilder: (_, _, _) => Container(
+                      color: panelColor,
+                      child: Center(
+                        child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 32),
+                      ),
+                    ),
                   ),
                   Positioned.fill(
                     child: DecoratedBox(
@@ -1740,13 +1708,6 @@ void dispose() {
     ),
   );
 
-  int _cacheWidth(BuildContext context, double logicalWidth) {
-    final ratio = MediaQuery.of(context).devicePixelRatio;
-    // Cap at 2x to prevent over-sampling on high-DPI Android devices
-    // which causes a visible fade/flash while Flutter resizes the image
-    return (logicalWidth * math.min(ratio, 2.0)).round();
-  }
-
   Widget _buildTryOnOverlay() => Stack(
     children: [
       // Scrim
@@ -1894,8 +1855,8 @@ void dispose() {
                           1,
                           1,
                         ),
-                        child: Image.network(
-                          outfit['img'] as String,
+                        child: Image.asset(
+                          outfit['localImg'] as String,
                           fit: BoxFit.cover,
                           filterQuality: FilterQuality.high,
                         ),
@@ -2050,10 +2011,9 @@ void dispose() {
               children: [
                 AspectRatio(
                   aspectRatio: 3 / 4,
-                  child: Image.network(
-                    outfit['img'] as String,
+                  child: Image.asset(
+                    outfit['localImg'] as String,
                     fit: BoxFit.cover,
-                    cacheWidth: _cacheWidth(context, 320),
                     filterQuality: FilterQuality.medium,
                   ),
                 ),
@@ -2157,8 +2117,8 @@ void dispose() {
               SizedBox(
                 height: 260,
                 width: double.infinity,
-                child: Image.network(
-                  outfit['img'] as String,
+                child: Image.asset(
+                  outfit['localImg'] as String,
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
                   filterQuality: FilterQuality.high,
