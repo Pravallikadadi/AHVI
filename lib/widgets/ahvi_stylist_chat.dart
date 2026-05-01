@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -60,6 +62,11 @@ class AhviModuleConfig {
   final String subtitle;
   final String hintTextKey;
   final String greetingKey;
+
+  /// Shown when the localization key is missing — keeps each module's
+  /// greeting distinct even before translation strings are added.
+  final String greetingFallback;
+
   final List<String> Function(BuildContext) quickPrompts;
 
   const AhviModuleConfig({
@@ -67,6 +74,7 @@ class AhviModuleConfig {
     required this.subtitle,
     required this.hintTextKey,
     required this.greetingKey,
+    required this.greetingFallback,
     required this.quickPrompts,
   });
 }
@@ -77,91 +85,77 @@ final Map<String, AhviModuleConfig> _moduleConfigs = {
     moduleContext: 'style',
     subtitle: 'AI Stylist',
     hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    greetingKey: 'style_chat_greeting',
+    greetingFallback: "Hi! I'm your AI Stylist. Tell me about today's occasion or mood and I'll put together the perfect look for you!",
     quickPrompts: (ctx) => [
       AppLocalizations.t(ctx, 'wear_chip_today'),
       AppLocalizations.t(ctx, 'wear_chip_style_tips'),
-      AppLocalizations.t(ctx, 'wear_chip_first_date'),
-      AppLocalizations.t(ctx, 'wear_chip_linen'),
-      AppLocalizations.t(ctx, 'wear_chip_colours'),
     ],
   ),
   'skincare': AhviModuleConfig(
     moduleContext: 'skincare',
     subtitle: 'Skincare Assistant',
-    hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    hintTextKey: 'skincare_chat_hint',
+    greetingKey: 'skincare_chat_greeting_ahvi',   // renamed — localization లో ఈ key లేకపోతే fallback use అవుతుంది
+    greetingFallback: "Hi! I'm your Skincare Assistant. Share your skin type or concerns and I'll recommend the best routine for you!",
     quickPrompts: (ctx) => [
-      'Morning routine tips',
-      'Best SPF for my skin',
-      'Night skincare steps',
-      'Acne care advice',
-      'Hydration routine',
+      AppLocalizations.t(ctx, 'skincare_chip_morning_routine'),
+      AppLocalizations.t(ctx, 'skincare_chip_spf'),
     ],
   ),
   'medi': AhviModuleConfig(
     moduleContext: 'medi',
     subtitle: 'Medicine Assistant',
-    hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    hintTextKey: 'medi_chat_hint',
+    greetingKey: 'medi_chat_greeting',
+    greetingFallback: "Hello! I'm your Medicine Assistant. I can help you track medications, check dosage timings, or answer general medicine questions.",
     quickPrompts: (ctx) => [
-      'My medicines today',
-      'Missed dose — what to do?',
-      'Drug interactions?',
-      'Set a reminder',
-      'Add new medicine',
+      AppLocalizations.t(ctx, 'medi_chip_today'),
+      AppLocalizations.t(ctx, 'medi_chip_missed_dose'),
     ],
   ),
   'bills': AhviModuleConfig(
     moduleContext: 'bills',
     subtitle: 'Bills Assistant',
-    hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    hintTextKey: 'bills_chat_hint',
+    greetingKey: 'bills_chat_greeting',
+    greetingFallback: "Hi! I'm your Bills Assistant. Ask me about pending payments, due dates, or your monthly spend summary.",
     quickPrompts: (ctx) => [
-      'Pending bills',
-      'Total this month',
-      'Add a bill',
-      'Best category?',
-      'Scan receipt',
+      AppLocalizations.t(ctx, 'bills_chip_pending'),
+      AppLocalizations.t(ctx, 'bills_chip_monthly_total'),
     ],
   ),
   'diet': AhviModuleConfig(
     moduleContext: 'diet',
     subtitle: 'Diet & Nutrition Assistant',
     hintTextKey: 'diet_chat_hint',
-    greetingKey: 'diet_chat_welcome',
+    greetingKey: 'diet_chat_greeting_ahvi',   // renamed — localization లో ఈ key లేకపోతే fallback use అవుతుంది
+    greetingFallback: "Hello! I'm your Diet and Nutrition Assistant. Let's build a meal plan or find high-protein recipes that match your goals!",
     quickPrompts: (ctx) => [
-      'Weekly keto plan',
-      'High protein meals',
-      'Vegan meal ideas',
-      'Calorie count today',
-      'Mediterranean diet',
+      AppLocalizations.t(ctx, 'diet_chip_meal_plan'),
+      AppLocalizations.t(ctx, 'diet_chip_high_protein'),
     ],
   ),
   'fitness': AhviModuleConfig(
     moduleContext: 'fitness',
     subtitle: 'Fitness Coach',
-    hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    hintTextKey: 'fitness_chat_hint',
+    greetingKey: 'fitness_chat_greeting',
+    greetingFallback: "Hey! I'm your Fitness Coach. Tell me your fitness goal and I'll design a workout plan just for you!",
     quickPrompts: (ctx) => [
-      'Today\'s workout',
-      'Beginner plan',
-      'Lose weight fast',
-      'Home exercises',
-      'Rest day tips',
+      AppLocalizations.t(ctx, 'fitness_chip_today_workout'),
+      AppLocalizations.t(ctx, 'fitness_chip_beginner_plan'),
     ],
   ),
   'wardrobe': AhviModuleConfig(
     moduleContext: 'wardrobe',
     subtitle: 'Wardrobe Stylist',
-    hintTextKey: 'daily_wear_chat_hint',
-    greetingKey: 'chat_greeting',
+    hintTextKey: 'wardrobe_chat_hint',
+    greetingKey: 'wardrobe_chat_greeting',
+    greetingFallback: "Hi! I'm your Wardrobe Stylist. I can help you mix and match outfits or suggest what to add to your wardrobe next!",
     quickPrompts: (ctx) => [
-      'Outfit for today',
-      'Style capsule wardrobe',
-      'What to buy next?',
-      'Color combinations',
-      'Wardrobe detox tips',
+      AppLocalizations.t(ctx, 'wardrobe_chip_outfit_today'),
+      AppLocalizations.t(ctx, 'wardrobe_chip_buy_next'),
     ],
   ),
 };
@@ -354,6 +348,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       setState(() {
         _messages.add(_SheetMessage(
           textKey: _config.greetingKey,
+          fallback: _config.greetingFallback,
           isUser: false,
         ));
       });
@@ -389,7 +384,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
       _chipsVisible = true;
       _chatHasText = false;
       _inputController.clear();
-      _messages.add(_SheetMessage(textKey: _config.greetingKey, isUser: false));
+      _messages.add(_SheetMessage(textKey: _config.greetingKey, fallback: _config.greetingFallback, isUser: false));
     });
   }
 
@@ -556,7 +551,7 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
   }
 
 
-  void _sendMessage(String text) {
+  Future<void> _sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && _pendingAttachment == null) return;
     if (_typing) return;
@@ -582,113 +577,93 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
     });
     _scrollToBottom();
 
-    Timer(const Duration(milliseconds: 700), () {
-      if (!mounted) return;
-      setState(() {
-        _typing = false;
-        _messages.add(_SheetMessage(
-          text: _buildReply(context, trimmed),
-          isUser: false,
-        ));
-      });
-      _scrollToBottom();
-      _saveCurrentSession();
+    final replyText = await _callAhviApi(trimmed);
+
+    if (!mounted) return;
+    setState(() {
+      _typing = false;
+      _messages.add(_SheetMessage(text: replyText, isUser: false));
     });
+    _scrollToBottom();
+    _saveCurrentSession();
   }
 
-  /// Module context బట్టి reply customize చేయండి.
-  /// Backend connect అయినప్పుడు ఇక్కడ API call చేయండి.
-  String _buildReply(BuildContext context, String query) {
-    final q = query.toLowerCase();
-    final module = widget.moduleContext;
+  /// Anthropic API call — module context system prompt తో.
+  Future<String> _callAhviApi(String userMessage) async {
+    // TODO: Replace with your actual API key or backend proxy URL.
+    const apiKey = 'YOUR_ANTHROPIC_API_KEY';
 
-    // Module-specific replies
-    if (module == 'bills') {
-      if (q.contains('pending') || q.contains('bill')) {
-        return 'You have 3 pending bills this month. Total: ₹13,248. Want details?';
-      }
-      if (q.contains('scan') || q.contains('receipt')) {
-        return 'Tap the + button → Scan Receipt to capture your bill with the camera!';
-      }
-      if (q.contains('add')) {
-        return 'Tap the + button → Camera or Files to add a new bill!';
-      }
-      return 'I can help you track bills, scan receipts, and manage spending. What would you like?';
-    }
+    // Module context బట్టి system prompt set చేయడం
+    final systemPrompt = _buildSystemPrompt(widget.moduleContext);
 
-    if (module == 'skincare') {
-      if (q.contains('morning') || q.contains('routine')) {
-        return 'Your morning routine: Cleanser → Vitamin C serum → Moisturiser → SPF 50. Takes about 5 minutes!';
-      }
-      if (q.contains('spf') || q.contains('sunscreen')) {
-        return 'For Indian skin, SPF 50 PA+++ is ideal. Try Biore UV or Re\'equil Sun Protect.';
-      }
-      if (q.contains('acne')) {
-        return 'For acne: Use salicylic acid cleanser, niacinamide serum, and avoid heavy moisturisers during the day.';
-      }
-      return 'I can guide your skincare routine, product picks, and skin concerns. Ask away!';
-    }
+    // Conversation history build చేయడం (greeting తప్ప)
+    final historyMessages = _messages
+        .where((m) => !m.isGreeting)
+        .map((m) => {
+              'role': m.isUser ? 'user' : 'assistant',
+              'content': m.text ?? '',
+            })
+        .where((m) => (m['content'] as String).isNotEmpty)
+        .toList();
 
-    if (module == 'medi') {
-      if (q.contains('today') || q.contains('medicine') || q.contains('dose')) {
-        return 'Today\'s medicines: Vitamin D3 (08:00 ✓), Iron Supplement (13:00 ✓), Omega-3 (20:00 pending).';
-      }
-      if (q.contains('missed') || q.contains('forgot')) {
-        return 'If you missed a dose, take it as soon as you remember — unless it\'s almost time for the next one. Never double dose.';
-      }
-      if (q.contains('reminder')) {
-        return 'Tap the bell icon on any medicine to set a reminder. I\'ll notify you on time!';
-      }
-      return 'I can help with medicine tracking, reminders, and dose schedules. What do you need?';
-    }
+    // Current user message add చేయడం
+    historyMessages.add({'role': 'user', 'content': userMessage});
 
-    if (module == 'diet') {
-      if (q.contains('keto')) {
-        return 'Keto plan: Keep carbs under 20g/day. Focus on eggs, meat, nuts, avocado, and leafy greens. Want a weekly plan?';
-      }
-      if (q.contains('protein') || q.contains('high protein')) {
-        return 'High protein meals: Paneer bhurji, eggs, dal, chicken, and Greek yogurt. Aim for 1.6g per kg of body weight.';
-      }
-      if (q.contains('vegan')) {
-        return 'Vegan plan: Lentils, chickpeas, tofu, quinoa, nuts, and seeds cover all essential nutrients!';
-      }
-      return 'I can build meal plans, track calories, and suggest recipes. What\'s your goal?';
-    }
+    try {
+      final response = await http
+          .post(
+            Uri.parse('https://api.anthropic.com/v1/messages'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: jsonEncode({
+              'model': 'claude-3-5-sonnet-20241022',
+              'max_tokens': 1024,
+              'system': systemPrompt,
+              'messages': historyMessages,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
-    if (module == 'fitness') {
-      if (q.contains('today') || q.contains('workout')) {
-        return 'Today\'s plan: Warm-up (10 min) → Squats 4×12 → Lunges 3×15 → Plank 3×45s. Ready to go?';
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final content = data['content'] as List<dynamic>;
+        if (content.isNotEmpty) {
+          return (content.first as Map<String, dynamic>)['text'] as String? ??
+              'Something went wrong. Please try again.';
+        }
       }
-      if (q.contains('beginner')) {
-        return 'Beginner plan: Start with 3 days/week. Day 1: Upper body. Day 2: Lower body. Day 3: Full body or cardio.';
-      }
-      if (q.contains('home') || q.contains('no gym')) {
-        return 'Home workout: Push-ups, squats, lunges, plank, and mountain climbers — no equipment needed!';
-      }
-      return 'I can design workout plans, track progress, and give exercise tips. What\'s your fitness goal?';
+      return 'Something went wrong. Please try again.';
+    } on SocketException {
+      return 'No internet connection. Please check your network.';
+    } on TimeoutException {
+      return 'Request timed out. Please try again.';
+    } catch (_) {
+      return 'Something went wrong. Please try again.';
     }
+  }
 
-    if (module == 'wardrobe') {
-      if (q.contains('today') || q.contains('outfit')) {
-        return AppLocalizations.t(context, 'ai_sug_4');
-      }
-      if (q.contains('capsule') || q.contains('minimal')) {
-        return 'Capsule wardrobe: 5 whites, 3 neutrals, 2 black trousers, 1 blazer, 2 jeans. Mix and match 20+ looks!';
-      }
-      return AppLocalizations.t(context, 'ai_sug_4');
+  /// Module బట్టి system prompt
+  String _buildSystemPrompt(String moduleContext) {
+    switch (moduleContext) {
+      case 'skincare':
+        return 'You are a professional skincare assistant. Help users with skincare routines, product recommendations, and skin concerns. Be concise, friendly, and practical.';
+      case 'medi':
+        return 'You are a helpful medicine assistant. Help users track medications, understand dosage timings, and answer general medicine questions. Always remind users to consult a doctor for medical advice.';
+      case 'bills':
+        return 'You are a bills and finance assistant. Help users manage pending payments, track due dates, and understand their monthly expenses. Be clear and concise.';
+      case 'diet':
+        return 'You are a diet and nutrition assistant. Help users build meal plans, suggest healthy recipes, and achieve their nutrition goals. Be encouraging and practical.';
+      case 'fitness':
+        return 'You are a personal fitness coach. Help users with workout plans, exercise tips, and fitness goals. Be motivating and specific.';
+      case 'wardrobe':
+        return 'You are a wardrobe stylist. Help users mix and match outfits, manage their wardrobe, and suggest new additions. Be creative and fashion-forward.';
+      case 'style':
+      default:
+        return 'You are an AI stylist. Help users choose outfits for occasions, provide style tips, and suggest looks based on their mood and wardrobe. Be friendly and inspiring.';
     }
-
-    // Default / style fallback
-    if (q.contains('wear') || q.contains('outfit')) {
-      return AppLocalizations.t(context, 'ai_sug_4');
-    }
-    if (q.contains('routine') || q.contains('skin')) {
-      return AppLocalizations.t(context, 'ai_sug_2');
-    }
-    if (q.contains('plan') || q.contains('meal') || q.contains('workout')) {
-      return AppLocalizations.t(context, 'ai_sug_3');
-    }
-    return AppLocalizations.t(context, 'chat_greeting');
   }
 
   // ── History Panel (custom in-sheet slide-in, replaces Flutter Drawer) ──
@@ -1083,13 +1058,28 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
 class _SheetMessage {
   final String? text;
   final String? textKey;
+
+  /// Used when [textKey] is provided but the localization lookup returns
+  /// an empty / missing string — ensures the greeting is always shown.
+  final String? fallback;
+
   final bool isUser;
 
-  _SheetMessage({this.text, this.textKey, required this.isUser})
+  _SheetMessage({this.text, this.textKey, this.fallback, required this.isUser})
       : assert(text != null || textKey != null);
 
+  /// Greeting messages (textKey based) API history లో include చేయకూడదు
+  bool get isGreeting => textKey != null;
+
   String resolve(BuildContext context) {
-    if (textKey != null) return AppLocalizations.t(context, textKey!);
+    if (textKey != null) {
+      final localized = AppLocalizations.t(context, textKey!);
+      // If the key is missing the library typically returns the key itself
+      // or an empty string — fall back to the hardcoded greeting in that case.
+      if (localized.isNotEmpty && localized != textKey) return localized;
+      if (fallback != null) return fallback!;
+      return localized;
+    }
     return text ?? '';
   }
 }
@@ -1607,7 +1597,12 @@ class _TypingBubbleState extends State<_TypingBubble>
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: context.themeTokens.panel,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(18),
+            topRight: Radius.circular(18),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(18),
+          ),
           border: Border.all(color: context.themeTokens.cardBorder),
           boxShadow: [
             BoxShadow(

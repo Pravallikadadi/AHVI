@@ -383,7 +383,7 @@ class _SkincareScreenState extends State<SkincareScreen>
                   child: Padding(
                     padding: const EdgeInsets.only(right: 20, bottom: 30),
                     child: _AskAhviFab(
-                      onTap: () => showAhviStylistChatSheet(context),
+                      onTap: () => showAhviStylistChatSheet(context, moduleContext: 'skincare'),
                     ),
                   ),
                 ),
