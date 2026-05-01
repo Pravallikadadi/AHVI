@@ -658,36 +658,27 @@ class _BillsScreenState extends State<BillsScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // ── Icon ──
+          Container(
+            width: 40,
+            height: 40,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: _accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _accent.withValues(alpha: 0.25)),
+            ),
+            child: Icon(Icons.receipt_long_rounded, color: Colors.black, size: 20),
+          ),
           // ── Title ──
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      AppLocalizations.t(context, 'bills_title'),
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: _t.textPrimary,
-                        height: 1.0,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  AppLocalizations.t(context, 'bills_by_ahvi'),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 3.2,
-                    color: _t.mutedText,
-                  ),
-                ),
-              ],
+            child: Text(
+              AppLocalizations.t(context, 'bills_title'),
+              style: GoogleFonts.anton(
+                fontSize: 22,
+                color: Colors.black,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],

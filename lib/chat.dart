@@ -833,25 +833,22 @@ class _ChatScreenState extends State<ChatScreen>
                   final double listBottomPad = kbH > 0
                       ? promptBarH
                       : navBarH + promptBarH + (widget.showBackButton ? 0 : 80);
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          controller: _scrollController,
-                          padding: EdgeInsets.fromLTRB(20, 16, 20, listBottomPad),
-                          itemCount: _messages.length,
-                          itemBuilder: (_, i) => _msg(_messages[i], t),
-                        ),
-                      ),
-                      if (_isTyping)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 20, bottom: 8),
-                          child: Align(
+                  return ListView.builder(
+                      controller: _scrollController,
+                      padding: EdgeInsets.fromLTRB(20, 16, 20, listBottomPad),
+                      itemCount: _messages.length + (_isTyping ? 1 : 0),
+                      itemBuilder: (_, i) {
+                        if (_isTyping && i == _messages.length) {
+                          return const Align(
                             alignment: Alignment.centerLeft,
-                            child: _TypingBubble(),
-                          ),
-                        ),
-                    ],
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: _TypingBubble(),
+                            ),
+                          );
+                        }
+                        return _msg(_messages[i], t);
+                      },
                   );
                 },
               ),
@@ -1035,20 +1032,20 @@ class _ChatScreenState extends State<ChatScreen>
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: m.isMe ? t.accent.primary : t.panel,
+            color: t.panel,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(18),
               topRight: const Radius.circular(18),
               bottomLeft: Radius.circular(m.isMe ? 18 : 4),
               bottomRight: Radius.circular(m.isMe ? 4 : 18),
             ),
-            border: m.isMe ? null : Border.all(color: t.cardBorder),
+            border: Border.all(color: t.cardBorder),
           ),
           child: m.isMe
               ? Text(
                   m.text,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: t.textPrimary,
                     fontSize: 14.5,
                     height: 1.4,
                   ),

@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:myapp/app_localizations.dart';
 import 'package:http/http.dart' as http;
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 // theme_tokens.dart — use package import below if in a sub-folder
 // Update this path to match your project structure, e.g.:
 // import 'package:your_app/theme/theme_tokens.dart';
 import 'theme/theme_tokens.dart';
-import 'package:myapp/widgets/ahvi_home_text.dart';
-import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
+import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
 // ─── THEME COLORS ────────────────────────────────────────────────────────────
 // NOTE: kAccent and meal-type colors remain constant (not theme-dependent)
@@ -148,53 +146,91 @@ class ChatMessage {
   MealPlan? plan;
   ChatMessage({required this.text, required this.isBot, this.plan});
 }
-// ─── IMAGE PROVIDER (Wikipedia / TheMealDB API) ──────────────────────────────
+// ─── IMAGE PROVIDER (TheMealDB → Wikipedia → Pexels) ────────────────────────
+//
+// API Key Setup:
+//   1. https://www.pexels.com/api/ lo free account create cheyyi
+//   2. Dashboard lo API key copy cheyyi
+//   3. Below '_kPexelsApiKey' lo paste cheyyi
+//
+// Free tier: 200 requests/hour, 20,000/month — production ki sufficient
+// ─────────────────────────────────────────────────────────────────────────────
 class MealImageProvider {
-  static final Map<String, String> _cache = {};
+  static const String _kPexelsApiKey = 'b48yMGltJ1JDONmzdmpyLEhtZSIQnVZv0Mg73adF8ifAjZj9jJlGNBev'; // 👈 replace cheyyi
+
+  static final Map<String, String?> _cache = {};
+
+  // Emoji prefix clean cheyyadaniki
+  static String _cleanQuery(String raw) {
+    return raw
+        .replaceAll(RegExp(r'[\u{1F300}-\u{1FAFF}]', unicode: true), '')
+        .replaceAll(RegExp(r'[^\x00-\x7F]'), '')
+        .trim();
+  }
+
   static Future<String?> fetchImage(String mealName) async {
     final query = mealName.toLowerCase().trim();
     if (query.isEmpty) return null;
     if (_cache.containsKey(query)) return _cache[query];
-    // Tier 1: TheMealDB
+
+    final clean = _cleanQuery(query);
+    final shortQuery = clean.split(' ').take(3).join(' ');
+
+    // ── Tier 1: TheMealDB (Western dishes — no API key, fast) ──────────────
     try {
-      final decodedQuery = query.replaceFirst(RegExp(r'^\🌅|^\☀️|^\🌙|^\🍎'), '').trim();
-      final nameUri = Uri.encodeComponent(decodedQuery.split(' ').take(2).join(' '));
+      final encoded = Uri.encodeComponent(clean.split(' ').take(2).join(' '));
       final res = await http.get(
-        Uri.parse('https://www.themealdb.com/api/json/v1/1/search.php?s=$nameUri'),
-      ).timeout(const Duration(seconds: 8));
+        Uri.parse('https://www.themealdb.com/api/json/v1/1/search.php?s=$encoded'),
+      ).timeout(const Duration(seconds: 6));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
-        final meal = data['meals']?[0];
-        if (meal != null && meal['strMealThumb'] != null) {
-          _cache[query] = meal['strMealThumb'];
-          return meal['strMealThumb'];
+        final thumb = data['meals']?[0]?['strMealThumb'] as String?;
+        if (thumb != null) {
+          _cache[query] = thumb;
+          return thumb;
         }
       }
     } catch (_) {}
-    // Tier 2: Wikipedia Summary API
+
+    // ── Tier 2: Wikipedia Summary API (Indian dishes baguntayi) ────────────
     try {
-      final wikiUri = Uri.encodeComponent(query);
+      final wikiEncoded = Uri.encodeComponent(shortQuery);
       final res = await http.get(
-        Uri.parse('https://en.wikipedia.org/api/rest_v1/page/summary/$wikiUri'),
+        Uri.parse('https://en.wikipedia.org/api/rest_v1/page/summary/$wikiEncoded'),
         headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 6));
       if (res.statusCode == 200) {
         final data = json.decode(res.body);
         final imgUrl = data['thumbnail']?['source'] ?? data['originalimage']?['source'];
         if (imgUrl != null) {
-          final formatted = imgUrl.toString().replaceFirst(RegExp(r'\/\d+px-'), '/480px-');
-          _cache[query] = formatted;
-          return formatted;
+          final sized = (imgUrl as String).replaceFirst(RegExp(r'/\d+px-'), '/480px-');
+          _cache[query] = sized;
+          return sized;
         }
       }
     } catch (_) {}
-    // Tier 3: Unsplash source (no API key needed)
-    try {
-      final unsplashQuery = Uri.encodeComponent(query.split(' ').take(2).join(' '));
-      final url = 'https://source.unsplash.com/400x300/?$unsplashQuery,food';
-      _cache[query] = url;
-      return url;
-    } catch (_) {}
+
+    // ── Tier 3: Pexels API (production-grade, reliable fallback) ───────────
+    if (_kPexelsApiKey != 'b48yMGltJ1JDONmzdmpyLEhtZSIQnVZv0Mg73adF8ifAjZj9jJlGNBev') {
+      try {
+        final pexelsQuery = Uri.encodeComponent('$shortQuery food');
+        final res = await http.get(
+          Uri.parse('https://api.pexels.com/v1/search?query=$pexelsQuery&per_page=1&orientation=square'),
+          headers: {'Authorization': _kPexelsApiKey},
+        ).timeout(const Duration(seconds: 8));
+        if (res.statusCode == 200) {
+          final data = json.decode(res.body);
+          final imgUrl = data['photos']?[0]?['src']?['medium'] as String?;
+          if (imgUrl != null) {
+            _cache[query] = imgUrl;
+            return imgUrl;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // Nothing found — null cache chestuundi so next session retry avutuundi
+    _cache[query] = null;
     return null;
   }
 }
@@ -206,7 +242,6 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 class _MainScreenState extends State<MainScreen> {
-  bool _isChatOpen = false;
   final List<MealPlan> _plans = [];
   final _plansMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -279,26 +314,10 @@ class _MainScreenState extends State<MainScreen> {
             onEdit: _editPlan,
             messengerKey: _plansMessengerKey,
           ),
-          
-          if (!_isChatOpen)
-            Positioned(
-              bottom: 30, right: 20,
-              child: _AskAhviFab(
-                onTap: () => setState(() => _isChatOpen = true),
-              ),
-            ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 380),
-            curve: Curves.easeInOutCubic,
-            left: 0, right: 0,
-            top: _isChatOpen ? 0 : MediaQuery.of(context).size.height,
-            bottom: _isChatOpen ? 0 : -MediaQuery.of(context).size.height,
-            child: ChatScreen(
-              onSavePlan: (p) {
-                _savePlanFromChat(p);
-                setState(() => _isChatOpen = false);
-              },
-              onClose: () => setState(() => _isChatOpen = false),
+          Positioned(
+            bottom: 30, right: 20,
+            child: _AskAhviFab(
+              onTap: () => showAhviStylistChatSheet(context, moduleContext: 'diet'),
             ),
           ),
         ],
@@ -330,6 +349,36 @@ class _PlansScreenState extends State<PlansScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // ─── PAGE HEADER ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: kAccent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kAccent.withValues(alpha: 0.25)),
+                    ),
+                    child: const Icon(Icons.restaurant_menu_rounded, color: Colors.black, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Diet',
+                        style: GoogleFonts.anton(fontSize: 22, color: Colors.black, letterSpacing: 0.5),
+                      ),
+
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // ─────────────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
               child: Column(
@@ -340,9 +389,16 @@ class _PlansScreenState extends State<PlansScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: context.dAccent,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF9B8FFF), Color(0xFF7B6EF6), Color(0xFF5B8DEF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         borderRadius: BorderRadius.circular(100),
-                        boxShadow: const [BoxShadow(color: Color(0x4D6C63FF), blurRadius: 16, offset: Offset(0, 4))],
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x557B6EF6), blurRadius: 18, offset: Offset(0, 5)),
+                          BoxShadow(color: Color(0x225B8DEF), blurRadius: 30, offset: Offset(0, 8)),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -426,10 +482,26 @@ class _PlansScreenState extends State<PlansScreen> {
   String _weekday(int d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d - 1];
   String _month(int m) => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1];
 }
+// ─── CHIP STYLE CONFIG ────────────────────────────────────────────────────────
+class _ChipStyle {
+  final Color pastelBg;
+  final Color pastelBorder;
+  final Color textColor;
+  const _ChipStyle({required this.pastelBg, required this.pastelBorder, required this.textColor});
+}
+
 class _FilterTabs extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onSelect;
   const _FilterTabs({required this.selected, required this.onSelect});
+
+  static const Map<String, _ChipStyle> _styles = {
+    'all':     _ChipStyle(pastelBg: Color(0xFFEDE9FF), pastelBorder: Color(0xFFBDB4FF), textColor: Color(0xFF5A4FCF)),
+    'daily':   _ChipStyle(pastelBg: Color(0xFFFFF4DD), pastelBorder: Color(0xFFFFD980), textColor: Color(0xFFB07700)),
+    'weekly':  _ChipStyle(pastelBg: Color(0xFFE5F7F0), pastelBorder: Color(0xFF86D9B5), textColor: Color(0xFF1A7A50)),
+    'monthly': _ChipStyle(pastelBg: Color(0xFFFFE8F2), pastelBorder: Color(0xFFFFADD4), textColor: Color(0xFFB0005A)),
+  };
+
   @override
   Widget build(BuildContext context) {
     final tabs = [
@@ -443,23 +515,35 @@ class _FilterTabs extends StatelessWidget {
       child: Row(
         children: tabs.map((t) {
           final active = selected == t.$1;
+          final style = _styles[t.$1]!;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: GestureDetector(
               onTap: () => onSelect(t.$1),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: active ? context.dAccent : context.dSurface,
+                  color: active ? style.pastelBg : context.dSurface,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: active ? context.dAccent : context.dBorder),
+                  border: Border.all(
+                    color: active ? style.pastelBorder : context.dBorder,
+                    width: active ? 1.5 : 1.0,
+                  ),
+                  boxShadow: [],
                 ),
                 child: Row(
                   children: [
                     Text(t.$2, style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 5),
-                    Text(t.$3, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: active ? Colors.white : context.dText2)),
+                    Text(
+                      t.$3,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: active ? style.textColor : context.dText2,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -845,10 +929,13 @@ class _MealEntryState extends State<_MealEntry> {
   String _lastFetched = '';
   void _onNameChanged() {
     final name = widget.nameCtrl.text.trim();
-    if (name.length > 3 && name != _lastFetched) {
-      _lastFetched = name;
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (widget.nameCtrl.text.trim() == name && mounted) _autoFetch();
+    if (name.length > 3) {
+      Future.delayed(const Duration(milliseconds: 900), () {
+        final current = widget.nameCtrl.text.trim();
+        if (current == name && current != _lastFetched && mounted) {
+          _lastFetched = current;
+          _autoFetch();
+        }
       });
     }
   }
@@ -888,405 +975,7 @@ class _MealEntryState extends State<_MealEntry> {
     );
   }
 }
-class ChatScreen extends StatefulWidget {
-  final ValueChanged<MealPlan> onSavePlan;
-  final VoidCallback onClose;
-  const ChatScreen({super.key, required this.onSavePlan, required this.onClose});
-  @override
-  State<ChatScreen> createState() => _ChatScreenState();
-}
-class _ChatScreenState extends State<ChatScreen> {
-  final _msgCtrl = TextEditingController();
-  final _msgFocus = FocusNode();
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey<ScaffoldMessengerState> _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  final List<ChatMessage> _messages = [];
-  bool _isTyping = false;
-  OverlayEntry? _overlay;
 
-  void _removeOverlay() {
-    _overlay?.remove();
-    _overlay = null;
-  }
-
-  // ── Voice ──────────────────────────────────────────────────────────
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  bool _isListening = false;
-  bool _speechAvailable = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _initSpeech();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _messages.isEmpty) {
-        setState(() {
-          _messages.add(ChatMessage(
-            text: AppLocalizations.t(context, 'diet_chat_welcome'),
-            isBot: true,
-          ));
-        });
-      }
-    });
-  }
-
-  Future<void> _initSpeech() async {
-    _speechAvailable = await _speech.initialize(
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          if (mounted) setState(() => _isListening = false);
-        }
-      },
-      onError: (e) {
-        if (mounted) setState(() => _isListening = false);
-      },
-    );
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _toggleListening() async {
-    if (!_speechAvailable) return;
-    if (_isListening) {
-      await _speech.stop();
-      setState(() => _isListening = false);
-    } else {
-      setState(() => _isListening = true);
-      await _speech.listen(
-        onResult: (result) {
-          setState(() {
-            _msgCtrl.text = result.recognizedWords;
-            _msgCtrl.selection = TextSelection.fromPosition(
-              TextPosition(offset: _msgCtrl.text.length),
-            );
-          });
-          if (result.finalResult && result.recognizedWords.trim().isNotEmpty) {
-            _speech.stop();
-            setState(() => _isListening = false);
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 4),
-        localeId: 'en_IN',
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _speech.stop();
-    _msgCtrl.dispose();
-    _msgFocus.dispose();
-    _removeOverlay();
-    super.dispose();
-  }
-  // Detect plan type from user message
-  String _detectPlanType(String msg) {
-    final m = msg.toLowerCase();
-    if (m.contains('monthly') || m.contains('month')) return 'monthly';
-    if (m.contains('weekly') || m.contains('week')) return 'weekly';
-    return 'daily';
-  }
-
-  // All meals pool per diet (varied for each day)
-  List<List<Meal>> _mealPool(String diet) {
-    switch (diet) {
-      case 'mediterranean':
-        return [
-          [Meal(type:'Breakfast',name:'Greek Yogurt with Honey',desc:'',cal:320,protein:18,carbs:38,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Greek Chicken Salad',desc:'',cal:520,protein:42,carbs:28,fat:22,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Baked Sea Bass',desc:'',cal:480,protein:38,carbs:20,fat:18,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Hummus with Pita',desc:'',cal:210,protein:8,carbs:26,fat:9,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Shakshuka Eggs',desc:'',cal:310,protein:20,carbs:22,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Falafel Wrap',desc:'',cal:490,protein:18,carbs:58,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Lamb Kofta with Rice',desc:'',cal:560,protein:40,carbs:42,fat:20,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Olives & Feta Cheese',desc:'',cal:180,protein:6,carbs:4,fat:16,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Avocado Toast with Egg',desc:'',cal:350,protein:16,carbs:32,fat:18,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Tabbouleh Salad',desc:'',cal:380,protein:12,carbs:48,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Grilled Swordfish',desc:'',cal:500,protein:44,carbs:16,fat:20,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Tzatziki with Veggies',desc:'',cal:140,protein:8,carbs:10,fat:7,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Oat Porridge with Dates',desc:'',cal:340,protein:10,carbs:55,fat:7,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Stuffed Bell Peppers',desc:'',cal:430,protein:22,carbs:46,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Chicken Souvlaki',desc:'',cal:510,protein:42,carbs:30,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Mixed Nuts',desc:'',cal:200,protein:6,carbs:8,fat:17,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Labneh with Herbs',desc:'',cal:280,protein:14,carbs:18,fat:16,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Lemon Herb Couscous',desc:'',cal:460,protein:16,carbs:62,fat:12,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Prawn Pasta',desc:'',cal:540,protein:36,carbs:52,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Fresh Fruit Plate',desc:'',cal:120,protein:2,carbs:28,fat:1,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Spinach Feta Omelette',desc:'',cal:330,protein:22,carbs:8,fat:22,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Hummus Pita Bowl',desc:'',cal:420,protein:16,carbs:54,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Moussaka',desc:'',cal:580,protein:30,carbs:44,fat:28,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Grape & Walnut Mix',desc:'',cal:190,protein:4,carbs:24,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Banana Almond Smoothie',desc:'',cal:300,protein:12,carbs:42,fat:10,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Nicoise Salad',desc:'',cal:440,protein:30,carbs:28,fat:22,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Herb Roasted Chicken',desc:'',cal:520,protein:48,carbs:14,fat:24,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Cucumber Yogurt Dip',desc:'',cal:130,protein:7,carbs:12,fat:5,cls:'snack',icon:'🍎')],
-        ];
-      case 'vegan':
-        return [
-          [Meal(type:'Breakfast',name:'Smoothie Bowl',desc:'',cal:350,protein:12,carbs:52,fat:10,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Lentil Buddha Bowl',desc:'',cal:490,protein:22,carbs:68,fat:12,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Black Bean Tacos',desc:'',cal:450,protein:20,carbs:62,fat:14,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Mixed Nuts & Berries',desc:'',cal:180,protein:5,carbs:18,fat:11,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Chia Seed Pudding',desc:'',cal:320,protein:10,carbs:38,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Chickpea Curry',desc:'',cal:480,protein:20,carbs:66,fat:12,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Tofu Stir Fry',desc:'',cal:420,protein:22,carbs:44,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Apple with Almond Butter',desc:'',cal:190,protein:4,carbs:24,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Oat & Banana Pancakes',desc:'',cal:360,protein:10,carbs:58,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Quinoa Veggie Bowl',desc:'',cal:470,protein:18,carbs:62,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Mushroom Pasta',desc:'',cal:460,protein:16,carbs:70,fat:12,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Edamame',desc:'',cal:150,protein:12,carbs:12,fat:5,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Avocado Toast',desc:'',cal:330,protein:8,carbs:36,fat:18,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Sweet Potato Soup',desc:'',cal:380,protein:8,carbs:60,fat:10,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Vegetable Biryani',desc:'',cal:490,protein:14,carbs:78,fat:12,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Roasted Chickpeas',desc:'',cal:160,protein:8,carbs:22,fat:4,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Acai Bowl',desc:'',cal:380,protein:8,carbs:60,fat:12,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Falafel Wrap',desc:'',cal:460,protein:16,carbs:58,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Cauliflower Tikka Masala',desc:'',cal:430,protein:14,carbs:54,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Dates & Walnuts',desc:'',cal:200,protein:3,carbs:28,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Green Detox Smoothie',desc:'',cal:280,protein:8,carbs:42,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Tempeh Grain Bowl',desc:'',cal:500,protein:24,carbs:60,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Lentil Soup with Bread',desc:'',cal:420,protein:18,carbs:64,fat:8,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Fruit & Seed Mix',desc:'',cal:170,protein:4,carbs:26,fat:7,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Coconut Yogurt Parfait',desc:'',cal:310,protein:6,carbs:48,fat:10,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Mango Tofu Salad',desc:'',cal:440,protein:18,carbs:52,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Veggie Burger',desc:'',cal:460,protein:20,carbs:56,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Kale Chips',desc:'',cal:120,protein:3,carbs:14,fat:6,cls:'snack',icon:'🍎')],
-        ];
-      case 'highprotein':
-        return [
-          [Meal(type:'Breakfast',name:'Egg White Omelette',desc:'',cal:310,protein:32,carbs:12,fat:10,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Grilled Chicken Rice Bowl',desc:'',cal:580,protein:52,carbs:45,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Salmon with Quinoa',desc:'',cal:520,protein:48,carbs:32,fat:18,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Cottage Cheese with Almonds',desc:'',cal:220,protein:20,carbs:8,fat:12,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Protein Pancakes',desc:'',cal:360,protein:30,carbs:28,fat:10,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Turkey Quinoa Bowl',desc:'',cal:560,protein:50,carbs:40,fat:12,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Tuna Steak & Veggies',desc:'',cal:490,protein:52,carbs:16,fat:18,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Greek Yogurt & Nuts',desc:'',cal:230,protein:18,carbs:14,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Scrambled Eggs & Turkey',desc:'',cal:380,protein:36,carbs:10,fat:18,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Beef & Broccoli',desc:'',cal:540,protein:48,carbs:28,fat:20,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Chicken Tikka Masala',desc:'',cal:510,protein:46,carbs:30,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Hard Boiled Eggs',desc:'',cal:160,protein:14,carbs:2,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Whey Protein Smoothie',desc:'',cal:300,protein:34,carbs:24,fat:6,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Shrimp Stir Fry',desc:'',cal:490,protein:44,carbs:36,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Lean Beef Meatballs',desc:'',cal:530,protein:50,carbs:24,fat:22,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Tuna on Rice Cakes',desc:'',cal:190,protein:22,carbs:16,fat:4,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Smoked Salmon Bagel',desc:'',cal:400,protein:28,carbs:36,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Chicken Caesar Salad',desc:'',cal:520,protein:46,carbs:22,fat:22,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Pork Tenderloin',desc:'',cal:500,protein:50,carbs:18,fat:18,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Jerky & String Cheese',desc:'',cal:200,protein:20,carbs:6,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Cottage Cheese Bowl',desc:'',cal:310,protein:28,carbs:20,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Grilled Swordfish Salad',desc:'',cal:480,protein:48,carbs:18,fat:20,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Turkey Meatloaf',desc:'',cal:520,protein:52,carbs:20,fat:20,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Whey Protein Bar',desc:'',cal:210,protein:24,carbs:18,fat:6,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Egg Muffins',desc:'',cal:320,protein:28,carbs:8,fat:18,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Duck Rice Bowl',desc:'',cal:580,protein:44,carbs:50,fat:18,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Herb Baked Cod',desc:'',cal:460,protein:50,carbs:14,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Edamame & Almonds',desc:'',cal:230,protein:16,carbs:14,fat:12,cls:'snack',icon:'🍎')],
-        ];
-      case 'keto':
-        return [
-          [Meal(type:'Breakfast',name:'Avocado Bacon Eggs',desc:'',cal:420,protein:22,carbs:4,fat:36,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Zucchini Noodles with Pesto',desc:'',cal:460,protein:18,carbs:8,fat:40,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Butter Garlic Steak',desc:'',cal:540,protein:44,carbs:2,fat:38,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Cheese & Cucumber Slices',desc:'',cal:150,protein:10,carbs:3,fat:11,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Bacon & Cheese Frittata',desc:'',cal:450,protein:28,carbs:3,fat:38,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Tuna Stuffed Avocado',desc:'',cal:420,protein:24,carbs:6,fat:34,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Creamy Chicken Thighs',desc:'',cal:520,protein:40,carbs:4,fat:38,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Pork Rinds',desc:'',cal:130,protein:14,carbs:0,fat:8,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Butter Coffee & Eggs',desc:'',cal:440,protein:18,carbs:2,fat:40,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Keto Caesar Salad',desc:'',cal:430,protein:26,carbs:6,fat:36,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Lamb Chops',desc:'',cal:560,protein:46,carbs:0,fat:42,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Macadamia Nuts',desc:'',cal:200,protein:2,carbs:4,fat:20,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Smoked Salmon & Cream Cheese',desc:'',cal:390,protein:22,carbs:4,fat:32,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Bacon Wrapped Asparagus',desc:'',cal:400,protein:24,carbs:6,fat:32,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Pork Belly with Greens',desc:'',cal:580,protein:38,carbs:4,fat:46,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Olives & Cheese',desc:'',cal:160,protein:6,carbs:2,fat:14,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Keto Pancakes',desc:'',cal:380,protein:20,carbs:6,fat:32,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Ground Beef Lettuce Wraps',desc:'',cal:450,protein:32,carbs:4,fat:34,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Salmon with Herb Butter',desc:'',cal:520,protein:42,carbs:2,fat:38,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Beef Jerky',desc:'',cal:140,protein:16,carbs:4,fat:6,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Egg & Chorizo Scramble',desc:'',cal:460,protein:30,carbs:2,fat:38,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Shrimp with Garlic Butter',desc:'',cal:380,protein:30,carbs:4,fat:26,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Duck Breast',desc:'',cal:550,protein:44,carbs:0,fat:40,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Walnut Cluster',desc:'',cal:180,protein:4,carbs:4,fat:18,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Coconut Chia Bowl',desc:'',cal:350,protein:10,carbs:8,fat:30,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Chicken & Brie Salad',desc:'',cal:470,protein:36,carbs:6,fat:34,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Ribeye Steak',desc:'',cal:600,protein:50,carbs:0,fat:44,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Dark Chocolate (90%)',desc:'',cal:170,protein:3,carbs:6,fat:14,cls:'snack',icon:'🍎')],
-        ];
-      case 'healthy':
-      default:
-        return [
-          [Meal(type:'Breakfast',name:'Oatmeal with Banana',desc:'',cal:340,protein:10,carbs:58,fat:7,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Veggie Wrap with Hummus',desc:'',cal:430,protein:16,carbs:54,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Grilled Chicken & Veggies',desc:'',cal:480,protein:42,carbs:28,fat:18,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Apple with Peanut Butter',desc:'',cal:200,protein:6,carbs:24,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Berry Yogurt Parfait',desc:'',cal:320,protein:14,carbs:46,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Brown Rice Buddha Bowl',desc:'',cal:460,protein:18,carbs:62,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Baked Cod with Salad',desc:'',cal:440,protein:38,carbs:22,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Carrot & Celery Sticks',desc:'',cal:100,protein:3,carbs:18,fat:2,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Whole Grain Toast & Eggs',desc:'',cal:360,protein:20,carbs:36,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Chicken Soup',desc:'',cal:380,protein:28,carbs:34,fat:12,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Stir Fried Tofu & Rice',desc:'',cal:450,protein:22,carbs:58,fat:12,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Orange & Almonds',desc:'',cal:180,protein:5,carbs:22,fat:10,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Mango Overnight Oats',desc:'',cal:350,protein:12,carbs:54,fat:8,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Tuna Salad Sandwich',desc:'',cal:420,protein:30,carbs:38,fat:14,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Turkey Stuffed Peppers',desc:'',cal:470,protein:38,carbs:36,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Banana & Walnuts',desc:'',cal:190,protein:4,carbs:28,fat:9,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Spinach Scrambled Eggs',desc:'',cal:310,protein:22,carbs:10,fat:18,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Lentil & Veg Soup',desc:'',cal:400,protein:20,carbs:52,fat:8,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Baked Salmon Fillet',desc:'',cal:490,protein:44,carbs:16,fat:24,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Blueberry Greek Yogurt',desc:'',cal:160,protein:10,carbs:22,fat:3,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Coconut Granola Bowl',desc:'',cal:380,protein:10,carbs:56,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Grilled Veggie Panini',desc:'',cal:440,protein:16,carbs:58,fat:16,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Chicken Fried Rice',desc:'',cal:500,protein:34,carbs:52,fat:16,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Peach & Cottage Cheese',desc:'',cal:170,protein:10,carbs:20,fat:4,cls:'snack',icon:'🍎')],
-          [Meal(type:'Breakfast',name:'Peanut Butter Smoothie',desc:'',cal:340,protein:16,carbs:38,fat:14,cls:'breakfast',icon:'🌅'),Meal(type:'Lunch',name:'Greek Salad with Grilled Chicken',desc:'',cal:460,protein:38,carbs:20,fat:20,cls:'lunch',icon:'☀️'),Meal(type:'Dinner',name:'Vegetable Curry & Rice',desc:'',cal:480,protein:16,carbs:68,fat:14,cls:'dinner',icon:'🌙'),Meal(type:'Snack',name:'Mixed Seeds & Raisins',desc:'',cal:190,protein:6,carbs:24,fat:9,cls:'snack',icon:'🍎')],
-        ];
-    }
-  }
-
-  List<Meal> _dailyMeals(String diet) => _mealPool(diet)[0];
-
-  List<DayPlan> _weeklyDays(String diet) {
-    final pool = _mealPool(diet);
-    final days = [AppLocalizations.t(context,'diet_monday'),AppLocalizations.t(context,'diet_tuesday'),AppLocalizations.t(context,'diet_wednesday'),AppLocalizations.t(context,'diet_thursday'),AppLocalizations.t(context,'diet_friday'),AppLocalizations.t(context,'diet_saturday'),AppLocalizations.t(context,'diet_sunday')];
-    return List.generate(7, (i) => DayPlan(label: days[i], meals: pool[i % pool.length]));
-  }
-
-  List<DayPlan> _monthlyWeeks(String diet) {
-    final pool = _mealPool(diet);
-    return List.generate(4, (i) {
-      final base = (i * 2) % pool.length;
-      final meals = [
-        pool[base % pool.length][0].copyWith(),
-        pool[(base + 1) % pool.length][1].copyWith(),
-        pool[(base + 2) % pool.length][2].copyWith(),
-        pool[(base + 3) % pool.length][3].copyWith(),
-      ];
-      return DayPlan(label: '${AppLocalizations.t(context, "diet_week")} ${i + 1}', meals: meals);
-    });
-  }
-
-  void _send() async {
-    final t = _msgCtrl.text.trim();
-    if (t.isEmpty) return;
-    final displayText = t;
-    _msgCtrl.clear();
-    setState(() { _messages.add(ChatMessage(text: displayText, isBot: false)); _isTyping = true; });
-    await Future.delayed(const Duration(seconds: 1));
-
-    final lower = t.toLowerCase();
-    final planType = _detectPlanType(lower);
-    final planTypeLabel = planType[0].toUpperCase() + planType.substring(1);
-
-    String reply = AppLocalizations.t(context, 'diet_chat_here_plan').replaceAll('{type}', planTypeLabel);
-    MealPlan? plan;
-    String diet = 'healthy';
-    String planName = AppLocalizations.t(context, 'diet_plan_healthy');
-
-    if (lower.contains('mediterr')) { diet = 'mediterranean'; planName = AppLocalizations.t(context, 'diet_plan_mediterranean'); }
-    else if (lower.contains('vegan')) { diet = 'vegan'; planName = AppLocalizations.t(context, 'diet_plan_vegan'); }
-    else if (lower.contains('high protein') || lower.contains('highprotein') || lower.contains('protein')) { diet = 'highprotein'; planName = AppLocalizations.t(context, 'diet_plan_highprotein'); }
-    else if (lower.contains('keto')) { diet = 'keto'; planName = AppLocalizations.t(context, 'diet_plan_keto'); }
-    else if (lower.contains('healthy') || lower.contains('balanced') || lower.contains('plan')) { diet = 'healthy'; planName = 'Healthy Balanced Plan'; }
-    else {
-      reply = AppLocalizations.t(context, 'diet_chat_fallback');
-      if (mounted) setState(() { _isTyping = false; _messages.add(ChatMessage(text: reply, isBot: true)); });
-      return;
-    }
-
-    if (planType == 'weekly') {
-      final days = _weeklyDays(diet);
-      plan = MealPlan(id: 0, name: planName, desc: '', planType: 'weekly', meals: [], days: days);
-      for (final day in plan.days) {
-        for (final meal in day.meals) {
-          meal.imagePath = await MealImageProvider.fetchImage(meal.name);
-        }
-      }
-    } else if (planType == 'monthly') {
-      final weeks = _monthlyWeeks(diet);
-      plan = MealPlan(id: 0, name: planName, desc: '', planType: 'monthly', meals: [], days: weeks);
-      for (final week in plan.days) {
-        for (final meal in week.meals) {
-          meal.imagePath = await MealImageProvider.fetchImage(meal.name);
-        }
-      }
-    } else {
-      final meals = _dailyMeals(diet);
-      plan = MealPlan(id: 0, name: planName, desc: '', planType: 'daily', meals: meals, days: []);
-      for (final meal in plan.meals) {
-        meal.imagePath = await MealImageProvider.fetchImage(meal.name);
-      }
-    }
-
-    if (mounted) setState(() { _isTyping = false; _messages.add(ChatMessage(text: reply, isBot: true)); }); // plan: null — backend connect అయినప్పుడు pass చేయాలి
-  }
-  @override
-  Widget build(BuildContext context) {
-    return ScaffoldMessenger(
-      key: _messengerKey,
-      child: Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: context.dBg,
-      drawer: _historyDrawer(),
-      body: SafeArea(child: Column(children: [
-        // ── AppBar ──────────────────────────────────────────────────────
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-          color: context.dSurface,
-          child: Row(children: [
-            // Back button on left
-            GestureDetector(
-              onTap: widget.onClose,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: context.dText),
-              ),
-            ),
-            AhviHomeText(
-              color: context.dText,
-              fontSize: 30.0,
-              letterSpacing: 3.2,
-              fontWeight: FontWeight.w400,
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: () => _scaffoldKey.currentState?.openDrawer(),
-              child: Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(color: context.dSurface2, borderRadius: BorderRadius.circular(10), border: Border.all(color: context.dBorder)),
-                child: Icon(Icons.history_rounded, size: 18, color: context.dAccent),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ]),
-        ),
-        // ── Messages ────────────────────────────────────────────────────
-        Expanded(child: ListView.builder(padding: const EdgeInsets.all(16), itemCount: _messages.length + (_isTyping ? 1 : 0), itemBuilder: (ctx, i) {
-          if (i == _messages.length) return Padding(padding: EdgeInsets.all(8.0), child: Text(AppLocalizations.t(context, 'diet_thinking'), style: TextStyle(fontSize: 11, color: context.dMuted)));
-          final m = _messages[i];
-          return Column(crossAxisAlignment: m.isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end, children: [
-            Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), decoration: BoxDecoration(color: m.isBot ? context.dSurface : context.dAccent, borderRadius: BorderRadius.circular(16).copyWith(bottomLeft: m.isBot ? const Radius.circular(0) : const Radius.circular(16), bottomRight: m.isBot ? const Radius.circular(16) : const Radius.circular(0))), child: Text(m.text, style: TextStyle(color: m.isBot ? context.dText : Colors.white, fontSize: 13))),
-            if (m.plan != null) Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              constraints: const BoxConstraints(maxWidth: 280),
-              child: PlanCard(
-                plan: m.plan!,
-                onDelete: () {},
-                isSuggestion: true,
-                onSave: widget.onSavePlan,
-                onEdit: () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (bCtx) => EditMealModal(
-                      plan: m.plan!,
-                      messengerKey: _messengerKey,
-                      onSave: (updated) {
-                        setState(() => m.plan = updated);
-                        Navigator.pop(bCtx);
-                        _messengerKey.currentState!.showSnackBar(
-                          SnackBar(
-                            content: Row(children: [
-                              const Icon(Icons.edit_note_rounded, color: Color(0xFFFFD60A), size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(AppLocalizations.t(context, 'diet_plan_updated'), style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white))),
-                            ]),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                            backgroundColor: context.dSnackBg,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ]);
-        })),
-        // ── Input Bar ───────────────────────────────────────────────────
-        AhviChatPromptBar(
-          controller: _msgCtrl,
-          focusNode: _msgFocus,
-          hintText: AppLocalizations.t(context, 'diet_chat_hint'),
-          surface: context.dSurface,
-          border: context.dBorder,
-          accent: context.dAccent,
-          accentSecondary: context.dAccent2,
-          textHeading: context.dText,
-          textMuted: context.dMuted,
-          shadowMedium: Colors.black.withValues(alpha: 0.06),
-          onAccent: Colors.white,
-          onSendMessage: (_) => _send(),
-          themeTokens: Theme.of(context).extension<AppThemeTokens>()!,
-          onVoiceTap: _toggleListening,
-          isListening: _isListening,
-          onVisualSearch: () => showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (_) => const _DietLensActionSheet(),
-          ),
-        ),
-      ]))
-    ));
-  }
-
-  // ── History Drawer ───────────────────────────────────────────────────────
-  Widget _historyDrawer() {
-    return Drawer(
-      backgroundColor: context.dSurface,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
-              child: Row(children: [
-                Text(AppLocalizations.t(context, 'common_chats'), style: TextStyle(color: context.dText, fontSize: 20, fontWeight: FontWeight.w700)),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    setState(() {
-                      _messages
-                        ..clear()
-                        ..add(ChatMessage(text: "Hey! 😊 Ask me for a meal plan!\n\n🥗 Diets: Mediterranean, Vegan, High Protein, Keto, Healthy\n📅 Plans: Daily, Weekly, Monthly\n\nExample: 'Give me a weekly keto plan'", isBot: true));
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [context.dAccent, context.dAccent2]),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.add, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(AppLocalizations.t(context, 'common_new'), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                ),
-              ]),
-            ),
-            const SizedBox(height: 8),
-            Divider(color: context.dBorder, height: 1),
-            Expanded(
-              child: Center(
-                child: Text(
-                  'Chat history coming soon.\nStart a new conversation!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: context.dMuted, fontSize: 13),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 class EditMealModal extends StatefulWidget {
   final MealPlan plan;
   final ValueChanged<MealPlan> onSave;

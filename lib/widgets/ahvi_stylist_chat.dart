@@ -974,20 +974,13 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
               left: 0,
               right: 0,
               bottom: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: t.phoneShellInner,
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(28),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── Quick Prompts ───────────────────────────────
-                    if (_chipsVisible) ...[
-                      const SizedBox(height: 6),
-                      SizedBox(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Quick Prompts ───────────────────────────────
+                  if (_chipsVisible) ...[
+                    const SizedBox(height: 6),
+                    SizedBox(
                         height: 28,
                         child: ListView.separated(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1053,7 +1046,6 @@ class _AhviStylistChatSheetState extends State<_AhviStylistChatSheet>
                       onAddToWardrobe: null,
                     ),
                   ],
-                ),
               ),
             ),
 
@@ -1110,80 +1102,58 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.themeTokens;
-    final bubble = Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      constraints: const BoxConstraints(maxWidth: 280),
-      decoration: BoxDecoration(
-        color: msg.isUser
-            ? t.accent.primary.withValues(alpha: 0.12)
-            : t.panel,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(msg.isUser ? 16 : 4),
-          bottomRight: Radius.circular(msg.isUser ? 4 : 16),
-        ),
-        border: Border.all(
-          color: msg.isUser
-              ? t.accent.primary.withValues(alpha: 0.35)
-              : t.cardBorder,
-          width: 1.2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Text(
-        msg.resolve(context),
-        style: TextStyle(color: t.textPrimary, fontSize: 12, height: 1.45),
-      ),
-    );
 
-    if (msg.isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: bubble,
-      );
-    }
-
-    // AI bubble — sparkle icon to the left, aligned to top of bubble
     return Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 6, right: 6),
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [t.accent.secondary, t.accent.primary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Text(
-                  '✦',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+      alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: t.panel,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(msg.isUser ? 18 : 4),
+            bottomRight: Radius.circular(msg.isUser ? 4 : 18),
           ),
-          bubble,
-        ],
+          border: Border.all(color: t.cardBorder),
+        ),
+        child: msg.isUser
+            ? Text(
+                msg.resolve(context),
+                style: TextStyle(
+                  color: t.textPrimary,
+                  fontSize: 14.5,
+                  height: 1.4,
+                ),
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1, right: 8),
+                    child: Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 15,
+                      color: t.accent.primary,
+                    ),
+                  ),
+                  Flexible(
+                    child: Text(
+                      msg.resolve(context),
+                      style: TextStyle(
+                        color: t.textPrimary,
+                        fontSize: 14.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
