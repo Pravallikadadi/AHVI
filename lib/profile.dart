@@ -778,6 +778,61 @@ class ProfileController extends ChangeNotifier {
 
   ProfileState get state => _state;
 
+  // App start అయినప్పుడు SharedPreferences నుండి profile load చేయండి
+  ProfileController() {
+    _loadPersistedProfile();
+  }
+
+  Future<void> _loadPersistedProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedName = prefs.getString('profile_name');
+    if (savedName == null || savedName.isEmpty) return;
+
+    _state = _state.copyWith(
+      name: savedName,
+      email: prefs.getString('profile_email') ?? _state.email,
+      username: prefs.getString('profile_username') ?? _state.username,
+      phone: prefs.getString('profile_phone') ?? _state.phone,
+      dob: prefs.getString('profile_dob') ?? _state.dob,
+      gender: prefs.getString('profile_gender') ?? _state.gender,
+      skinTone: prefs.getInt('profile_skin_tone') ?? _state.skinTone,
+      bodyShape: prefs.getString('profile_body_shape') ?? _state.bodyShape,
+      styles: prefs.getStringList('profile_styles')?.toSet() ?? _state.styles,
+      shopPrefs: prefs.getStringList('profile_shop_prefs')?.toSet() ?? _state.shopPrefs,
+      lang: prefs.getString('profile_lang') ?? _state.lang,
+      isDark: prefs.getBool('profile_is_dark') ?? _state.isDark,
+      theme: AppTheme.values.firstWhere(
+        (t) => t.name == prefs.getString('profile_theme'),
+        orElse: () => _state.theme,
+      ),
+      avatarPath: prefs.getString('profile_avatar_path'), // ✅ Profile pic restore
+    );
+    notifyListeners();
+  }
+
+  Future<void> _persistProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('profile_name', _state.name);
+    await prefs.setString('profile_email', _state.email);
+    await prefs.setString('profile_username', _state.username);
+    await prefs.setString('profile_phone', _state.phone);
+    await prefs.setString('profile_dob', _state.dob);
+    await prefs.setString('profile_gender', _state.gender);
+    await prefs.setInt('profile_skin_tone', _state.skinTone);
+    await prefs.setString('profile_body_shape', _state.bodyShape);
+    await prefs.setStringList('profile_styles', _state.styles.toList());
+    await prefs.setStringList('profile_shop_prefs', _state.shopPrefs.toList());
+    await prefs.setString('profile_lang', _state.lang);
+    await prefs.setBool('profile_is_dark', _state.isDark);
+    await prefs.setString('profile_theme', _state.theme.name);
+    // ✅ Profile pic path save
+    if (_state.avatarPath != null) {
+      await prefs.setString('profile_avatar_path', _state.avatarPath!);
+    } else {
+      await prefs.remove('profile_avatar_path');
+    }
+  }
+
   void update(ProfileState newState) {
     _state = newState;
     notifyListeners();
@@ -839,6 +894,7 @@ class ProfileController extends ChangeNotifier {
   void updateState(ProfileState newState) {
     _state = newState;
     notifyListeners();
+    _persistProfile(); // ✅ App close అయినా data save అవుతుంది
   }
 
   /// Clears all profile data on logout — resets to factory defaults
@@ -872,6 +928,9 @@ class ProfileController extends ChangeNotifier {
       username: resolvedUsername,
     );
     notifyListeners();
+
+    // ✅ SharedPreferences లో persist చేయండి
+    _persistProfile();
   }
 }
 
