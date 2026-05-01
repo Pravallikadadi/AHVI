@@ -14,20 +14,18 @@ class ThemeController extends ChangeNotifier {
 
   Future<void> loadTheme() async {
     currentTheme = await ThemeStorage.loadTheme();
-    isDarkMode = await ThemeStorage.loadMode();
-
-    // load saved ThemeMode (default = light, system mode not supported)
+    // APK installs can retain old SharedPreferences from previous builds.
+    // Start in light mode so Android matches the web build unless the user
+    // explicitly changes theme after launch.
     final prefs = await SharedPreferences.getInstance();
     final savedIndex = prefs.getInt('themeMode');
-    if (savedIndex != null && ThemeMode.values[savedIndex] != ThemeMode.system) {
-      _themeMode = ThemeMode.values[savedIndex];
+    if (savedIndex != null && ThemeMode.values[savedIndex] == ThemeMode.dark) {
+      _themeMode = ThemeMode.dark;
+      isDarkMode = true;
     } else {
       _themeMode = ThemeMode.light;
+      isDarkMode = false;
     }
-
-    // Keep isDarkMode in sync for any existing code that uses it
-    if (_themeMode == ThemeMode.dark) isDarkMode = true;
-    if (_themeMode == ThemeMode.light) isDarkMode = false;
 
     notifyListeners();
   }

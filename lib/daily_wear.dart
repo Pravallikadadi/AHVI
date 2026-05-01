@@ -202,10 +202,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
 
-  late AnimationController _screenFadeCtrl;
-  late Animation<double> _screenFade;
-
-
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
 
@@ -279,14 +275,6 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
     _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
-
-    // Screen fade-in removed — instant display
-    _screenFadeCtrl = AnimationController(
-      vsync: this,
-      duration: Duration.zero,
-      value: 1.0,
-    );
-    _screenFade = CurvedAnimation(parent: _screenFadeCtrl, curve: Curves.linear);
 
     _pageController.addListener(_onPageScroll);
 
@@ -537,7 +525,6 @@ void dispose() {
   _pageController.dispose();
   _removeOverlay();
   _scanCtrl.dispose();
-  _screenFadeCtrl.dispose();
   _autoPlayTimer?.cancel();
   _toastTimer?.cancel();
   _liveDayNotifier.dispose();
@@ -725,6 +712,9 @@ void dispose() {
         backgroundColor: bgColor,
         body: Stack(
           children: [
+            Positioned.fill(
+              child: ColoredBox(color: bgColor),
+            ),
             Positioned.fill(
               child: RepaintBoundary(
                 child: CustomPaint(

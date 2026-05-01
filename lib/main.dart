@@ -135,7 +135,8 @@ class _MyAppState extends State<MyApp> {
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,
-            themeMode: controller.themeMode,
+            themeMode: ThemeMode.light,
+            // Force light theme in APK/web for consistent brightness.
             // Disable theme lerp animation — prevents the washed-out fade
             // that occurs while colors interpolate between light ↔ dark tokens.
             themeAnimationDuration: Duration.zero,
