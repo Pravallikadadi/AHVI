@@ -769,7 +769,11 @@ class _ChatScreenState extends State<ChatScreen>
         break;
     }
     if (page == null) return;
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page!));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SafeArea(top: true, bottom: false, child: page!),
+      ),
+    );
   }
 
   @override
