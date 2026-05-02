@@ -34,16 +34,8 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
   });
 
   static AppThemeTokens light(AccentPalette accent) => AppThemeTokens(
-        backgroundPrimary: Color.lerp(
-          BaseTheme.lightBgPrimary,
-          accent.primary,
-          0.05,
-        )!,
-        backgroundSecondary: Color.lerp(
-          BaseTheme.lightBgSecondary,
-          accent.secondary,
-          0.07,
-        )!,
+        backgroundPrimary: BaseTheme.lightBgPrimary,
+        backgroundSecondary: BaseTheme.lightBgSecondary,
         textPrimary: BaseTheme.lightText,
         mutedText: BaseTheme.lightMuted,
         panel: const Color.fromRGBO(255, 255, 255, 0.92),
@@ -52,7 +44,7 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         cardBorder: Color.lerp(
           const Color(0xFFCDD5F0),
           accent.primary,
-          0.25,
+          0.15,
         )!,
         phoneShell: Color.lerp(
           BaseTheme.lightPhoneShell,

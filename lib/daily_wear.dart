@@ -713,15 +713,13 @@ void dispose() {
         body: Stack(
           children: [
             Positioned.fill(
-              child: ColoredBox(color: bgColor),
-            ),
-            Positioned.fill(
               child: RepaintBoundary(
                 child: CustomPaint(
                   painter: _BgGradientPainter(
                     primary: accentColor,
                     secondary: accent2Color,
                     tertiary: accent3Color,
+                    isDark: _isDark,
                   ),
                 ),
               ),
@@ -2585,16 +2583,21 @@ class _BgGradientPainter extends CustomPainter {
   final Color primary;
   final Color secondary;
   final Color tertiary;
+  final bool isDark;
   const _BgGradientPainter({
     required this.primary,
     required this.secondary,
     required this.tertiary,
+    required this.isDark,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
-    const a1 = 0.18, a2 = 0.14, a3 = 0.10;
+    // Light mode: stronger alphas so tint is visible against white bg
+    final a1 = isDark ? 0.18 : 0.32;
+    final a2 = isDark ? 0.14 : 0.26;
+    final a3 = isDark ? 0.10 : 0.20;
     final gradients = [
       RadialGradient(
         center: const Alignment(-0.8, -0.84),
@@ -2630,5 +2633,9 @@ class _BgGradientPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BgGradientPainter oldDelegate) => false;
+  bool shouldRepaint(_BgGradientPainter oldDelegate) =>
+      oldDelegate.primary != primary ||
+      oldDelegate.secondary != secondary ||
+      oldDelegate.tertiary != tertiary ||
+      oldDelegate.isDark != isDark;
 }
