@@ -55,11 +55,12 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get panelColor {
     final c = _panel;
     if (_isDark) return c;
-    final lum = c.computeLuminance();
-    if (lum > 0.92) {
-      return Color.alphaBlend(const Color(0x1A000000), c);
-    }
-    return c;
+    // Light mode: use a tinted semi-transparent panel instead of near-opaque white
+    // which was washing out the entire screen when layered across 17+ widgets
+    return Color.alphaBlend(
+      accentColor.withValues(alpha: 0.06),
+      const Color(0xE6FFFFFF), // 90% white base
+    );
   }
   Color get panel2Color => _panel2;
   Color get cardBorderColor => _cardBorder;
