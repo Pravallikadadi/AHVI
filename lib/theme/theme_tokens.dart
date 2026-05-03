@@ -38,9 +38,9 @@ class AppThemeTokens extends ThemeExtension<AppThemeTokens> {
         backgroundSecondary: BaseTheme.lightBgSecondary,
         textPrimary: BaseTheme.lightText,
         mutedText: BaseTheme.lightMuted,
-        panel: const Color.fromRGBO(255, 255, 255, 0.92),
-        panelBorder: const Color.fromRGBO(255, 255, 255, 1.0),
-        card: const Color.fromRGBO(255, 255, 255, 1.0),
+        panel: const Color(0xFFEEF2FF),
+        panelBorder: const Color(0xFFDDE3F5),
+        card: const Color(0xFFFFFFFF),
         cardBorder: Color.lerp(
           const Color(0xFFCDD5F0),
           accent.primary,
