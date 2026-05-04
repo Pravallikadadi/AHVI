@@ -125,7 +125,7 @@ class _CalendarCardState extends State<CalendarCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'â€¢ $_totalPlans outfit plans â€¢ $_todayPlans today',
+                        '• $_totalPlans outfit plans • $_todayPlans today',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,
@@ -563,8 +563,8 @@ class _BoardsScreenState extends State<BoardsScreen>
               titleSize: 15,
               subtitle: config.subtitle,
               subtitleColor: Colors.white,
-              arrowBg: config.iconBg,
-              arrowColor: _cardIconColor,
+              arrowBg: Colors.white.withValues(alpha: 0.25),
+              arrowColor: Colors.white,
               shellColor: _shell,
               onTap: config.onTap,
             ),
@@ -879,8 +879,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   shadowColor: const Color(0xFFFF8F72).withValues(alpha: 0.30),
                   badge: '12',
-                  badgeTextColor: _accent,
-                  badgeBg: _card,
+                  badgeTextColor: Colors.white,
+                  badgeBg: Colors.white.withValues(alpha: 0.30),
                   badgeBorderColor: _accent.withValues(alpha: 0.25),
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
@@ -892,8 +892,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   titleColor: lifeContentColor,
                   subtitle: AppLocalizations.t(context, 'boards_daily_wear_sub'),
                   subtitleColor: lifeContentColor,
-                  arrowBg: _card,
-                  arrowColor: _cardIconColor,
+                  arrowBg: Colors.white.withValues(alpha: 0.25),
+                  arrowColor: Colors.white,
                   shellColor: _shell,
                   onTap: () => _push(
                    const daily_wear.DailyWearScreen()
@@ -914,8 +914,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   shadowColor: const Color(0xFFFFC956).withValues(alpha: 0.30),
                   badge: '5',
-                  badgeTextColor: _accent2,
-                  badgeBg: _card,
+                  badgeTextColor: Colors.white,
+                  badgeBg: Colors.white.withValues(alpha: 0.30),
                   badgeBorderColor: _accent2.withValues(alpha: 0.25),
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
@@ -927,8 +927,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   titleColor: lifeContentColor,
                   subtitle: AppLocalizations.t(context, 'boards_home_utilities_sub'),
                   subtitleColor: lifeContentColor,
-                  arrowBg: _card,
-                  arrowColor: _cardIconColor,
+                  arrowBg: Colors.white.withValues(alpha: 0.25),
+                  arrowColor: Colors.white,
                   shellColor: _shell,
                   // <-- FIX: Now properly points to BillsScreen!
                   onTap: () => _push(const home_utils.HomeUtilitiesScreen()),
@@ -952,8 +952,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   shadowColor: const Color(0xFFFF96C7).withValues(alpha: 0.30),
                   badge: 'AM Â· PM',
-                  badgeTextColor: _accent,
-                  badgeBg: _panelBorder,
+                  badgeTextColor: Colors.white,
+                  badgeBg: Colors.white.withValues(alpha: 0.30),
                   badgeBorderColor: _cardBorder,
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
@@ -965,8 +965,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   titleColor: lifeContentColor,
                   subtitle: AppLocalizations.t(context, 'boards_skincare_sub'),
                   subtitleColor: lifeContentColor,
-                  arrowBg: _panel,
-                  arrowColor: _cardIconColor,
+                  arrowBg: Colors.white.withValues(alpha: 0.25),
+                  arrowColor: Colors.white,
                   shellColor: _shell,
                   onTap: () => _push(const SkincareScreen()),
                 ),
@@ -985,8 +985,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   ),
                   shadowColor: const Color(0xFF34D399).withValues(alpha: 0.30),
                   badge: 'Track',
-                  badgeTextColor: _accent,
-                  badgeBg: _panelBorder,
+                  badgeTextColor: Colors.white,
+                  badgeBg: Colors.white.withValues(alpha: 0.30),
                   badgeBorderColor: _cardBorder,
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
@@ -998,8 +998,8 @@ class _BoardsScreenState extends State<BoardsScreen>
                   titleColor: lifeContentColor,
                   subtitle: AppLocalizations.t(context, 'boards_diet_fitness_sub'),
                   subtitleColor: lifeContentColor,
-                  arrowBg: _panel,
-                  arrowColor: _cardIconColor,
+                  arrowBg: Colors.white.withValues(alpha: 0.25),
+                  arrowColor: Colors.white,
                   shellColor: _shell,
                   onTap: () => _push(const diet_fitness.DietAndFitnessScreen()),
                 ),
@@ -1043,8 +1043,8 @@ class _BoardsScreenState extends State<BoardsScreen>
             titleSize: 15,
             subtitle: AppLocalizations.t(context, 'boards_create_own_sub'),
             subtitleColor: Colors.white,
-            arrowBg: _panel,
-            arrowColor: _cardIconColor,
+            arrowBg: Colors.white.withValues(alpha: 0.25),
+            arrowColor: Colors.white,
             shellColor: _shell,
             onTap: _openCreateBoardDialog,
           ),
@@ -1864,3 +1864,4 @@ class _CreateBoardDialog extends StatelessWidget {
     );
   }
 }
+
