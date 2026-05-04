@@ -4,12 +4,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:myapp/app_localizations.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:myapp/theme/theme_tokens.dart';
+import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
-import 'package:myapp/widgets/ahvi_stylist_chat.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 
 enum _TryOnStage { preview, loading, camera, captured }
 
@@ -39,27 +42,14 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get _phoneShell => _t.phoneShell;
   Color get _phoneShellInner => _t.phoneShellInner;
 
-  bool get _isDark => _bg.computeLuminance() < 0.18;
-
-  Color get bgColor {
-    final c = _bg;
-    if (_isDark) return c;
-    final lum = c.computeLuminance();
-    if (lum > 0.88) {
-      return Color.alphaBlend(const Color(0x14000000), c);
-    }
-    return c;
-  }
-
+  Color get bgColor => _bg;
   Color get bg2Color => _bg2;
   Color get panelColor {
-    final c = _panel;
-    if (_isDark) return c;
-    // Light mode: use a tinted semi-transparent panel instead of near-opaque white
-    // which was washing out the entire screen when layered across 17+ widgets
+    final isDark = _bg.computeLuminance() < 0.18;
+    if (isDark) return _panel;
     return Color.alphaBlend(
       accentColor.withValues(alpha: 0.06),
-      const Color(0xE6FFFFFF), // 90% white base
+      const Color(0xE6FFFFFF),
     );
   }
   Color get panel2Color => _panel2;
@@ -75,27 +65,37 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   Color get phoneShellColor => _phoneShell;
   Color get phoneShellInnerColor => _phoneShellInner;
 
-  final ValueNotifier<int> _carouselIndexNotifier = ValueNotifier(0);
-  int get _carouselIndex => _carouselIndexNotifier.value;
+  int _carouselIndex = 0;
   bool _chatOpen = false;
   bool _tryOnOpen = false;
+  bool _ready = true;
   final PageController _pageController = PageController();
+  final TextEditingController _chatController = TextEditingController();
+  final ScrollController _chatScrollController = ScrollController();
+
   late final Map<String, bool> _savedCarouselById;
   late final Map<String, bool> _savedOptionById;
 
   String? _wornOutfitId;
   Timer? _autoPlayTimer;
   bool _userScrolling = false;
+  final List<_ChatMessage> _messages = [];
+  bool _isTyping = false;
+  bool _quickPromptsVisible = true;
   Timer? _chatGreetingTimer;
+
+  // ── Chat History ─────────────────────────────────────────────────────
+  final List<_ChatSession> _chatHistory = [];
+  String _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+  final GlobalKey<ScaffoldState> _chatScaffoldKey = GlobalKey<ScaffoldState>();
+
+  int? _speakingMessageId;
 
   // ── Plus button ───────────────────────────────────────────────────────────
 
-  final ValueNotifier<String> _liveDayNotifier = ValueNotifier('THU');
-  final ValueNotifier<String> _liveDateNotifier = ValueNotifier('FEB 19');
-  final ValueNotifier<String> _liveTimeNotifier = ValueNotifier('00:00');
-  String get _liveDay => _liveDayNotifier.value;
-  String get _liveDate => _liveDateNotifier.value;
-  String get _liveTime => _liveTimeNotifier.value;
+  String _liveDay = 'THU';
+  String _liveDate = 'FEB 19';
+  String _liveTime = '00:00';
   Timer? _clockTimer;
 
   String _weatherIcon = '☀️';
@@ -104,7 +104,8 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   String _weatherTemp = '--°';
   String _weatherContext = '';
   String? _suggestionBanner;
-  bool _bannerVisible = false; // kept for API compat, unused
+  bool _bannerVisible = false;
+  bool _optCardAnimsDone = false;
 
   List<Map<String, dynamic>> _buildAllOutfits(BuildContext context) => [
     {
@@ -200,13 +201,47 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   final List<Timer> _arTagTimers = [];
   late String _tryOnLoadingMessage;
 
+  late AnimationController _optCard0Ctrl;
+  late AnimationController _optCard1Ctrl;
+  late AnimationController _optCard2Ctrl;
+  late Animation<Offset> _optCard0Slide;
+  late Animation<Offset> _optCard1Slide;
+  late Animation<Offset> _optCard2Slide;
+  late Animation<double> _optCard0Fade;
+  late Animation<double> _optCard1Fade;
+  late Animation<double> _optCard2Fade;
+
+  late AnimationController _fabEntryCtrl;
+  late Animation<double> _fabEntryScale;
+  late Animation<double> _fabEntryOpacity;
+
+  late AnimationController _fabPulseCtrl;
+  late Animation<double> _fabPulseScale;
+  late Animation<double> _fabPulseOpacity;
+
+  late AnimationController _chatSlideCtrl;
+  late Animation<Offset> _chatSlideAnim;
+  late Animation<double> _chatFadeAnim;
+
+  late AnimationController _tryOnSlideCtrl;
+  late Animation<Offset> _tryOnSlideAnim;
+  late Animation<double> _tryOnFadeAnim;
+
+  late AnimationController _micPulseCtrl;
+  late Animation<double> _micPulseScale;
   late AnimationController _scanCtrl;
   late Animation<double> _scanLineY;
+
 
   OverlayEntry? _toastEntry;
   Timer? _toastTimer;
 
+  final FocusNode _chatFocusNode = FocusNode();
+  bool _micActive = false;
   Timer? _clockAlignTimer;
+
+  late List<String> quickPrompts;
+  bool _quickPromptsInited = false;
   bool _outfitsInited = false;
 
   @override
@@ -233,6 +268,28 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _displayedOutfits = currentIds
           .map((id) => outfitById[id] ?? _displayedOutfits.firstWhere((o) => o['id'] == id))
           .toList();
+    }
+
+    if (!_quickPromptsInited) {
+      quickPrompts = [
+        AppLocalizations.t(context, 'wear_chip_today'),
+        AppLocalizations.t(context, 'wear_chip_style_tips'),
+        AppLocalizations.t(context, 'wear_chip_first_date'),
+        AppLocalizations.t(context, 'wear_chip_linen'),
+        AppLocalizations.t(context, 'wear_chip_colours'),
+        AppLocalizations.t(context, 'wear_chip_office'),
+      ];
+      _quickPromptsInited = true;
+    } else {
+      // Refresh quick prompts text on language change
+      quickPrompts = [
+        AppLocalizations.t(context, 'wear_chip_today'),
+        AppLocalizations.t(context, 'wear_chip_style_tips'),
+        AppLocalizations.t(context, 'wear_chip_first_date'),
+        AppLocalizations.t(context, 'wear_chip_linen'),
+        AppLocalizations.t(context, 'wear_chip_colours'),
+        AppLocalizations.t(context, 'wear_chip_office'),
+      ];
     }
   }
 
@@ -273,16 +330,62 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void initState() {
     super.initState();
 
+    // ── Controllers first ──────────────────────────────────────
+    _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _optCard0Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Slide = Tween<Offset>(begin: const Offset(0, 0.35), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+    _optCard0Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard0Ctrl, curve: Curves.easeOut));
+    _optCard1Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard1Ctrl, curve: Curves.easeOut));
+    _optCard2Fade = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _optCard2Ctrl, curve: Curves.easeOut));
+
+    _fabEntryCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fabEntryScale = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _fabEntryCtrl, curve: Curves.elasticOut));
+    _fabEntryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fabEntryCtrl, curve: const Interval(0.0, 0.5, curve: Curves.easeOut)));
+
+    _fabPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 2500))..repeat();
+    _fabPulseScale = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+    _fabPulseOpacity = Tween<double>(begin: 0.55, end: 0.0).animate(
+      CurvedAnimation(parent: _fabPulseCtrl, curve: Curves.easeOut));
+
+    _chatSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
+    _chatSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _chatSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
+    _chatFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _chatSlideCtrl, curve: const Interval(0, 0.4)));
+
+    _tryOnSlideCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _tryOnSlideAnim = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
+      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Cubic(0.32, 0.72, 0, 1)));
+    _tryOnFadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _tryOnSlideCtrl, curve: const Interval(0, 0.4)));
+
+    _micPulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    _micPulseScale = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _micPulseCtrl, curve: Curves.easeInOut));
+
     _scanCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000))..repeat();
     _scanLineY = Tween<double>(begin: 0.10, end: 0.85).animate(
       CurvedAnimation(parent: _scanCtrl, curve: Curves.easeInOut));
-
+    // Start fade-in immediately on page load
     _pageController.addListener(_onPageScroll);
 
     // ── Deferred startup ──────────────────────────────────────────────────
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _startAutoPlay();
+      _restartOptionCardAnimations();
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) _fabEntryCtrl.forward();
+      });
 
       _updateClock();
       _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -305,18 +408,52 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     });
   }
 
+  void _restartOptionCardAnimations() {
+    // Guard: never re-run after first completion to prevent re-fading
+    // on subsequent setState calls (clock ticks, weather updates, etc.)
+    if (_optCardAnimsDone) return;
+    if (_optCard0Ctrl.isCompleted &&
+        _optCard1Ctrl.isCompleted &&
+        _optCard2Ctrl.isCompleted) {
+      _optCardAnimsDone = true;
+      return;
+    }
+    _optCard0Ctrl.forward(from: 0);
+    Future.delayed(const Duration(milliseconds: 70), () {
+      if (mounted) _optCard1Ctrl.forward(from: 0);
+    });
+    Future.delayed(const Duration(milliseconds: 140), () {
+      if (mounted) {
+        _optCard2Ctrl.forward(from: 0).then((_) {
+          if (mounted) _optCardAnimsDone = true;
+        });
+      }
+    });
+  }
+
   void _updateClock() {
     final now = DateTime.now();
     const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
     ];
-    // Update without setState — no Scaffold rebuild
-    _liveDayNotifier.value = days[now.weekday % 7];
-    _liveDateNotifier.value = '${months[now.month - 1]} ${now.day}';
-    _liveTimeNotifier.value =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    setState(() {
+      _liveDay = days[now.weekday % 7];
+      _liveDate = '${months[now.month - 1]} ${now.day}';
+      _liveTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    });
   }
 
   void _onPageScroll() {
@@ -484,11 +621,15 @@ class _DailyWearScreenState extends State<DailyWearScreen>
           _weatherTemp = '$temp°';
           _weatherContext = weatherCtx;
           _displayedOutfits = sorted;
-          _carouselIndexNotifier.value = 0;
+          _carouselIndex = 0;
           _suggestionBanner = banner;
-          _bannerVisible = true;
           _tryOnOutfitId ??= sorted.first['id'] as String;
         });
+        // Trigger banner fade-in after the setState rebuild settles
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) setState(() => _bannerVisible = true);
+        });
+        // Jump (not animate) to avoid onPageChanged → setState cascade
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _pageController.hasClients) {
             _pageController.jumpToPage(0);
@@ -524,18 +665,22 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 void dispose() {
   _pageController.removeListener(_onPageScroll);
   _pageController.dispose();
+  _chatController.dispose();
   _removeOverlay();
+  _chatScrollController.dispose();
+  _fabEntryCtrl.dispose();
+  _fabPulseCtrl.dispose();
+  _chatSlideCtrl.dispose();
+  _tryOnSlideCtrl.dispose();
+  _micPulseCtrl.dispose();
   _scanCtrl.dispose();
   _autoPlayTimer?.cancel();
   _toastTimer?.cancel();
-  _liveDayNotifier.dispose();
-  _liveDateNotifier.dispose();
-  _liveTimeNotifier.dispose();
-  _carouselIndexNotifier.dispose();
 
   try {
     _toastEntry?.remove();
   } catch (_) {}
+  _chatFocusNode.dispose();
   _clockAlignTimer?.cancel();
   _clockTimer?.cancel();
   _chatGreetingTimer?.cancel();
@@ -543,6 +688,10 @@ void dispose() {
   for (final timer in _arTagTimers) {
     timer.cancel();
   }
+  _optCard0Ctrl.dispose();
+  _optCard1Ctrl.dispose();
+  _optCard2Ctrl.dispose();
+
   super.dispose(); // ✅ ADD THIS
 }
 
@@ -572,7 +721,9 @@ void dispose() {
     HapticFeedback.lightImpact();
     setState(() => _wornOutfitId = outfitId);
     if (closeModal) {
-      setState(() => _tryOnOpen = false);
+      _tryOnSlideCtrl.reverse().then((_) {
+        if (mounted) setState(() => _tryOnOpen = false);
+      });
     }
     _showToast(AppLocalizations.t(context, 'daily_wear_toast_wearing').replaceAll('{name}', AppLocalizations.t(context, outfit['nameKey'] as String)), green: true);
   }
@@ -580,12 +731,69 @@ void dispose() {
   void _openChat() {
     HapticFeedback.lightImpact();
     setState(() => _chatOpen = true);
-    showAhviStylistChatSheet(context, moduleContext: 'style').whenComplete(() {
+    _chatGreetingTimer?.cancel();
+    if (_messages.isEmpty) {
+      _chatGreetingTimer = Timer(const Duration(milliseconds: 700), () {
+        if (!mounted || _messages.isNotEmpty) return;
+        setState(() {
+          _messages.add(
+            _ChatMessage(
+              id: DateTime.now().microsecondsSinceEpoch,
+              text:
+                  AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
+              isUser: false,
+              createdAt: DateTime.now(),
+            ),
+          );
+        });
+        _scrollChatToBottom();
+      });
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      barrierColor: Colors.transparent,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.88,
+        child: Scaffold(
+          key: _chatScaffoldKey,
+          backgroundColor: Colors.transparent,
+          resizeToAvoidBottomInset: false,
+          drawer: _historyDrawer(),
+          body: Container(
+            decoration: BoxDecoration(
+              color: bg2Color,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: panel2Color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                _chatHeader(),
+                Expanded(child: _chatMessages()),
+                if (_quickPromptsVisible) _chatQuickPrompts(),
+                _chatBar(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).whenComplete(() {
       if (mounted) setState(() => _chatOpen = false);
     });
   }
 
   void _closeChat() {
+    _chatGreetingTimer?.cancel();
     Navigator.of(context).pop();
   }
 
@@ -597,11 +805,14 @@ void dispose() {
       _tryOnOpen = true;
       _tryOnStage = _TryOnStage.preview;
     });
+    _tryOnSlideCtrl.forward(from: 0);
   }
 
   void _closeTryOn() {
     _resetTryOnSimulation();
-    setState(() => _tryOnOpen = false);
+    _tryOnSlideCtrl.reverse().then((_) {
+      if (mounted) setState(() => _tryOnOpen = false);
+    });
   }
 
   void _resetTryOnSimulation() {
@@ -676,6 +887,345 @@ void dispose() {
     _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved'), green: true);
   }
 
+  void _toggleMic() {
+    setState(() => _micActive = !_micActive);
+    if (_micActive) {
+      _micPulseCtrl.repeat(reverse: true);
+      _showToast(AppLocalizations.t(context, 'daily_wear_toast_voice_on'));
+    } else {
+      _micPulseCtrl.stop();
+      _micPulseCtrl.reset();
+    }
+  }
+
+  void _scrollChatToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent + 140,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  void _sendMessage(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty || _isTyping) return;
+    final displayText = trimmed;
+    _chatController.clear();
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          id: DateTime.now().microsecondsSinceEpoch,
+          text: displayText,
+          isUser: true,
+          createdAt: DateTime.now(),
+        ),
+      );
+      _isTyping = true;
+      _quickPromptsVisible = false;
+    });
+    _scrollChatToBottom();
+    _callAnthropicApi(displayText);
+  }
+
+  Future<void> _callAnthropicApi(String userText) async {
+    final currentOutfit = _currentOutfit;
+    final wornNote = _wornOutfitId != null
+        ? 'Wearing today: "${_buildAllOutfits(context).firstWhere((o) => o['id'] == _wornOutfitId)['name']}"'
+        : 'No outfit chosen yet.';
+    final systemPrompt =
+        'You are AHVI, a warm, elegant personal AI fashion stylist. '
+        'Tone: refined, friendly, like a personal shopper.\n'
+        'Context: Outfit shown: "${currentOutfit['name']}" — ${currentOutfit['desc']}. '
+        'Tags: ${((currentOutfit['tags'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
+        'Occasions: ${((currentOutfit['occ'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
+        'Weather: ${_weatherContext.isEmpty ? 'unknown' : _weatherContext}. $wornNote\n'
+        'Outfits available: Linen & Air (hot/linen/casual), Coffee Run (mild/cosy/weekend), Office Hours (work/formal), Golden Hour (evnings/earth tones).\n'
+        'Keep responses concise — 2–4 sentences max or a short list. Be specific. Reference outfit names when relevant. Light emoji (1–2). Never be generic.';
+
+    final history = _messages
+        .take(_messages.length - 1)
+        .map(
+          (m) => {'role': m.isUser ? 'user' : 'assistant', 'content': m.text},
+        )
+        .toList();
+    history.add({'role': 'user', 'content': userText});
+
+    const apiKey = String.fromEnvironment(
+      'ANTHROPIC_API_KEY',
+      defaultValue: '',
+    );
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('https://api.anthropic.com/v1/messages'),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: jsonEncode({
+              'model': 'claude-sonnet-4-20250514',
+              'max_tokens': 380,
+              'system': systemPrompt,
+              'messages': history,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final content = data['content'];
+      final replyText = (content is List && content.isNotEmpty)
+          ? content[0]['text'] as String?
+          : null;
+      final message = _ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        text: replyText ?? "I'm having a moment — try again ✦",
+        isUser: false,
+        createdAt: DateTime.now(),
+      );
+      setState(() {
+        _isTyping = false;
+        _messages.add(message);
+      });
+      _scrollChatToBottom();
+      _saveCurrentSession();
+      if (_micActive) _speakMessage(message);
+    } catch (_) {
+      if (!mounted) return;
+      final fallbacks = [
+        "Based on today's conditions, **${_currentOutfit['name']}** is your strongest choice right now. ✦",
+        'For a first date, **Golden Hour** is hard to beat — earth tones feel warm and approachable. 💫',
+        'Linen excels in heat, but fit is everything — slightly relaxed, never shapeless. 🌿',
+      ];
+      final message = _ChatMessage(
+        id: DateTime.now().microsecondsSinceEpoch,
+        text: fallbacks[DateTime.now().second % fallbacks.length],
+        isUser: false,
+        createdAt: DateTime.now(),
+      );
+      setState(() {
+        _isTyping = false;
+        _messages.add(message);
+      });
+      _scrollChatToBottom();
+      _saveCurrentSession();
+      if (_micActive) _speakMessage(message);
+    }
+  }
+
+  void _speakMessage(_ChatMessage message) {
+    setState(() => _speakingMessageId = message.id);
+    // ignore: deprecated_member_use
+    SemanticsService.announce(_stripMarkdown(message.text), TextDirection.ltr);
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && _speakingMessageId == message.id) {
+        setState(() => _speakingMessageId = null);
+      }
+    });
+  }
+
+  void _saveCurrentSession() {
+    if (_messages.isEmpty) return;
+    final userMessages = _messages.where((m) => m.isUser).toList();
+    if (userMessages.isEmpty) return;
+    final title = userMessages.first.text.length > 40
+        ? '${userMessages.first.text.substring(0, 40)}…'
+        : userMessages.first.text;
+    final existingIdx =
+        _chatHistory.indexWhere((s) => s.id == _currentSessionId);
+    final session = _ChatSession(
+      id: _currentSessionId,
+      title: title,
+      createdAt: DateTime.now(),
+      messages: List.from(_messages),
+    );
+    if (existingIdx != -1) {
+      _chatHistory[existingIdx] = session;
+    } else {
+      _chatHistory.insert(0, session);
+    }
+  }
+
+  void _startNewChat() {
+    _saveCurrentSession();
+    _chatScaffoldKey.currentState?.closeDrawer();
+    setState(() {
+      _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+      _messages.clear();
+      _quickPromptsVisible = true;
+      _chatController.clear();
+    });
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted || _messages.isNotEmpty) return;
+      setState(() {
+        _messages.add(_ChatMessage(
+          id: DateTime.now().millisecondsSinceEpoch,
+          text: AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
+          isUser: false,
+          createdAt: DateTime.now(),
+        ));
+      });
+    });
+  }
+
+  void _loadSession(_ChatSession session) {
+    _saveCurrentSession();
+    _chatScaffoldKey.currentState?.closeDrawer();
+    setState(() {
+      _currentSessionId = session.id;
+      _messages
+        ..clear()
+        ..addAll(session.messages);
+      _quickPromptsVisible = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_chatScrollController.hasClients) return;
+      _chatScrollController.animateTo(
+        _chatScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  Widget _historyDrawer() {
+    final t = context.themeTokens;
+    return Drawer(
+      backgroundColor: t.backgroundPrimary,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 4),
+              child: Row(children: [
+                Text(
+                  AppLocalizations.t(context, 'common_chats'),
+                  style: GoogleFonts.anton(
+                    fontSize: 20,
+                    color: t.textPrimary,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _startNewChat,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [t.accent.primary, t.accent.tertiary],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.add, color: Colors.white, size: 14),
+                      const SizedBox(width: 4),
+                      Text(AppLocalizations.t(context, 'common_new'), style: const TextStyle(
+                          color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 8),
+            Divider(color: t.cardBorder, height: 1),
+            Expanded(
+              child: _chatHistory.isEmpty
+                  ? Center(
+                      child: Text(
+                        AppLocalizations.t(context, 'chat_no_history'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: t.mutedText, fontSize: 13),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _chatHistory.length,
+                      separatorBuilder: (_, __) => Divider(
+                          color: t.cardBorder, height: 1, indent: 16, endIndent: 16),
+                      itemBuilder: (_, i) {
+                        final session = _chatHistory[i];
+                        final isActive = session.id == _currentSessionId;
+                        return GestureDetector(
+                          onTap: () => _loadSession(session),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            color: isActive
+                                ? t.accent.primary.withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            child: Row(children: [
+                              Container(
+                                width: 32, height: 32,
+                                decoration: BoxDecoration(
+                                  color: isActive
+                                      ? t.accent.primary.withValues(alpha: 0.15)
+                                      : t.panel,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isActive
+                                        ? t.accent.primary.withValues(alpha: 0.4)
+                                        : t.cardBorder,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text('✦', style: TextStyle(
+                                      fontSize: 13,
+                                      color: isActive ? t.accent.primary : t.mutedText)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      session.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                                        color: isActive ? t.accent.primary : t.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text('${session.messages.length} ${AppLocalizations.t(context, 'wear_messages')}',
+                                        style: TextStyle(fontSize: 10, color: t.mutedText)),
+                                  ],
+                                ),
+                              ),
+                              if (isActive)
+                                Container(
+                                  width: 6, height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: t.accent.primary,
+                                  ),
+                                ),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _stripMarkdown(String text) {
+    return text
+        .replaceAll(RegExp(r'\*\*(.*?)\*\*'), r'$1')
+        .replaceAll(RegExp(r'\*(.*?)\*'), r'$1');
+  }
 
   Map<String, dynamic> get _selectedTryOnOutfit {
     final id = _tryOnOutfitId ?? _currentOutfit['id'];
@@ -714,14 +1264,12 @@ void dispose() {
         body: Stack(
           children: [
             Positioned.fill(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _BgGradientPainter(
-                    primary: accentColor,
-                    secondary: accent2Color,
-                    tertiary: accent3Color,
-                    isDark: _isDark,
-                  ),
+              child: CustomPaint(
+                painter: _BgGradientPainter(
+                  primary: accentColor,
+                  secondary: accent2Color,
+                  tertiary: accent3Color,
+                  isDark: _bg.computeLuminance() < 0.18,
                 ),
               ),
             ),
@@ -736,12 +1284,21 @@ void dispose() {
                     _buildHeader(),
                     const SizedBox(height: 16),
                     _buildWeatherBar(),
-                    _suggestionBanner != null
-                        ? Padding(
-                            padding: const EdgeInsets.only(top: 14),
-                            child: _buildSuggestionBanner(),
-                          )
-                        : const SizedBox.shrink(),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeInOut,
+                      child: _suggestionBanner != null
+                          ? Padding(
+                              padding: const EdgeInsets.only(top: 14),
+                              child: AnimatedOpacity(
+                                opacity: _bannerVisible ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 400),
+                                curve: Curves.easeOut,
+                                child: _buildSuggestionBanner(),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
                     const SizedBox(height: 16),
                     _buildCarousel(),
                     const SizedBox(height: 24),
@@ -761,16 +1318,18 @@ void dispose() {
               child: RepaintBoundary(child: _buildChatFab()),
             ),
             if (_tryOnOpen)
-              AnimatedSlide(
-                offset: _tryOnOpen ? Offset.zero : const Offset(0, 1),
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOutCubic,
+              AnimatedBuilder(
+                animation: _tryOnSlideCtrl,
+                builder: (_, child) => IgnorePointer(
+                  ignoring: _tryOnSlideCtrl.isDismissed,
+                  child: child,
+                ),
                 child: _buildTryOnOverlay(),
               ),
           ],
-        ),     // Stack
-      ),       // Scaffold
-    );         // PopScope
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader() => Padding(
@@ -842,9 +1401,7 @@ void dispose() {
     ),
   );
 
-  Widget _buildDatePill() => ValueListenableBuilder<String>(
-    valueListenable: _liveTimeNotifier,
-    builder: (_, __, ___) => Container(
+  Widget _buildDatePill() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
     decoration: BoxDecoration(
       gradient: LinearGradient(
@@ -907,7 +1464,6 @@ void dispose() {
         ),
       ],
     ),
-  ),
   );
 
   Widget _buildWeatherBar() => Padding(
@@ -1070,7 +1626,7 @@ void dispose() {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _displayedOutfits.length,
-                onPageChanged: (i) => _carouselIndexNotifier.value = i,
+                onPageChanged: (i) => setState(() => _carouselIndex = i),
                 itemBuilder: (_, i) =>
                     _buildCarouselSlide(_displayedOutfits[i], i),
               ),
@@ -1082,31 +1638,28 @@ void dispose() {
             bottom: 82,
             left: 0,
             right: 0,
-            child: ValueListenableBuilder<int>(
-              valueListenable: _carouselIndexNotifier,
-              builder: (_, idx, __) => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_displayedOutfits.length, (i) {
-                  final isOn = i == idx;
-                  return GestureDetector(
-                    onTap: () => _pageController.animateToPage(
-                      i,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_displayedOutfits.length, (i) {
+                final isOn = i == _carouselIndex;
+                return GestureDetector(
+                  onTap: () => _pageController.animateToPage(
+                    i,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  ),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    width: isOn ? 22 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: isOn ? accentColor : mutedColor,
+                      borderRadius: BorderRadius.circular(isOn ? 3 : 50),
                     ),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 280),
-                      width: isOn ? 22 : 6,
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: isOn ? accentColor : mutedColor,
-                        borderRadius: BorderRadius.circular(isOn ? 3 : 50),
-                      ),
-                    ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             ),
           ),
         ],
@@ -1115,12 +1668,9 @@ void dispose() {
   );
 
   Widget _buildCarouselArrow({required bool left}) {
-    return ValueListenableBuilder<int>(
-      valueListenable: _carouselIndexNotifier,
-      builder: (_, idx, __) {
-        final disabled = left
-            ? idx == 0
-            : idx == _displayedOutfits.length - 1;
+    final disabled = left
+        ? _carouselIndex == 0
+        : _carouselIndex == _displayedOutfits.length - 1;
     return Positioned(
       left: left ? 10 : null,
       right: left ? null : 10,
@@ -1173,8 +1723,6 @@ void dispose() {
         ),
       ),
     );
-      },
-    );
   }
 
   Widget _buildCarouselSlide(Map<String, dynamic> outfit, int index) {
@@ -1183,30 +1731,25 @@ void dispose() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(
-          outfit['img'] as String,
+        CachedNetworkImage(
+          imageUrl: outfit['img'] as String,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
           filterQuality: FilterQuality.high,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(color: panelColor);
-          },
-          errorBuilder: (_, _, _) {
+          placeholder: (context, url) => Shimmer.fromColors(
+            baseColor: panelColor,
+            highlightColor: Color.alphaBlend(
+              accentColor.withValues(alpha: 0.12),
+              panelColor,
+            ),
+            child: Container(color: panelColor),
+          ),
+          errorWidget: (context, url, error) {
             final localImg = outfit['localImg'] as String?;
             if (localImg != null) {
-              return Image.asset(
-                localImg,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-              );
+              return Image.asset(localImg, fit: BoxFit.cover, alignment: Alignment.topCenter);
             }
-            return Container(
-              color: panelColor,
-              child: Center(
-                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
-              ),
-            );
+            return Container(color: panelColor, child: Center(child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48)));
           },
         ),
         Positioned.fill(
@@ -1445,6 +1988,11 @@ void dispose() {
   );
 
   Widget _buildOptionCards() {
+    final controllers = [
+      (_optCard0Slide, _optCard0Fade),
+      (_optCard1Slide, _optCard1Fade),
+      (_optCard2Slide, _optCard2Fade),
+    ];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
@@ -1460,7 +2008,13 @@ void dispose() {
                 itemBuilder: (context, i) {
                   return SizedBox(
                     width: 180,
-                    child: _buildOptCard(optionCards[i]),
+                    child: FadeTransition(
+                      opacity: controllers[i].$2,
+                      child: SlideTransition(
+                        position: controllers[i].$1,
+                        child: _buildOptCard(optionCards[i]),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -1469,7 +2023,15 @@ void dispose() {
           return Row(
             children: [
               for (var i = 0; i < optionCards.length; i++) ...[
-                Expanded(child: _buildOptCard(optionCards[i])),
+                Expanded(
+                  child: FadeTransition(
+                    opacity: controllers[i].$2,
+                    child: SlideTransition(
+                      position: controllers[i].$1,
+                      child: _buildOptCard(optionCards[i]),
+                    ),
+                  ),
+                ),
                 if (i < optionCards.length - 1) const SizedBox(width: 10),
               ],
             ],
@@ -1506,7 +2068,8 @@ void dispose() {
                     card['img'] as String,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
-                    filterQuality: FilterQuality.high,
+                    cacheWidth: _cacheWidth(context, 180),
+                    filterQuality: FilterQuality.medium,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(color: panelColor);
@@ -1708,38 +2271,81 @@ void dispose() {
       ignoring: _chatOpen || _tryOnOpen,
       child: Align(
         alignment: Alignment.bottomRight,
-        child: Padding(
-          padding: const EdgeInsets.only(right: 20, bottom: 30),
-          child: _PressScaleButton(
-            scaleDown: 0.95,
-            onTap: _openChat,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
-              decoration: BoxDecoration(
-                color: _t.accent.primary,
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(
-                    color: _t.accent.primary.withValues(alpha: 0.40),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 11,
-                    backgroundColor: Colors.white.withValues(alpha: 0.18),
-                    child: Text('✦', style: TextStyle(fontSize: 11, color: Colors.white)),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    AppLocalizations.t(context, 'ask_ahvi'),
-                    style: GoogleFonts.anton(fontSize: 11, letterSpacing: 0.4, color: Colors.white),
-                  ),
-                ],
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_fabEntryCtrl, _fabPulseCtrl]),
+          builder: (_, _) => Opacity(
+            opacity: _fabEntryOpacity.value,
+            child: Transform.scale(
+              scale: _fabEntryScale.value,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20, bottom: 30),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: _fabPulseOpacity.value,
+                        child: Transform.scale(
+                          scale: _fabPulseScale.value,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(50),
+                              border: Border.all(
+                                color: accentColor.withValues(alpha: 0.35),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    _PressScaleButton(
+                      scaleDown: 0.95,
+                      onTap: _openChat,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(10, 9, 14, 9),
+                        decoration: BoxDecoration(
+                          color: _t.accent.primary,
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _t.accent.primary.withValues(alpha: 0.40),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 11,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.18,
+                              ),
+                              child: Text(
+                                '✦',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            Text(
+                              AppLocalizations.t(context, 'ask_ahvi'),
+                              style: GoogleFonts.anton(
+                                fontSize: 11,
+                                letterSpacing: 0.4,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1755,32 +2361,191 @@ void dispose() {
     return (logicalWidth * math.min(ratio, 2.0)).round();
   }
 
-  Widget _buildTryOnOverlay() => Stack(
-    children: [
-      // Scrim
-      Positioned.fill(
-        child: GestureDetector(
-          onTap: _closeTryOn,
-          child: const ColoredBox(color: Color(0x73000000)),
+  Widget _chatHeader() => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+    child: Row(
+      children: [
+        _PressScaleButton(
+          scaleDown: 0.90,
+          onTap: _closeChat,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.chevron_left_rounded,
+                color: textColor,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: AhviHomeText(
+            color: textColor,
+            fontSize: 28.0,
+            letterSpacing: 3.2,
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        _PressScaleButton(
+          scaleDown: 0.90,
+          onTap: () => _chatScaffoldKey.currentState?.openDrawer(),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: panelColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: cardBorderColor),
+            ),
+            child: Center(
+              child: Icon(
+                Icons.history_rounded,
+                color: mutedColor,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _chatMessages() {
+    final showEmptyState = _messages.isEmpty;
+    final itemCount = _messages.length + (_isTyping ? 1 : 0);
+    return ListView.builder(
+      controller: _chatScrollController,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      itemCount: itemCount,
+      itemBuilder: (context, i) {
+        if (showEmptyState) {
+          return const SizedBox.shrink();
+        }
+
+        if (_isTyping && i == _messages.length) {
+          return const _TypingBubble();
+        }
+        final m = _messages[i];
+        return _ChatBubble(
+          message: m,
+          isSpeaking: _speakingMessageId == m.id,
+          onSpeak: m.isUser ? null : () => _speakMessage(m),
+        );
+      },
+    );
+  }
+
+  Widget _chatQuickPrompts() => SizedBox(
+    height: 52,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      itemCount: quickPrompts.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 8),
+      itemBuilder: (_, i) => _PressScaleButton(
+        scaleDown: 0.94,
+        onTap: () => _sendMessage(quickPrompts[i]),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: panelColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cardBorderColor),
+          ),
+          child: Center(
+            child: Text(
+              quickPrompts[i],
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: accent5Color,
+              ),
+            ),
+          ),
         ),
       ),
-      // Sheet — no animation
+    ),
+  );
+
+  Widget _chatBar() {
+    return Container(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: phoneShellInnerColor,
+        border: Border(top: BorderSide(color: cardBorderColor)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Attachment preview chip — shown when a file / image / web search is pending
+          AhviChatPromptBar(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            controller: _chatController,
+            focusNode: _chatFocusNode,
+            hintText: AppLocalizations.t(context, 'daily_wear_chat_hint'),
+            hasTextListenable: _chatController,
+            surface: phoneShellInnerColor,
+            border: cardBorderColor,
+            accent: accentColor,
+            accentSecondary: accent2Color,
+            textHeading: textColor,
+            textMuted: mutedColor,
+            shadowMedium: bgColor.withValues(alpha: 0.20),
+            onAccent: tileTextColor,
+            onSendMessage: _sendMessage,
+            themeTokens: context.themeTokens,
+            onVisualSearch: null,
+            onFindSimilar: null,
+            onAddToWardrobe: null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTryOnOverlay() => Stack(
+    children: [
+      // Scrim — animates independently, never composited with the sheet
+      Positioned.fill(
+        child: AnimatedBuilder(
+          animation: _tryOnSlideCtrl,
+          builder: (_, __) => GestureDetector(
+            onTap: _closeTryOn,
+            child: ColoredBox(
+              color: Colors.black.withValues(
+                alpha: (_tryOnSlideCtrl.value * 0.45).clamp(0.0, 0.45),
+              ),
+            ),
+          ),
+        ),
+      ),
+      // Sheet — slide + fade applied only to the sheet widget itself
       Align(
         alignment: Alignment.bottomCenter,
         child: GestureDetector(
           onTap: () {},
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              height: MediaQuery.of(context).size.height * 0.90,
-              decoration: BoxDecoration(
-                color: bg2Color,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
+          child: SlideTransition(
+            position: _tryOnSlideAnim,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                height: MediaQuery.of(context).size.height * 0.90,
+                decoration: BoxDecoration(
+                  color: bg2Color,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border.all(color: cardBorderColor),
                 ),
-                border: Border.all(color: cardBorderColor),
-              ),
-              child: SingleChildScrollView(
+                child: SingleChildScrollView(
                   padding: EdgeInsets.fromLTRB(
                     20,
                     24,
@@ -1846,8 +2611,9 @@ void dispose() {
             ),
           ),
         ),
-      ],
-    );
+      ),
+    ],
+  );
 
   Widget _tryOnBody() {
     final outfit = _selectedTryOnOutfit;
@@ -1905,7 +2671,11 @@ void dispose() {
                         child: Image.network(
                           outfit['img'] as String,
                           fit: BoxFit.cover,
-                          filterQuality: FilterQuality.high,
+                          cacheWidth: _cacheWidth(
+                            context,
+                            constraints.maxWidth,
+                          ),
+                          filterQuality: FilterQuality.medium,
                         ),
                       ),
                     ),
@@ -2169,7 +2939,11 @@ void dispose() {
                   outfit['img'] as String,
                   fit: BoxFit.cover,
                   alignment: Alignment.topCenter,
-                  filterQuality: FilterQuality.high,
+                  cacheWidth: _cacheWidth(
+                    context,
+                    MediaQuery.of(context).size.width,
+                  ),
+                  filterQuality: FilterQuality.medium,
                 ),
               ),
               Positioned.fill(
@@ -2373,6 +3147,273 @@ class _PressScaleButtonState extends State<_PressScaleButton>
   );
 }
 
+class _ChatMessage {
+  final int id;
+  final String text;
+  final bool isUser;
+  final DateTime createdAt;
+  _ChatMessage({
+    required this.id,
+    required this.text,
+    required this.isUser,
+    required this.createdAt,
+  });
+}
+
+class _ChatSession {
+  final String id;
+  final String title;
+  final DateTime createdAt;
+  final List<_ChatMessage> messages;
+
+  _ChatSession({
+    required this.id,
+    required this.title,
+    required this.createdAt,
+    required this.messages,
+  });
+}
+
+class _ChatBubble extends StatelessWidget {
+  final _ChatMessage message;
+  final bool isSpeaking;
+  final VoidCallback? onSpeak;
+  const _ChatBubble({
+    required this.message,
+    required this.isSpeaking,
+    required this.onSpeak,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final isUser = message.isUser;
+    final time =
+        '${message.createdAt.hour.toString().padLeft(2, '0')}:${message.createdAt.minute.toString().padLeft(2, '0')}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser)
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: t.accent.primary,
+              child: Text('✦', style: TextStyle(color: t.tileText)),
+            ),
+          if (!isUser) const SizedBox(width: 9),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Column(
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: isUser
+                      ? null
+                      : BoxDecoration(
+                          color: t.panel,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: const Radius.circular(4),
+                            bottomRight: const Radius.circular(20),
+                          ),
+                          border: Border.all(color: t.cardBorder),
+                        ),
+                  child: _RichChatText(
+                    text: message.text,
+                    color: t.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      time,
+                      style: TextStyle(fontSize: 10, color: t.mutedText),
+                    ),
+                    if (!isUser && onSpeak != null) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: onSpeak,
+                        child: Icon(
+                          Icons.volume_up_rounded,
+                          size: 14,
+                          color: isSpeaking ? t.accent.secondary : t.mutedText,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (isUser) const SizedBox(width: 9),
+          if (isUser)
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: t.panelBorder,
+              child: Text(
+                '👤',
+                style: TextStyle(fontSize: 12, color: t.mutedText),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypingBubble extends StatefulWidget {
+  const _TypingBubble();
+  @override
+  State<_TypingBubble> createState() => _TypingBubbleState();
+}
+
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 15,
+          backgroundColor: t.accent.primary,
+          child: Text('✦', style: TextStyle(color: t.tileText)),
+        ),
+        const SizedBox(width: 9),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: t.panel,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: t.cardBorder),
+          ),
+          child: Row(
+            children: List.generate(
+              3,
+              (i) => _BounceDot(controller: _ctrl, delay: i * 0.18),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BounceDot extends StatelessWidget {
+  final AnimationController controller;
+  final double delay;
+  const _BounceDot({required this.controller, required this.delay});
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    final anim =
+        TweenSequence([
+          TweenSequenceItem(
+            tween: Tween<double>(begin: 0, end: -6),
+            weight: 30,
+          ),
+          TweenSequenceItem(
+            tween: Tween<double>(begin: -6, end: 0),
+            weight: 30,
+          ),
+          TweenSequenceItem(tween: ConstantTween(0.0), weight: 40),
+        ]).animate(
+          CurvedAnimation(
+            parent: controller,
+            curve: Interval(
+              delay,
+              (delay + 0.5).clamp(0, 1.0),
+              curve: Curves.easeInOut,
+            ),
+          ),
+        );
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (_, _) => Transform.translate(
+        offset: Offset(0, anim.value),
+        child: Container(
+          width: 7,
+          height: 7,
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          decoration: BoxDecoration(
+            color: t.accent.primary.withValues(alpha: 0.55),
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RichChatText extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _RichChatText({required this.text, required this.color});
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      style: TextStyle(fontSize: 13.5, height: 1.6, color: color),
+      children: _parse(text),
+    ),
+  );
+  List<InlineSpan> _parse(String raw) {
+    final spans = <InlineSpan>[];
+    final regex = RegExp(r'(\*\*.*?\*\*|\*.*?\*)');
+    var last = 0;
+    for (final match in regex.allMatches(raw)) {
+      if (match.start > last) {
+        spans.add(TextSpan(text: raw.substring(last, match.start)));
+      }
+      final token = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: token.startsWith('**')
+              ? token.substring(2, token.length - 2)
+              : token.substring(1, token.length - 1),
+          style: TextStyle(
+            fontWeight: token.startsWith('**')
+                ? FontWeight.w700
+                : FontWeight.w400,
+            fontStyle: token.startsWith('**')
+                ? FontStyle.normal
+                : FontStyle.italic,
+          ),
+        ),
+      );
+      last = match.end;
+    }
+    if (last < raw.length) spans.add(TextSpan(text: raw.substring(last)));
+    return spans;
+  }
+}
 
 class _LiveDot extends StatefulWidget {
   const _LiveDot();
@@ -2531,7 +3572,6 @@ class _ToastWidgetState extends State<_ToastWidget>
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: widget.green ? accent3Color : textColor,
-                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
@@ -2589,16 +3629,15 @@ class _BgGradientPainter extends CustomPainter {
     required this.primary,
     required this.secondary,
     required this.tertiary,
-    required this.isDark,
+    this.isDark = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
-    // Light mode: stronger alphas so tint is visible against white bg
-    final a1 = isDark ? 0.18 : 0.32;
-    final a2 = isDark ? 0.14 : 0.26;
-    final a3 = isDark ? 0.10 : 0.20;
+    final a1 = isDark ? 0.18 : 0.45;
+    final a2 = isDark ? 0.14 : 0.38;
+    final a3 = isDark ? 0.10 : 0.30;
     final gradients = [
       RadialGradient(
         center: const Alignment(-0.8, -0.84),
@@ -2637,6 +3676,5 @@ class _BgGradientPainter extends CustomPainter {
   bool shouldRepaint(_BgGradientPainter oldDelegate) =>
       oldDelegate.primary != primary ||
       oldDelegate.secondary != secondary ||
-      oldDelegate.tertiary != tertiary ||
-      oldDelegate.isDark != isDark;
+      oldDelegate.tertiary != tertiary;
 }

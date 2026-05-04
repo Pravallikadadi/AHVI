@@ -247,9 +247,7 @@ class _BoardsScreenState extends State<BoardsScreen>
   Color get _accent => _theme.accent.primary;
   Color get _accent2 => _theme.accent.secondary;
   Color get _shell => _theme.phoneShell;
-  Color get _cardIconColor => Theme.of(context).brightness == Brightness.light
-      ? Colors.black
-      : Colors.white;
+  Color get _cardIconColor => Colors.white;
 
   bool _isLifeTab = true;
   bool _hasStartedAnimations =
@@ -425,7 +423,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           colors: [Color(0xFFFFB08F), Color(0xFFFF8F72)],
         ),
         shadowColor: const Color(0xFFFF8F72).withValues(alpha: 0.30),
-        iconBg: _panel,
+        iconBg: Colors.transparent,
         icon: Icons.celebration_rounded,
         title: AppLocalizations.t(context, 'boards_party_looks'),
         subtitle: AppLocalizations.t(context, 'boards_party_looks_sub'),
@@ -445,7 +443,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           colors: [Color(0xFFFFE07E), Color(0xFFFFC956)],
         ),
         shadowColor: const Color(0xFFFFC956).withValues(alpha: 0.30),
-        iconBg: _panel,
+        iconBg: Colors.transparent,
         icon: Icons.business_center_rounded,
         title: AppLocalizations.t(context, 'boards_office_fits'),
         subtitle: AppLocalizations.t(context, 'boards_office_fits_sub'),
@@ -465,7 +463,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           colors: [Color(0xFF9AF0D3), Color(0xFF58DCB0)],
         ),
         shadowColor: const Color(0xFF58DCB0).withValues(alpha: 0.25),
-        iconBg: _panel,
+        iconBg: Colors.transparent,
         icon: Icons.beach_access_rounded,
         title: AppLocalizations.t(context, 'boards_vacation'),
         subtitle: AppLocalizations.t(context, 'boards_vacation_sub'),
@@ -485,7 +483,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           colors: [Color(0xFF9DCBFF), Color(0xFF77A8FF)],
         ),
         shadowColor: const Color(0xFF77A8FF).withValues(alpha: 0.28),
-        iconBg: _card,
+        iconBg: Colors.transparent,
         icon: Icons.auto_awesome_rounded,
         title: AppLocalizations.t(context, 'boards_occasion'),
         subtitle: AppLocalizations.t(context, 'boards_occasion_sub'),
@@ -522,7 +520,7 @@ class _BoardsScreenState extends State<BoardsScreen>
           colors: colors,
         ),
         shadowColor: colors[1].withValues(alpha: 0.28),
-        iconBg: _panel,
+        iconBg: Colors.transparent,
         icon: Icons.dashboard_customize_rounded,
         title: boardName,
         subtitle: AppLocalizations.t(context, 'boards_custom_sub'),
