@@ -1,5 +1,5 @@
-// boards.dart — Premium UX Upgrade
-// Implements all F1–F12 animations + haptics + iOS scroll + DRY refactor
+﻿// boards.dart â€” Premium UX Upgrade
+// Implements all F1â€“F12 animations + haptics + iOS scroll + DRY refactor
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -8,10 +8,10 @@ import 'package:myapp/app_localizations.dart';
 import 'package:myapp/calendar.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/daily_wear.dart' as daily_wear;
-// ── Master Board Import ──
+// â”€â”€ Master Board Import â”€â”€
 import 'package:myapp/occasion.dart'; // Handles Daily Wear, Office, Party, Vacation, etc.
 
-// ── Specific Board Imports ──
+// â”€â”€ Specific Board Imports â”€â”€
 import 'package:myapp/everything_else.dart' as everything_else;
 import 'package:myapp/home_and_utilities.dart' as home_utils;
 import 'package:myapp/skincare.dart';
@@ -23,9 +23,9 @@ class ShellBackNavigationNotification extends Notification {
   const ShellBackNavigationNotification();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  CALENDAR CARD (glass + inline expandable panel)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class CalendarCard extends StatefulWidget {
   final Color cardColor;
   final Color borderColor;
@@ -125,7 +125,7 @@ class _CalendarCardState extends State<CalendarCard> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '• $_totalPlans outfit plans • $_todayPlans today',
+                        'â€¢ $_totalPlans outfit plans â€¢ $_todayPlans today',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,
@@ -196,9 +196,9 @@ class _GlassCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  SPACING CONSTANTS  (4-pt grid)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract final class _S {
   static const double xs = 4;
   static const double sm = 8;
@@ -208,9 +208,9 @@ abstract final class _S {
   static const double xl = 32;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  ANIMATION CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 abstract final class _A {
   static const Duration fast = Duration(milliseconds: 150);
   static const Duration medium = Duration(milliseconds: 250);
@@ -224,9 +224,9 @@ abstract final class _A {
   static const Curve ease = Curves.easeOutCubic;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //  BOARDS SCREEN
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class BoardsScreen extends StatefulWidget {
   const BoardsScreen({super.key});
 
@@ -432,7 +432,7 @@ class _BoardsScreenState extends State<BoardsScreen>
               occasion: 'Party',
               titleKey: 'boards_party_looks',
               subtitleKey: 'boards_party_looks_sub',
-              emptyEmoji: '🎊',
+              emptyEmoji: 'ðŸŽŠ',
             ),
         ),
       ),
@@ -452,7 +452,7 @@ class _BoardsScreenState extends State<BoardsScreen>
               occasion: 'Office',
               titleKey: 'boards_office_fits',
               subtitleKey: 'boards_office_fits_sub',
-              emptyEmoji: '💼',
+              emptyEmoji: 'ðŸ’¼',
             ),
         ),
       ),
@@ -472,7 +472,7 @@ class _BoardsScreenState extends State<BoardsScreen>
               occasion: 'Vacation',
               titleKey: 'boards_vacation',
               subtitleKey: 'boards_vacation_sub',
-              emptyEmoji: '✈️',
+              emptyEmoji: 'âœˆï¸',
             ),
         ),
       ),
@@ -492,7 +492,7 @@ class _BoardsScreenState extends State<BoardsScreen>
               occasion: 'Occasion',
               titleKey: 'boards_occasion',
               subtitleKey: 'boards_occasion_sub',
-              emptyEmoji: '✨',
+              emptyEmoji: 'âœ¨',
             ),
         ),
       ),
@@ -529,7 +529,7 @@ class _BoardsScreenState extends State<BoardsScreen>
             occasion: 'Custom:$boardName',
             titleLabel: boardName,
             subtitleLabel: AppLocalizations.t(context, 'boards_custom_sub'),
-            emptyEmoji: '🧩',
+            emptyEmoji: 'ðŸ§©',
           ),
         ),
         onDelete: () => _deleteCustomBoard(boardName),
@@ -668,7 +668,7 @@ class _BoardsScreenState extends State<BoardsScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Fixed logo header — AhviHeader (same position on all screens) ──
+                // â”€â”€ Fixed logo header â€” AhviHeader (same position on all screens) â”€â”€
                 const AhviHeader(),
                 Expanded(
                   child: CustomScrollView(
@@ -737,7 +737,7 @@ class _BoardsScreenState extends State<BoardsScreen>
     );
   }
 
-  // _buildCreateBoardOverlay removed — now uses showDialog via _openCreateBoardDialog
+  // _buildCreateBoardOverlay removed â€” now uses showDialog via _openCreateBoardDialog
 
   Widget _buildAmbientBg() {
     return Stack(
@@ -882,7 +882,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                   badgeTextColor: _accent,
                   badgeBg: _card,
                   badgeBorderColor: _accent.withValues(alpha: 0.25),
-                  iconBg: _card,
+                  iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.checkroom_rounded,
                     size: 32,
@@ -917,7 +917,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                   badgeTextColor: _accent2,
                   badgeBg: _card,
                   badgeBorderColor: _accent2.withValues(alpha: 0.25),
-                  iconBg: _card,
+                  iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.home_rounded,
                     size: 32,
@@ -951,11 +951,11 @@ class _BoardsScreenState extends State<BoardsScreen>
                     colors: [Color(0xFFFFBFDC), Color(0xFFFF96C7)],
                   ),
                   shadowColor: const Color(0xFFFF96C7).withValues(alpha: 0.30),
-                  badge: 'AM · PM',
+                  badge: 'AM Â· PM',
                   badgeTextColor: _accent,
                   badgeBg: _panelBorder,
                   badgeBorderColor: _cardBorder,
-                  iconBg: _panel,
+                  iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.water_drop_rounded,
                     size: 32,
@@ -988,7 +988,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                   badgeTextColor: _accent,
                   badgeBg: _panelBorder,
                   badgeBorderColor: _cardBorder,
-                  iconBg: _panel,
+                  iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.monitor_heart_rounded,
                     size: 32,
@@ -1032,7 +1032,7 @@ class _BoardsScreenState extends State<BoardsScreen>
             badgeTextColor: Colors.transparent,
             badgeBg: Colors.transparent,
             badgeBorderColor: Colors.transparent,
-            iconBg: _panel,
+            iconBg: Colors.transparent,
             iconWidget: Icon(
               Icons.add_circle_outline_rounded,
               size: 28,
@@ -1737,7 +1737,7 @@ class _HoverPressButtonState extends State<_HoverPressButton> {
     );
   }
 }
-// ── Create Board Dialog ────────────────────────────────────────────────────────
+// â”€â”€ Create Board Dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 class _CreateBoardDialog extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;

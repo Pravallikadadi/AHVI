@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -11,8 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
 
 enum _TryOnStage { preview, loading, camera, captured }
 
@@ -84,24 +82,24 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   bool _quickPromptsVisible = true;
   Timer? _chatGreetingTimer;
 
-  // ── Chat History ─────────────────────────────────────────────────────
+  // â”€â”€ Chat History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   final List<_ChatSession> _chatHistory = [];
   String _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
   final GlobalKey<ScaffoldState> _chatScaffoldKey = GlobalKey<ScaffoldState>();
 
   int? _speakingMessageId;
 
-  // ── Plus button ───────────────────────────────────────────────────────────
+  // â”€â”€ Plus button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   String _liveDay = 'THU';
   String _liveDate = 'FEB 19';
   String _liveTime = '00:00';
   Timer? _clockTimer;
 
-  String _weatherIcon = '☀️';
+  String _weatherIcon = 'â˜€ï¸';
   String _weatherLabel = 'Clear';
   String _weatherDetail = 'Fetching conditions';
-  String _weatherTemp = '--°';
+  String _weatherTemp = '--Â°';
   String _weatherContext = '';
   String? _suggestionBanner;
   bool _bannerVisible = false;
@@ -262,7 +260,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
       _tryOnOutfitId = _displayedOutfits.first['id'] as String;
       _outfitsInited = true;
     } else {
-      // Language changed — rebuild displayed outfits preserving order & worn state
+      // Language changed â€” rebuild displayed outfits preserving order & worn state
       final currentIds = _displayedOutfits.map((o) => o['id'] as String).toList();
       final outfitById = {for (final o in outfits) o['id'] as String: o};
       _displayedOutfits = currentIds
@@ -330,7 +328,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void initState() {
     super.initState();
 
-    // ── Controllers first ──────────────────────────────────────
+    // â”€â”€ Controllers first â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     _optCard0Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
     _optCard1Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
     _optCard2Ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
@@ -378,7 +376,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     // Start fade-in immediately on page load
     _pageController.addListener(_onPageScroll);
 
-    // ── Deferred startup ──────────────────────────────────────────────────
+    // â”€â”€ Deferred startup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _startAutoPlay();
@@ -541,17 +539,17 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   void _applyWeather(int temp, int feel, int code, [BuildContext? ctx]) {
     final context = ctx ?? this.context;
     final wm = <int, List<String>>{
-      0: ['☀️', AppLocalizations.t(context, 'weather_clear_sky'), AppLocalizations.t(context, 'weather_clear_sky_tip')],
-      1: ['🌤️', AppLocalizations.t(context, 'weather_mostly_clear'), AppLocalizations.t(context, 'weather_mostly_clear_tip')],
-      2: ['⛅', AppLocalizations.t(context, 'weather_partly_cloudy'), AppLocalizations.t(context, 'weather_partly_cloudy_tip')],
-      3: ['☁️', AppLocalizations.t(context, 'weather_overcast'), AppLocalizations.t(context, 'weather_overcast_tip')],
-      45: ['🌫️', AppLocalizations.t(context, 'weather_foggy'), AppLocalizations.t(context, 'weather_foggy_tip')],
-      51: ['🌦️', AppLocalizations.t(context, 'weather_light_drizzle'), AppLocalizations.t(context, 'weather_light_drizzle_tip')],
-      61: ['🌧️', AppLocalizations.t(context, 'weather_light_rain'), AppLocalizations.t(context, 'weather_light_rain_tip')],
-      63: ['🌧️', AppLocalizations.t(context, 'weather_rain'), AppLocalizations.t(context, 'weather_rain_tip')],
-      65: ['⛈️', AppLocalizations.t(context, 'weather_heavy_rain'), AppLocalizations.t(context, 'weather_heavy_rain_tip')],
-      80: ['🌦️', AppLocalizations.t(context, 'weather_showers'), AppLocalizations.t(context, 'weather_showers_tip')],
-      95: ['⛈️', AppLocalizations.t(context, 'weather_thunderstorm'), AppLocalizations.t(context, 'weather_thunderstorm_tip')],
+      0: ['â˜€ï¸', AppLocalizations.t(context, 'weather_clear_sky'), AppLocalizations.t(context, 'weather_clear_sky_tip')],
+      1: ['ðŸŒ¤ï¸', AppLocalizations.t(context, 'weather_mostly_clear'), AppLocalizations.t(context, 'weather_mostly_clear_tip')],
+      2: ['â›…', AppLocalizations.t(context, 'weather_partly_cloudy'), AppLocalizations.t(context, 'weather_partly_cloudy_tip')],
+      3: ['â˜ï¸', AppLocalizations.t(context, 'weather_overcast'), AppLocalizations.t(context, 'weather_overcast_tip')],
+      45: ['ðŸŒ«ï¸', AppLocalizations.t(context, 'weather_foggy'), AppLocalizations.t(context, 'weather_foggy_tip')],
+      51: ['ðŸŒ¦ï¸', AppLocalizations.t(context, 'weather_light_drizzle'), AppLocalizations.t(context, 'weather_light_drizzle_tip')],
+      61: ['ðŸŒ§ï¸', AppLocalizations.t(context, 'weather_light_rain'), AppLocalizations.t(context, 'weather_light_rain_tip')],
+      63: ['ðŸŒ§ï¸', AppLocalizations.t(context, 'weather_rain'), AppLocalizations.t(context, 'weather_rain_tip')],
+      65: ['â›ˆï¸', AppLocalizations.t(context, 'weather_heavy_rain'), AppLocalizations.t(context, 'weather_heavy_rain_tip')],
+      80: ['ðŸŒ¦ï¸', AppLocalizations.t(context, 'weather_showers'), AppLocalizations.t(context, 'weather_showers_tip')],
+      95: ['â›ˆï¸', AppLocalizations.t(context, 'weather_thunderstorm'), AppLocalizations.t(context, 'weather_thunderstorm_tip')],
     };
     final feelsLike = feel >= 36
         ? AppLocalizations.t(context, 'feels_very_hot')
@@ -573,9 +571,9 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     _applyWeatherAndSort(
       temp: temp,
       icon: w[0],
-      label: '${w[1]} · $feelsLike',
+      label: '${w[1]} Â· $feelsLike',
       detail: w[2],
-      weatherCtx: '${w[1]}, $feelsLike, $temp°C',
+      weatherCtx: '${w[1]}, $feelsLike, $tempÂ°C',
     );
   }
 
@@ -598,7 +596,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
     final sorted = List<Map<String, dynamic>>.from(_buildAllOutfits(context))
       ..sort((a, b) => score(b).compareTo(score(a)));
     final hero = sorted.first;
-    final tempIcon = temp >= 30 ? '🌡️' : temp >= 22 ? '🌤️' : temp >= 15 ? '🍃' : '🧣';
+    final tempIcon = temp >= 30 ? 'ðŸŒ¡ï¸' : temp >= 22 ? 'ðŸŒ¤ï¸' : temp >= 15 ? 'ðŸƒ' : 'ðŸ§£';
     final banner = score(hero) == 2
         ? AppLocalizations.t(context, 'banner_perfect_fit')
             .replaceAll('{icon}', tempIcon)
@@ -608,17 +606,17 @@ class _DailyWearScreenState extends State<DailyWearScreen>
             .replaceAll('{icon}', tempIcon)
             .replaceAll('{temp}', '$temp');
 
-    // Single postFrameCallback — ONE setState for both weather + outfit data.
-    // Previously: setState (weather) → _sortOutfitsForWeather → setState (outfits)
+    // Single postFrameCallback â€” ONE setState for both weather + outfit data.
+    // Previously: setState (weather) â†’ _sortOutfitsForWeather â†’ setState (outfits)
     // = 2 rebuilds = flash. Now: 1 rebuild = no flash.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_weatherTemp != '$temp°') {
+      if (_weatherTemp != '$tempÂ°') {
         setState(() {
           _weatherIcon = icon;
           _weatherLabel = label;
           _weatherDetail = detail;
-          _weatherTemp = '$temp°';
+          _weatherTemp = '$tempÂ°';
           _weatherContext = weatherCtx;
           _displayedOutfits = sorted;
           _carouselIndex = 0;
@@ -629,7 +627,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
         Future.delayed(const Duration(milliseconds: 50), () {
           if (mounted) setState(() => _bannerVisible = true);
         });
-        // Jump (not animate) to avoid onPageChanged → setState cascade
+        // Jump (not animate) to avoid onPageChanged â†’ setState cascade
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && _pageController.hasClients) {
             _pageController.jumpToPage(0);
@@ -640,7 +638,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
   }
 
   void _sortOutfitsForWeather(int temp) {
-    // Delegate to merged method — preserves existing weather display values
+    // Delegate to merged method â€” preserves existing weather display values
     _applyWeatherAndSort(
       temp: temp,
       icon: _weatherIcon,
@@ -659,7 +657,7 @@ class _DailyWearScreenState extends State<DailyWearScreen>
 
 
 
-  // ──────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
 void dispose() {
@@ -692,7 +690,7 @@ void dispose() {
   _optCard1Ctrl.dispose();
   _optCard2Ctrl.dispose();
 
-  super.dispose(); // ✅ ADD THIS
+  super.dispose(); // âœ… ADD THIS
 }
 
   void _showToast(String message, {bool green = false}) {
@@ -938,12 +936,12 @@ void dispose() {
     final systemPrompt =
         'You are AHVI, a warm, elegant personal AI fashion stylist. '
         'Tone: refined, friendly, like a personal shopper.\n'
-        'Context: Outfit shown: "${currentOutfit['name']}" — ${currentOutfit['desc']}. '
+        'Context: Outfit shown: "${currentOutfit['name']}" â€” ${currentOutfit['desc']}. '
         'Tags: ${((currentOutfit['tags'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
         'Occasions: ${((currentOutfit['occ'] as List?)?.cast<String>() ?? <String>[]).join(', ')}. '
         'Weather: ${_weatherContext.isEmpty ? 'unknown' : _weatherContext}. $wornNote\n'
         'Outfits available: Linen & Air (hot/linen/casual), Coffee Run (mild/cosy/weekend), Office Hours (work/formal), Golden Hour (evnings/earth tones).\n'
-        'Keep responses concise — 2–4 sentences max or a short list. Be specific. Reference outfit names when relevant. Light emoji (1–2). Never be generic.';
+        'Keep responses concise â€” 2â€“4 sentences max or a short list. Be specific. Reference outfit names when relevant. Light emoji (1â€“2). Never be generic.';
 
     final history = _messages
         .take(_messages.length - 1)
@@ -984,7 +982,7 @@ void dispose() {
           : null;
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
-        text: replyText ?? "I'm having a moment — try again ✦",
+        text: replyText ?? "I'm having a moment â€” try again âœ¦",
         isUser: false,
         createdAt: DateTime.now(),
       );
@@ -998,9 +996,9 @@ void dispose() {
     } catch (_) {
       if (!mounted) return;
       final fallbacks = [
-        "Based on today's conditions, **${_currentOutfit['name']}** is your strongest choice right now. ✦",
-        'For a first date, **Golden Hour** is hard to beat — earth tones feel warm and approachable. 💫',
-        'Linen excels in heat, but fit is everything — slightly relaxed, never shapeless. 🌿',
+        "Based on today's conditions, **${_currentOutfit['name']}** is your strongest choice right now. âœ¦",
+        'For a first date, **Golden Hour** is hard to beat â€” earth tones feel warm and approachable. ðŸ’«',
+        'Linen excels in heat, but fit is everything â€” slightly relaxed, never shapeless. ðŸŒ¿',
       ];
       final message = _ChatMessage(
         id: DateTime.now().microsecondsSinceEpoch,
@@ -1034,7 +1032,7 @@ void dispose() {
     final userMessages = _messages.where((m) => m.isUser).toList();
     if (userMessages.isEmpty) return;
     final title = userMessages.first.text.length > 40
-        ? '${userMessages.first.text.substring(0, 40)}…'
+        ? '${userMessages.first.text.substring(0, 40)}â€¦'
         : userMessages.first.text;
     final existingIdx =
         _chatHistory.indexWhere((s) => s.id == _currentSessionId);
@@ -1175,7 +1173,7 @@ void dispose() {
                                   ),
                                 ),
                                 child: Center(
-                                  child: Text('✦', style: TextStyle(
+                                  child: Text('âœ¦', style: TextStyle(
                                       fontSize: 13,
                                       color: isActive ? t.accent.primary : t.mutedText)),
                                 ),
@@ -1264,12 +1262,13 @@ void dispose() {
         body: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(
-                painter: _BgGradientPainter(
-                  primary: accentColor,
-                  secondary: accent2Color,
-                  tertiary: accent3Color,
-                  isDark: _bg.computeLuminance() < 0.18,
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _BgGradientPainter(
+                    primary: accentColor,
+                    secondary: accent2Color,
+                    tertiary: accent3Color,
+                  ),
                 ),
               ),
             ),
@@ -1435,7 +1434,7 @@ void dispose() {
           ),
         ),
         Text(
-          ' · ',
+          ' Â· ',
           style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w600,
@@ -1714,7 +1713,7 @@ void dispose() {
               ),
               child: Center(
                 child: Text(
-                  left ? '‹' : '›',
+                  left ? 'â€¹' : 'â€º',
                   style: const TextStyle(color: Colors.white, fontSize: 20),
                 ),
               ),
@@ -1731,25 +1730,31 @@ void dispose() {
     return Stack(
       fit: StackFit.expand,
       children: [
-        CachedNetworkImage(
-          imageUrl: outfit['img'] as String,
+        Image.network(
+          outfit['img'] as String,
           fit: BoxFit.cover,
           alignment: Alignment.topCenter,
-          filterQuality: FilterQuality.high,
-          placeholder: (context, url) => Shimmer.fromColors(
-            baseColor: panelColor,
-            highlightColor: Color.alphaBlend(
-              accentColor.withValues(alpha: 0.12),
-              panelColor,
-            ),
-            child: Container(color: panelColor),
-          ),
-          errorWidget: (context, url, error) {
+          cacheWidth: _cacheWidth(context, MediaQuery.of(context).size.width),
+          filterQuality: FilterQuality.medium,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(color: panelColor);
+          },
+          errorBuilder: (_, _, _) {
             final localImg = outfit['localImg'] as String?;
             if (localImg != null) {
-              return Image.asset(localImg, fit: BoxFit.cover, alignment: Alignment.topCenter);
+              return Image.asset(
+                localImg,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              );
             }
-            return Container(color: panelColor, child: Center(child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48)));
+            return Container(
+              color: panelColor,
+              child: Center(
+                child: Icon(Icons.checkroom_outlined, color: mutedColor, size: 48),
+              ),
+            );
           },
         ),
         Positioned.fill(
@@ -1799,12 +1804,12 @@ void dispose() {
               ),
               Row(
                 children: [
-                  _circleAction(saved ? '❤️' : '🤍', () {
+                  _circleAction(saved ? 'â¤ï¸' : 'ðŸ¤', () {
                     setState(() => _savedCarouselById[outfitId] = !saved);
                     if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_saved_wardrobe'));
                   }),
                   const SizedBox(width: 8),
-                  _circleShare('${AppLocalizations.t(context, outfit['nameKey'] as String)} · ${AppLocalizations.t(context, outfit['descKey'] as String)}'),
+                  _circleShare('${AppLocalizations.t(context, outfit['nameKey'] as String)} Â· ${AppLocalizations.t(context, outfit['descKey'] as String)}'),
                 ],
               ),
             ],
@@ -2142,7 +2147,7 @@ void dispose() {
                   const SizedBox(height: 9),
                   Row(
                     children: [
-                      _smallIcon(saved ? '❤️' : '🤍', () {
+                      _smallIcon(saved ? 'â¤ï¸' : 'ðŸ¤', () {
                         setState(() => _savedOptionById[outfitId] = !saved);
                         if (!saved) _showToast(AppLocalizations.t(context, 'daily_wear_toast_outfit_saved'));
                       }),
@@ -2199,7 +2204,7 @@ void dispose() {
           icon,
           style: TextStyle(
             fontSize: 13,
-            color: icon == '❤️' ? accent4Color : mutedColor,
+            color: icon == 'â¤ï¸' ? accent4Color : mutedColor,
           ),
         ),
       ),
@@ -2324,7 +2329,7 @@ void dispose() {
                                 alpha: 0.18,
                               ),
                               child: Text(
-                                '✦',
+                                'âœ¦',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.white,
@@ -2485,7 +2490,7 @@ void dispose() {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Attachment preview chip — shown when a file / image / web search is pending
+          // Attachment preview chip â€” shown when a file / image / web search is pending
           AhviChatPromptBar(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             controller: _chatController,
@@ -2513,7 +2518,7 @@ void dispose() {
 
   Widget _buildTryOnOverlay() => Stack(
     children: [
-      // Scrim — animates independently, never composited with the sheet
+      // Scrim â€” animates independently, never composited with the sheet
       Positioned.fill(
         child: AnimatedBuilder(
           animation: _tryOnSlideCtrl,
@@ -2527,7 +2532,7 @@ void dispose() {
           ),
         ),
       ),
-      // Sheet — slide + fade applied only to the sheet widget itself
+      // Sheet â€” slide + fade applied only to the sheet widget itself
       Align(
         alignment: Alignment.bottomCenter,
         child: GestureDetector(
@@ -2581,7 +2586,7 @@ void dispose() {
                             ),
                             child: Center(
                               child: Text(
-                                '✕',
+                                'âœ•',
                                 style: TextStyle(color: mutedColor),
                               ),
                             ),
@@ -2696,7 +2701,7 @@ void dispose() {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _frontCamera ? 'HD · FRONT' : 'HD · BACK',
+                            _frontCamera ? 'HD Â· FRONT' : 'HD Â· BACK',
                             style: TextStyle(fontSize: 10, color: mutedColor),
                           ),
                         ],
@@ -2797,18 +2802,18 @@ void dispose() {
           Row(
             children: [
               Expanded(
-                child: _actionBtn('📸 Capture', _captureTryOn, primary: true),
+                child: _actionBtn('ðŸ“¸ Capture', _captureTryOn, primary: true),
               ),
               const SizedBox(width: 10),
               SizedBox(
                 width: 56,
-                child: _actionBtn('🔄', _flipCamera, primary: false),
+                child: _actionBtn('ðŸ”„', _flipCamera, primary: false),
               ),
               const SizedBox(width: 10),
               SizedBox(
                 width: 56,
                 child: _actionBtn(
-                  '✕',
+                  'âœ•',
                   () => setState(() => _tryOnStage = _TryOnStage.preview),
                   primary: false,
                 ),
@@ -2851,7 +2856,7 @@ void dispose() {
                       ),
                     ),
                     child: Text(
-                      '✓ CAPTURED',
+                      'âœ“ CAPTURED',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -2871,7 +2876,7 @@ void dispose() {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '✦ ${AppLocalizations.t(context, outfit['nameKey'] as String)} · AHVI',
+                          'âœ¦ ${AppLocalizations.t(context, outfit['nameKey'] as String)} Â· AHVI',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -3012,7 +3017,7 @@ void dispose() {
           ),
           child: Row(
             children: [
-              const Text('💡'),
+              const Text('ðŸ’¡'),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -3201,7 +3206,7 @@ class _ChatBubble extends StatelessWidget {
             CircleAvatar(
               radius: 15,
               backgroundColor: t.accent.primary,
-              child: Text('✦', style: TextStyle(color: t.tileText)),
+              child: Text('âœ¦', style: TextStyle(color: t.tileText)),
             ),
           if (!isUser) const SizedBox(width: 9),
           ConstrainedBox(
@@ -3263,7 +3268,7 @@ class _ChatBubble extends StatelessWidget {
               radius: 15,
               backgroundColor: t.panelBorder,
               child: Text(
-                '👤',
+                'ðŸ‘¤',
                 style: TextStyle(fontSize: 12, color: t.mutedText),
               ),
             ),
@@ -3305,7 +3310,7 @@ class _TypingBubbleState extends State<_TypingBubble>
         CircleAvatar(
           radius: 15,
           backgroundColor: t.accent.primary,
-          child: Text('✦', style: TextStyle(color: t.tileText)),
+          child: Text('âœ¦', style: TextStyle(color: t.tileText)),
         ),
         const SizedBox(width: 9),
         Container(
@@ -3635,15 +3640,12 @@ class _BgGradientPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
-    final a1 = isDark ? 0.18 : 0.45;
-    final a2 = isDark ? 0.14 : 0.38;
-    final a3 = isDark ? 0.10 : 0.30;
     final gradients = [
       RadialGradient(
         center: const Alignment(-0.8, -0.84),
         radius: 0.65,
         colors: [
-          primary.withValues(alpha: a1),
+          primary.withValues(alpha: isDark ? 0.18 : 0.45),
           primary.withValues(alpha: 0.0),
         ],
       ),
@@ -3651,7 +3653,7 @@ class _BgGradientPainter extends CustomPainter {
         center: const Alignment(0.76, 0.64),
         radius: 0.55,
         colors: [
-          secondary.withValues(alpha: a2),
+          secondary.withValues(alpha: isDark ? 0.14 : 0.38),
           secondary.withValues(alpha: 0.0),
         ],
       ),
@@ -3659,7 +3661,7 @@ class _BgGradientPainter extends CustomPainter {
         center: Alignment.center,
         radius: 0.45,
         colors: [
-          tertiary.withValues(alpha: a3),
+          tertiary.withValues(alpha: isDark ? 0.10 : 0.30),
           tertiary.withValues(alpha: 0.0),
         ],
       ),
@@ -3678,3 +3680,4 @@ class _BgGradientPainter extends CustomPainter {
       oldDelegate.secondary != secondary ||
       oldDelegate.tertiary != tertiary;
 }
+
