@@ -362,7 +362,7 @@ class _PlansScreenState extends State<PlansScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: kAccent.withValues(alpha: 0.25)),
                     ),
-                    child: const Icon(Icons.restaurant_menu_rounded, color: Colors.black, size: 20),
+                    child: Icon(Icons.restaurant_menu_rounded, color: context.dText, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -370,7 +370,7 @@ class _PlansScreenState extends State<PlansScreen> {
                     children: [
                       Text(
                         'Diet',
-                        style: GoogleFonts.anton(fontSize: 22, color: Colors.black, letterSpacing: 0.5),
+                        style: GoogleFonts.anton(fontSize: 22, color: context.dText, letterSpacing: 0.5),
                       ),
 
                     ],

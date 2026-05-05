@@ -93,7 +93,7 @@ class _CalendarCardState extends State<CalendarCard> {
                   decoration: BoxDecoration(
                     color: widget.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: widget.borderColor, width: 1.2),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1.2),
                     boxShadow: [
                       BoxShadow(
                         color: widget.accent.withValues(alpha: 0.5),
@@ -951,10 +951,10 @@ class _BoardsScreenState extends State<BoardsScreen>
                     colors: [Color(0xFFFFBFDC), Color(0xFFFF96C7)],
                   ),
                   shadowColor: const Color(0xFFFF96C7).withValues(alpha: 0.30),
-                  badge: 'AM Â· PM',
+                  badge: 'AM · PM',
                   badgeTextColor: Colors.white,
                   badgeBg: Colors.white.withValues(alpha: 0.30),
-                  badgeBorderColor: _cardBorder,
+                  badgeBorderColor: Colors.white.withValues(alpha: 0.35),
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.water_drop_rounded,
@@ -987,7 +987,7 @@ class _BoardsScreenState extends State<BoardsScreen>
                   badge: 'Track',
                   badgeTextColor: Colors.white,
                   badgeBg: Colors.white.withValues(alpha: 0.30),
-                  badgeBorderColor: _cardBorder,
+                  badgeBorderColor: Colors.white.withValues(alpha: 0.35),
                   iconBg: Colors.transparent,
                   iconWidget: Icon(
                     Icons.monitor_heart_rounded,
@@ -1443,7 +1443,9 @@ class _VCardState extends State<_VCard> with SingleTickerProviderStateMixin {
                     0.0,
                   ),
                   decoration: BoxDecoration(
-                    color: _isHovered ? widget.shellColor : widget.arrowBg,
+                    color: _isHovered
+                        ? Colors.white.withValues(alpha: 0.45)
+                        : widget.arrowBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
@@ -1453,9 +1455,7 @@ class _VCardState extends State<_VCard> with SingleTickerProviderStateMixin {
                         Icons.chevron_right_rounded,
                         key: ValueKey(_isHovered),
                         size: 14,
-                        color: _isHovered
-                            ? context.themeTokens.textPrimary
-                            : widget.arrowColor,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -1552,7 +1552,7 @@ class _EverythingElseCardState extends State<_EverythingElseCard> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: widget.cardColor,
+                  color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Center(
@@ -1602,16 +1602,14 @@ class _EverythingElseCardState extends State<_EverythingElseCard> {
                   0.0,
                 ),
                 decoration: BoxDecoration(
-                  color: _isHovered ? widget.shellColor : widget.cardColor,
+                  color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Icon(
                     Icons.chevron_right_rounded,
                     size: 14,
-                    color: _isHovered
-                        ? context.themeTokens.textPrimary
-                        : widget.iconColor,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -1864,4 +1862,3 @@ class _CreateBoardDialog extends StatelessWidget {
     );
   }
 }
-

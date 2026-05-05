@@ -244,7 +244,7 @@ class _HomeView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kAccent.withValues(alpha: 0.25)),
                 ),
-                child: const Icon(Icons.fitness_center_rounded, color: Colors.black, size: 20),
+                child: Icon(Icons.fitness_center_rounded, color: context.fText, size: 20),
               ),
               const SizedBox(width: 12),
               Column(
@@ -252,7 +252,7 @@ class _HomeView extends StatelessWidget {
                 children: [
                   Text(
                     'Fitness',
-                    style: GoogleFonts.anton(fontSize: 22, color: Colors.black, letterSpacing: 0.5),
+                    style: GoogleFonts.anton(fontSize: 22, color: context.fText, letterSpacing: 0.5),
                   ),
 
                 ],
