@@ -2119,9 +2119,10 @@ void dispose() {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(13, 8, 10, 8),
+              padding: const EdgeInsets.fromLTRB(13, 8, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     AppLocalizations.t(context, card['nameKey'] as String),
