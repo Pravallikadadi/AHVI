@@ -1518,7 +1518,17 @@ class _AddItemModalState extends State<_AddItemModal>
       children: [
         // ── Live camera or loading ──
         _camReady && _camCtrl != null
-            ? CameraPreview(_camCtrl!)
+            ? ClipRect(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  child: SizedBox(
+                    width: _camCtrl!.value.previewSize!.height,
+                    height: _camCtrl!.value.previewSize!.width,
+                    child: CameraPreview(_camCtrl!),
+                  ),
+                ),
+              )
             : Container(
                 color: Colors.black,
                 child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
