@@ -2170,7 +2170,9 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                       // ── Skin Tone ──
                       _FieldLabel(text: _t.skinTone, textMuted: _textMuted),
                       const SizedBox(height: 6),
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 8,
                         children: List.generate(kSkinTones.length, (i) {
                           final active = _draft.skinTone == i + 1;
                           return GestureDetector(
@@ -2180,7 +2182,6 @@ class _EditViewState extends State<_EditView> with SingleTickerProviderStateMixi
                             }),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
-                              margin: const EdgeInsets.only(right: 10),
                               width: 32, height: 32,
                               decoration: BoxDecoration(
                                 color: kSkinTones[i],
