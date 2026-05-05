@@ -951,7 +951,6 @@ class _MealEntryState extends State<_MealEntry> {
       decoration: BoxDecoration(color: context.dSurface2, borderRadius: BorderRadius.circular(14), border: Border.all(color: context.dBorder)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [Text(widget.emoji, style: const TextStyle(fontSize: 17)), const SizedBox(width: 8), Expanded(child: Text(widget.label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
-          GestureDetector(onTap: _fetching ? null : _autoFetch, child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: context.dAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: _fetching ? SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5, color: context.dAccent)) : Icon(Icons.auto_fix_high, size: 14, color: context.dAccent)))
         ]),
         const SizedBox(height: 12),
         Container(
