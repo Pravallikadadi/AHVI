@@ -9,7 +9,8 @@ import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:myapp/widgets/ahvi_lens_sheet.dart';
 
 class MediTrackScreen extends StatefulWidget {
-  const MediTrackScreen({super.key});
+  final bool showBackButton;
+  const MediTrackScreen({super.key, this.showBackButton = false});
 
   @override
   State<MediTrackScreen> createState() => _MediTrackScreenState();
@@ -364,6 +365,14 @@ class _MediTrackScreenState extends State<MediTrackScreen>
         children: [
           Row(
             children: [
+              if (widget.showBackButton)
+                IconButton(
+                  icon: Icon(Icons.chevron_left, color: textColor, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              if (widget.showBackButton) const SizedBox(width: 6),
               Container(
                 width: 34,
                 height: 34,

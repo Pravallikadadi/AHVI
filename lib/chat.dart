@@ -750,22 +750,22 @@ class _ChatScreenState extends State<ChatScreen>
     Widget? page;
     switch (pageKey) {
       case 'meal':
-        page = diet_page.MainScreen(); // Meal Planner
+        page = diet_page.MainScreen(showBackButton: true); // ✅ Organise నుండి వస్తుంది
         break;
       case 'medi':
-        page = medi_tracker_page.MediTrackScreen(); // Medicine Tracker
+        page = medi_tracker_page.MediTrackScreen(showBackButton: true); // ✅
         break;
       case 'bill':
-        page = const bills_page.BillsScreen(); // Bills Page
+        page = bills_page.BillsScreen(showBackButton: true); // ✅
         break;
       case 'workout':
-        page = fitness_page.WorkoutStudioScreen(); // Fitness / Workout
+        page = fitness_page.WorkoutStudioScreen(showBackButton: true); // ✅
         break;
       case 'calendar':
-        page = const calendar_page.CalendarShell(); // Calendar Screen
+        page = const calendar_page.CalendarShell(); // calendar లో వేరే implement చేయాలి
         break;
       case 'skincare':
-        page = const skincare_page.SkincareScreen(); // Skincare Screen
+        page = const skincare_page.SkincareScreen(); // skincare లో వేరే implement చేయాలి
         break;
     }
     if (page == null) return;

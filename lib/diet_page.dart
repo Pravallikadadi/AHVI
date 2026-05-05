@@ -237,7 +237,8 @@ class MealImageProvider {
 
 // ─── MAIN SCREEN ─────────────────────────────────────────────────────────────
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final bool showBackButton;
+  const MainScreen({super.key, this.showBackButton = false});
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
@@ -313,6 +314,7 @@ class _MainScreenState extends State<MainScreen> {
             onDelete: _deletePlan,
             onEdit: _editPlan,
             messengerKey: _plansMessengerKey,
+            showBackButton: widget.showBackButton,
           ),
           Positioned(
             bottom: 30, right: 20,
@@ -332,7 +334,8 @@ class PlansScreen extends StatefulWidget {
   final ValueChanged<int> onDelete;
   final ValueChanged<MealPlan> onEdit;
   final GlobalKey<ScaffoldMessengerState> messengerKey;
-  const PlansScreen({super.key, required this.plans, required this.onAdd, required this.onDelete, required this.onEdit, required this.messengerKey});
+  final bool showBackButton;
+  const PlansScreen({super.key, required this.plans, required this.onAdd, required this.onDelete, required this.onEdit, required this.messengerKey, this.showBackButton = false});
   @override
   State<PlansScreen> createState() => _PlansScreenState();
 }
@@ -354,6 +357,13 @@ class _PlansScreenState extends State<PlansScreen> {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
               child: Row(
                 children: [
+                  if (widget.showBackButton)
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left, size: 28),
+                      color: context.dText,
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                    ),
                   Container(
                     width: 40,
                     height: 40,

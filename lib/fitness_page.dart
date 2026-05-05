@@ -103,7 +103,8 @@ final kAccentGrad = const LinearGradient(
 );
 // ─── MAIN SCREEN ──────────────────────────────────────────────────────────────
 class WorkoutStudioScreen extends StatefulWidget {
-  const WorkoutStudioScreen({super.key});
+  final bool showBackButton;
+  const WorkoutStudioScreen({super.key, this.showBackButton = false});
   @override
   State<WorkoutStudioScreen> createState() => _WorkoutStudioScreenState();
 }
@@ -152,6 +153,7 @@ class _WorkoutStudioScreenState extends State<WorkoutStudioScreen> {
               onAddOutfit: _addOutfit,
               onDeleteOutfit: _deleteOutfit,
               onAddCategory: _addCategory,
+              showBackButton: widget.showBackButton,
             ),
           ),
           // FAB — pinned bottom-right
@@ -214,6 +216,7 @@ class _HomeView extends StatelessWidget {
   final Function(WorkoutOutfit) onAddOutfit;
   final Function(String) onDeleteOutfit;
   final Function(WorkoutCategory) onAddCategory;
+  final bool showBackButton;
   const _HomeView({
     required this.categories,
     required this.outfits,
@@ -223,6 +226,7 @@ class _HomeView extends StatelessWidget {
     required this.onAddOutfit,
     required this.onDeleteOutfit,
     required this.onAddCategory,
+    this.showBackButton = false,
   });
   @override
   Widget build(BuildContext context) {
@@ -236,6 +240,14 @@ class _HomeView extends StatelessWidget {
           const SizedBox(height: 2),
           Row(
             children: [
+              if (showBackButton)
+                IconButton(
+                  icon: Icon(Icons.chevron_left, color: context.fText, size: 28),
+                  onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              if (showBackButton) const SizedBox(width: 6),
               Container(
                 width: 40,
                 height: 40,

@@ -64,7 +64,8 @@ String _paymentDbKey(BuildContext context, String localizedPay) {
 //  ROOT WIDGET
 // ════════════════════════════════════════════════════════════════════
 class BillsScreen extends StatefulWidget {
-  const BillsScreen({super.key});
+  final bool showBackButton;
+  const BillsScreen({super.key, this.showBackButton = false});
   @override
   State<BillsScreen> createState() => _BillsScreenState();
 }
@@ -658,6 +659,12 @@ class _BillsScreenState extends State<BillsScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          if (widget.showBackButton)
+            IconButton(
+              icon: Icon(Icons.chevron_left, size: 28, color: _t.textPrimary),
+              onPressed: () => Navigator.pop(context),
+              padding: EdgeInsets.zero,
+            ),
           // ── Icon ──
           Container(
             width: 40,
