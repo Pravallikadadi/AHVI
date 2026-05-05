@@ -668,7 +668,7 @@ class _BillsScreenState extends State<BillsScreen>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _accent.withValues(alpha: 0.25)),
             ),
-            child: Icon(Icons.receipt_long_rounded, color: Colors.black, size: 20),
+            child: Icon(Icons.receipt_long_rounded, color: _t.textPrimary, size: 20),
           ),
           // ── Title ──
           Expanded(
@@ -676,7 +676,7 @@ class _BillsScreenState extends State<BillsScreen>
               AppLocalizations.t(context, 'bills_title'),
               style: GoogleFonts.anton(
                 fontSize: 22,
-                color: Colors.black,
+                color: _t.textPrimary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -953,6 +953,7 @@ class _BillsScreenState extends State<BillsScreen>
     ];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
       child: Row(
         children: tabs.map((tab) {
           final key = tab['key'] as String;

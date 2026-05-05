@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "హాయ్! నేను మీ వార్డ్‌రోబ్ స్టైలిస్ట్. అవుట్‌ఫిట్లు మ్యాచ్ చేయడంలో లేదా తర్వాత ఏమి కొనాలో సూచించడంలో సహాయపడతాను!",
   "wardrobe_chat_hint": "మీ వార్డ్‌రోబ్ స్టైలిస్ట్‌ను అడగండి…",
   "wardrobe_chip_outfit_today": "ఈరోజు అవుట్‌ఫిట్",
-  "wardrobe_chip_buy_next": "తర్వాత ఏమి కొనాలి?"
+  "wardrobe_chip_buy_next": "తర్వాత ఏమి కొనాలి?",
+  "daily_wear_page_title": "రోజువారీ దుస్తులు",
+  "skincare_page_title": "చర్మ సంరక్షణ",
+  "diet_page_title": "ఆహారం",
+  "fitness_page_title": "ఫిట్‌నెస్"
 }

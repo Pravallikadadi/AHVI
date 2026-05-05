@@ -432,7 +432,7 @@ class _SkincareScreenState extends State<SkincareScreen>
           ),
           const SizedBox(width: 12),
           Text(
-            'Skincare',
+            AppLocalizations.t(context, 'skincare_page_title'),
             style: TextStyle(
               fontSize: 22.0,
               fontWeight: FontWeight.w600,

@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "Hi! I'm your Wardrobe Stylist. I can help you mix and match outfits or suggest what to add to your wardrobe next!",
   "wardrobe_chat_hint": "Ask your wardrobe stylist…",
   "wardrobe_chip_outfit_today": "Outfit for today",
-  "wardrobe_chip_buy_next": "What should I buy next?"
+  "wardrobe_chip_buy_next": "What should I buy next?",
+  "daily_wear_page_title": "Daily Wear",
+  "skincare_page_title": "Skincare",
+  "diet_page_title": "Diet",
+  "fitness_page_title": "Fitness"
 }

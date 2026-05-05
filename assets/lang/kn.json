@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "ಹಾಯ್! ನಾನು ನಿಮ್ಮ ವಾರ್ಡ್‌ರೋಬ್ ಸ್ಟೈಲಿಸ್ಟ್. ಉಡುಪುಗಳನ್ನು ಮ್ಯಾಚ್ ಮಾಡಲು ಅಥವಾ ಮುಂದೆ ಏನು ಕೊಳ್ಳಬೇಕೆಂದು ಸೂಚಿಸಲು ಸಹಾಯ ಮಾಡುತ್ತೇನೆ!",
   "wardrobe_chat_hint": "ನಿಮ್ಮ ವಾರ್ಡ್‌ರೋಬ್ ಸ್ಟೈಲಿಸ್ಟ್‌ಗೆ ಕೇಳಿ…",
   "wardrobe_chip_outfit_today": "ಇಂದಿನ ಉಡುಪು",
-  "wardrobe_chip_buy_next": "ಮುಂದೆ ಏನು ಕೊಳ್ಳಬೇಕು?"
+  "wardrobe_chip_buy_next": "ಮುಂದೆ ಏನು ಕೊಳ್ಳಬೇಕು?",
+  "daily_wear_page_title": "ದೈನಂದಿನ ಉಡುಪು",
+  "skincare_page_title": "ಚರ್ಮ ಆರೈಕೆ",
+  "diet_page_title": "ಆಹಾರ ಕ್ರಮ",
+  "fitness_page_title": "ಫಿಟ್‌ನೆಸ್"
 }

@@ -850,5 +850,9 @@
   "wardrobe_chat_greeting": "হ্যালো! আমি আপনার ওয়ার্ডরোব স্টাইলিস্ট। পোশাক ম্যাচ করতে বা পরবর্তীতে কী কিনবেন তা সুপারিশ করতে সাহায্য করব!",
   "wardrobe_chat_hint": "আপনার ওয়ার্ডরোব স্টাইলিস্টকে জিজ্ঞেস করুন…",
   "wardrobe_chip_outfit_today": "আজকের পোশাক",
-  "wardrobe_chip_buy_next": "পরবর্তীতে কী কিনব?"
+  "wardrobe_chip_buy_next": "পরবর্তীতে কী কিনব?",
+  "daily_wear_page_title": "প্রতিদিনের পোশাক",
+  "skincare_page_title": "ত্বকের যত্ন",
+  "diet_page_title": "খাদ্যাভ্যাস",
+  "fitness_page_title": "ফিটনেস"
 }

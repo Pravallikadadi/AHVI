@@ -251,7 +251,7 @@ class _HomeView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Fitness',
+                    AppLocalizations.t(context, 'fitness_page_title'),
                     style: GoogleFonts.anton(fontSize: 22, color: context.fText, letterSpacing: 0.5),
                   ),
 

@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "हाय! मैं आपका वॉर्डरोब स्टाइलिस्ट हूँ। आउटफिट मैच करने या अगली खरीदारी की सलाह देने में मदद करता हूँ!",
   "wardrobe_chat_hint": "अपने वॉर्डरोब स्टाइलिस्ट से पूछें…",
   "wardrobe_chip_outfit_today": "आज का आउटफिट",
-  "wardrobe_chip_buy_next": "अगली खरीदारी क्या करें?"
+  "wardrobe_chip_buy_next": "अगली खरीदारी क्या करें?",
+  "daily_wear_page_title": "दैनिक पहनावा",
+  "skincare_page_title": "त्वचा की देखभाल",
+  "diet_page_title": "आहार",
+  "fitness_page_title": "फिटनेस"
 }

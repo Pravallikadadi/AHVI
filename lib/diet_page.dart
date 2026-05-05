@@ -369,7 +369,7 @@ class _PlansScreenState extends State<PlansScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Diet',
+                        AppLocalizations.t(context, 'diet_page_title'),
                         style: GoogleFonts.anton(fontSize: 22, color: context.dText, letterSpacing: 0.5),
                       ),
 

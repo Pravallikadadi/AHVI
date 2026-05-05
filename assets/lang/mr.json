@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "हाय! मी तुमचा वॉर्डरोब स्टायलिस्ट आहे. कपडे मॅच करण्यात किंवा पुढे काय खरेदी करायचे ते सुचवण्यास मदत करतो!",
   "wardrobe_chat_hint": "तुमच्या वॉर्डरोब स्टायलिस्टला विचारा…",
   "wardrobe_chip_outfit_today": "आजचा पेहराव",
-  "wardrobe_chip_buy_next": "पुढे काय खरेदी करायचे?"
+  "wardrobe_chip_buy_next": "पुढे काय खरेदी करायचे?",
+  "daily_wear_page_title": "रोजचा पेहराव",
+  "skincare_page_title": "त्वचेची काळजी",
+  "diet_page_title": "आहार",
+  "fitness_page_title": "फिटनेस"
 }

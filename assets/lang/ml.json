@@ -850,5 +850,9 @@
   "wardrobe_chat_greeting": "ഹായ്! ഞാൻ നിങ്ങളുടെ വാർഡ്രോബ് സ്റ്റൈലിസ്റ്റ് ആണ്. ഔട്ട്ഫിറ്റുകൾ മ്യാച്ച് ചെയ്യാനും, അടുത്തതായി എന്ത് വാങ്ങണം എന്ന് നിർദ്ദേശിക്കാനും സഹായിക്കാം!",
   "wardrobe_chat_hint": "നിങ്ങളുടെ വാർഡ്രോബ് സ്റ്റൈലിസ്റ്റോട് ചോദിക്കൂ…",
   "wardrobe_chip_outfit_today": "ഇന്നത്തെ വേഷം",
-  "wardrobe_chip_buy_next": "അടുത്തതായി എന്ത് വാങ്ങണം?"
+  "wardrobe_chip_buy_next": "അടുത്തതായി എന്ത് വാങ്ങണം?",
+  "daily_wear_page_title": "ദൈനംദിന വസ്ത്രം",
+  "skincare_page_title": "ചർമ്മ പരിചരണം",
+  "diet_page_title": "ഭക്ഷണക്രമം",
+  "fitness_page_title": "ഫിറ്റ്നസ്"
 }

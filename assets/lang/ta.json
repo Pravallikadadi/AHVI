@@ -871,5 +871,9 @@
   "wardrobe_chat_greeting": "வணக்கம்! நான் உங்கள் வார்டுரோப் ஸ்டைலிஸ்ட். ஆடைகளை பொருத்துவதிலோ அல்லது அடுத்து என்ன வாங்கலாம் என்று பரிந்துரைக்கவோ உதவுகிறேன்!",
   "wardrobe_chat_hint": "உங்கள் வார்டுரோப் ஸ்டைலிஸ்டிடம் கேளுங்கள்…",
   "wardrobe_chip_outfit_today": "இன்றைய உடை",
-  "wardrobe_chip_buy_next": "அடுத்து என்ன வாங்கலாம்?"
+  "wardrobe_chip_buy_next": "அடுத்து என்ன வாங்கலாம்?",
+  "daily_wear_page_title": "அன்றாட ஆடை",
+  "skincare_page_title": "சருமப் பராமரிப்பு",
+  "diet_page_title": "உணவுமுறை",
+  "fitness_page_title": "உடற்தகுதி"
 }

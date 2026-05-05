@@ -1352,7 +1352,7 @@ void dispose() {
         final leftBlock = Row(
           children: [
             Text(
-              'Daily Wear',
+              AppLocalizations.t(context, 'daily_wear_page_title'),
               style: TextStyle(
                 fontSize: 22.0,
                 fontWeight: FontWeight.w600,
@@ -2119,7 +2119,7 @@ void dispose() {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(13, 10, 10, 12),
+              padding: const EdgeInsets.fromLTRB(13, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -2144,7 +2144,7 @@ void dispose() {
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 9),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       _smallIcon(saved ? '❤️' : '🤍', () {
@@ -2155,7 +2155,7 @@ void dispose() {
                       _smallShare(AppLocalizations.t(context, card['nameKey'] as String)),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Expanded(
