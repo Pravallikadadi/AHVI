@@ -25,44 +25,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   static final List<({String name, String number, String? image, DateTime added})>
-  _allContacts = [
-    (
-      name: 'Ava Johnson',
-      number: '+1 202 555 0140',
-      image: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=300&h=300&fit=crop',
-      added: DateTime(2026, 2, 12),
-    ),
-    (
-      name: 'Noah Carter',
-      number: '+1 202 555 0112',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop',
-      added: DateTime(2026, 3, 10),
-    ),
-    (
-      name: 'Mia Patel',
-      number: '+1 202 555 0188',
-      image: null,
-      added: DateTime(2026, 1, 20),
-    ),
-    (
-      name: 'Liam Brooks',
-      number: '+1 202 555 0167',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop',
-      added: DateTime(2026, 3, 15),
-    ),
-    (
-      name: 'Sofia Lee',
-      number: '+1 202 555 0131',
-      image: null,
-      added: DateTime(2026, 2, 25),
-    ),
-    (
-      name: 'Ethan Rivera',
-      number: '+1 202 555 0172',
-      image: 'https://images.unsplash.com/photo-1542206395-9feb3edaa68d?w=300&h=300&fit=crop',
-      added: DateTime(2026, 3, 5),
-    ),
-  ];
+  _allContacts = [];
 
   List<({String name, String number, String? image, DateTime added})> get _contacts {
     final q = _query.trim().toLowerCase();

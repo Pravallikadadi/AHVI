@@ -9,6 +9,92 @@ import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz_data;
+
+// ── Notification helper (singleton) ──────────────────────────────────────────
+class _CouponNotifications {
+  _CouponNotifications._();
+  static final _CouponNotifications instance = _CouponNotifications._();
+
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
+  bool _initialised = false;
+
+  Future<void> init() async {
+    if (_initialised) return;
+    tz_data.initializeTimeZones();
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    await _plugin.initialize(
+      const InitializationSettings(android: android, iOS: ios),
+    );
+    _initialised = true;
+  }
+
+  /// Returns true if permission granted (Android 13+ / iOS).
+  Future<bool> requestPermission() async {
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+    if (android != null) {
+      final granted = await android.requestNotificationsPermission();
+      return granted ?? false;
+    }
+    if (ios != null) {
+      final granted = await ios.requestPermissions(alert: true, sound: true);
+      return granted ?? false;
+    }
+    return true; // Other platforms — assume granted
+  }
+
+  /// Schedule a notification [daysBefore] days before [expiryDate].
+  Future<void> scheduleCouponReminder({
+    required int id,
+    required String couponCode,
+    required DateTime expiryDate,
+    required int daysBefore,
+    required String title,
+    required String body,
+  }) async {
+    await init();
+    final scheduledDate =
+        expiryDate.subtract(Duration(days: daysBefore));
+    if (scheduledDate.isBefore(DateTime.now())) return;
+
+    const androidDetails = AndroidNotificationDetails(
+      'coupon_reminders',
+      'Coupon Reminders',
+      channelDescription: 'Reminders for expiring coupons',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const iosDetails = DarwinNotificationDetails();
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledDate, tz.local),
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+}
 
 // ── PALETTE (driven by theme tokens — see _BillsScreenState getters) ─────────
 
@@ -349,6 +435,7 @@ class _BillsScreenState extends State<BillsScreen>
                   'value': (d.data['value'] as num)
                       .toDouble(), // Safe cast int to double for UI
                   'note': d.data['note'] ?? '',
+                  'expiry': d.data['expiry'] ?? '',
                 },
               )
               .toList();
@@ -457,12 +544,14 @@ class _BillsScreenState extends State<BillsScreen>
         'type': _couponTypeDbKey(context, _couponTypeVal ?? ''),
         'value': value.toInt(), // ✅ FIXED: Appwrite expects Integer!
         'note': note.isEmpty ? null : note,
+        'expiry': _newCouponExpiry?.toIso8601String() ?? '',
       });
 
       if (mounted) {
         _newCodeCtrl.clear();
         _newValueCtrl.clear();
         _newNoteCtrl.clear();
+        _setOverlayState(() => _newCouponExpiry = null);
         _fetchData(); // Refresh coupons
         _showToast('✦ Coupon "$code" saved!');
       }
@@ -926,7 +1015,7 @@ class _BillsScreenState extends State<BillsScreen>
 
   Widget _buildFilterTabs() {
     final tabs = [
-      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': Colors.white, 'bg': _t.backgroundSecondary},
+      {'key': 'all', 'label': AppLocalizations.t(context, 'bills_filter_all'), 'color': _accent, 'bg': _accent.withValues(alpha: 0.15)},
       {
         'key': 'shopping',
         'label': AppLocalizations.t(context, 'bills_filter_shopping'),
@@ -2240,6 +2329,7 @@ class _BillsScreenState extends State<BillsScreen>
   final _newCodeCtrl = TextEditingController();
   final _newValueCtrl = TextEditingController();
   final _newNoteCtrl = TextEditingController();
+  DateTime? _newCouponExpiry; // Expiry date for new coupon
 
   Widget _buildCouponMgrSheet() {
     return Container(
@@ -2426,6 +2516,65 @@ class _BillsScreenState extends State<BillsScreen>
           _couponInput(
             controller: _newNoteCtrl,
             placeholder: AppLocalizations.t(context, 'bills_coupon_note_placeholder'),
+          ),
+          SizedBox(height: 10),
+          _couponFieldLabel(AppLocalizations.t(context, 'bills_coupon_expiry_label')),
+          SizedBox(height: 5),
+          GestureDetector(
+            onTap: () async {
+              final now = DateTime.now();
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _newCouponExpiry ?? now.add(const Duration(days: 30)),
+                firstDate: now,
+                lastDate: DateTime(now.year + 5),
+                builder: (ctx, child) => Theme(
+                  data: Theme.of(ctx).copyWith(
+                    colorScheme: ColorScheme.dark(
+                      primary: _accent2,
+                      surface: _t.backgroundSecondary,
+                      onSurface: _t.textPrimary,
+                    ),
+                    dialogBackgroundColor: _t.backgroundSecondary,
+                  ),
+                  child: child!,
+                ),
+              );
+              if (picked != null && mounted) {
+                _setOverlayState(() => _newCouponExpiry = picked);
+              }
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: BoxDecoration(
+                color: _t.panel,
+                border: Border.all(color: _newCouponExpiry != null ? _accent2.withValues(alpha: 0.5) : _t.cardBorder, width: 1.5),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined, size: 13, color: _accent2),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _newCouponExpiry != null
+                          ? '${_newCouponExpiry!.day}/${_newCouponExpiry!.month}/${_newCouponExpiry!.year}'
+                          : AppLocalizations.t(context, 'bills_coupon_expiry_placeholder'),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: _newCouponExpiry != null ? _t.textPrimary : _t.mutedText,
+                      ),
+                    ),
+                  ),
+                  if (_newCouponExpiry != null)
+                    GestureDetector(
+                      onTap: () => _setOverlayState(() => _newCouponExpiry = null),
+                      child: Icon(Icons.close_rounded, size: 14, color: _t.mutedText),
+                    ),
+                ],
+              ),
+            ),
           ),
           SizedBox(height: 12),
           _PressScaleButton(
@@ -2712,6 +2861,63 @@ class _BillsScreenState extends State<BillsScreen>
                             ),
                           ),
                         ],
+                        // ── Expiry date display ──
+                        Builder(builder: (context) {
+                          final expiryRaw = coupon['expiry'] as String? ?? '';
+                          if (expiryRaw.isEmpty) return const SizedBox.shrink();
+                          final expiryDate = DateTime.tryParse(expiryRaw);
+                          if (expiryDate == null) return const SizedBox.shrink();
+                          final now = DateTime.now();
+                          final daysLeft = expiryDate.difference(now).inDays;
+                          final isExpired = daysLeft < 0;
+                          final isExpiringSoon = !isExpired && daysLeft <= 3;
+                          final chipColor = isExpired
+                              ? const Color(0xFFFF6B7A)
+                              : isExpiringSoon
+                                  ? const Color(0xFFFFAB76)
+                                  : gradientColors.first;
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.event_rounded, size: 8, color: chipColor),
+                                const SizedBox(width: 3),
+                                Text(
+                                  isExpired
+                                      ? AppLocalizations.t(context, 'bills_coupon_expired')
+                                      : daysLeft == 0
+                                          ? AppLocalizations.t(context, 'bills_coupon_expires_today')
+                                          : '${expiryDate.day}/${expiryDate.month}/${expiryDate.year}',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    color: chipColor,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                if (isExpiringSoon && !isExpired) ...[
+                                  const SizedBox(width: 3),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: chipColor.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      AppLocalizations.t(context, 'bills_coupon_days_left').replaceFirst('{days}', '$daysLeft'),
+                                      style: TextStyle(
+                                        fontSize: 7.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: chipColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        }),
                         SizedBox(height: 4),
                         Container(
                           padding: EdgeInsets.symmetric(
@@ -2742,6 +2948,11 @@ class _BillsScreenState extends State<BillsScreen>
                               ),
                             ],
                           ),
+                        ),
+                        SizedBox(height: 6),
+                        _CouponReminderRow(
+                          coupon: coupon,
+                          accentColor: gradientColors.first,
                         ),
                       ],
                     ),
@@ -3079,6 +3290,208 @@ class _AnimatedBillCardState extends State<_AnimatedBillCard>
       return parts.join(',');
     }
     return v.toStringAsFixed(0);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  DETAIL SHEET
+// ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+//  COUPON REMINDER ROW  (expiry date picker + schedule notification)
+// ════════════════════════════════════════════════════════════════════
+class _CouponReminderRow extends StatefulWidget {
+  final Map<String, dynamic> coupon;
+  final Color accentColor;
+  const _CouponReminderRow({
+    required this.coupon,
+    required this.accentColor,
+  });
+  @override
+  State<_CouponReminderRow> createState() => _CouponReminderRowState();
+}
+
+class _CouponReminderRowState extends State<_CouponReminderRow> {
+  // days-before options: 1, 3, 7
+  static const _options = [1, 3, 7];
+  int? _selectedDays;
+  DateTime? _expiryDate;
+
+  AppThemeTokens get _t => context.themeTokens;
+
+  // Parse stored expiry string (ISO or empty)
+  void _initExpiry() {
+    final raw = widget.coupon['expiry'] as String? ?? '';
+    if (raw.isNotEmpty) {
+      _expiryDate = DateTime.tryParse(raw);
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _initExpiry();
+  }
+
+  String _dayLabel(BuildContext ctx, int days) {
+    switch (days) {
+      case 1:  return AppLocalizations.t(ctx, 'bills_coupon_reminder_1d');
+      case 3:  return AppLocalizations.t(ctx, 'bills_coupon_reminder_3d');
+      default: return AppLocalizations.t(ctx, 'bills_coupon_reminder_7d');
+    }
+  }
+
+  Future<void> _pickExpiry() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _expiryDate ?? now.add(const Duration(days: 7)),
+      firstDate: now,
+      lastDate: DateTime(now.year + 5),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: widget.accentColor,
+            surface: _t.backgroundSecondary,
+            onSurface: _t.textPrimary,
+          ),
+          dialogBackgroundColor: _t.backgroundSecondary,
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) setState(() => _expiryDate = picked);
+  }
+
+  Future<void> _scheduleReminder(BuildContext ctx, int days) async {
+    if (_expiryDate == null) {
+      await _pickExpiry();
+      if (_expiryDate == null) return;
+    }
+
+    final notif = _CouponNotifications.instance;
+    await notif.init();
+    final granted = await notif.requestPermission();
+    if (!granted) {
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.t(ctx, 'bills_coupon_reminder_denied')),
+        ));
+      }
+      return;
+    }
+
+    final code = widget.coupon['code'] as String;
+    final notifId = code.hashCode ^ days;
+    await notif.scheduleCouponReminder(
+      id: notifId,
+      couponCode: code,
+      expiryDate: _expiryDate!,
+      daysBefore: days,
+      title: AppLocalizations.t(ctx, 'bills_coupon_reminder_title'),
+      body: '$code — ${_dayLabel(ctx, days)}',
+    );
+
+    if (ctx.mounted) {
+      setState(() => _selectedDays = days);
+      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.t(ctx, 'bills_coupon_reminder_set')),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = widget.accentColor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Label + expiry chip ─────────────────────────────────────
+        Row(
+          children: [
+            Icon(Icons.alarm_rounded, size: 10, color: _t.mutedText),
+            const SizedBox(width: 4),
+            Text(
+              AppLocalizations.t(context, 'bills_coupon_reminder_label'),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: _t.mutedText,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: _pickExpiry,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: accent.withValues(alpha: 0.22), width: 1),
+                ),
+                child: Text(
+                  _expiryDate != null
+                      ? '${_expiryDate!.day}/${_expiryDate!.month}/${_expiryDate!.year}'
+                      : AppLocalizations.t(context, 'bills_coupon_reminder_when'),
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        // ── Day chips ───────────────────────────────────────────────
+        Row(
+          children: _options.map((days) {
+            final isActive = _selectedDays == days;
+            return Padding(
+              padding: const EdgeInsets.only(right: 5),
+              child: GestureDetector(
+                onTap: () => _scheduleReminder(context, days),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? accent.withValues(alpha: 0.18)
+                        : _t.panel,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isActive
+                          ? accent.withValues(alpha: 0.50)
+                          : _t.cardBorder,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isActive) ...[
+                        Icon(Icons.check_rounded, size: 8, color: accent),
+                        const SizedBox(width: 3),
+                      ],
+                      Text(
+                        _dayLabel(context, days),
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w600,
+                          color: isActive ? accent : _t.mutedText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 }
 

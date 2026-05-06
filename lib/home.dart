@@ -16,7 +16,7 @@ import 'package:myapp/theme/theme_tokens.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/services/backend_service.dart';
-import 'package:myapp/chat.dart'; // 🚀 Added Chat Screen Integration
+import 'package:myapp/widgets/ahvi_stylist_chat.dart'; // AhVi single chat implementation
 import 'package:myapp/app_localizations.dart'; // 🆕 Localization
 
 // ─── Colors ──────────────────────────────────────────────

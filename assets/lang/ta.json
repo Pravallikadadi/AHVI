@@ -875,5 +875,10 @@
   "daily_wear_page_title": "அன்றாட ஆடை",
   "skincare_page_title": "சருமப் பராமரிப்பு",
   "diet_page_title": "உணவுமுறை",
-  "fitness_page_title": "உடற்தகுதி"
+  "fitness_page_title": "உடற்தகுதி",
+  "bills_coupon_expiry_label": "காலாவதி தேதி (விரும்பினால்)",
+  "bills_coupon_expiry_placeholder": "காலாவதி தேதி அமைக்க தட்டவும்",
+  "bills_coupon_expired": "காலாவதியானது",
+  "bills_coupon_expires_today": "இன்று காலாவதி",
+  "bills_coupon_days_left": "{days} நாட்கள் மீதம்"
 }

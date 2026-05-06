@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:myapp/boards.dart';
 import 'package:myapp/home.dart' as home;
-import 'package:myapp/chat.dart';
+import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 import 'package:myapp/onboarding1.dart';
 import 'package:myapp/onboarding2.dart';
 import 'package:myapp/onboarding3.dart';

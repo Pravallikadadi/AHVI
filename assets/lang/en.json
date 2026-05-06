@@ -875,5 +875,10 @@
   "daily_wear_page_title": "Daily Wear",
   "skincare_page_title": "Skincare",
   "diet_page_title": "Diet",
-  "fitness_page_title": "Fitness"
+  "fitness_page_title": "Fitness",
+  "bills_coupon_expiry_label": "EXPIRY DATE (OPTIONAL)",
+  "bills_coupon_expiry_placeholder": "Tap to set expiry date",
+  "bills_coupon_expired": "Expired",
+  "bills_coupon_expires_today": "Expires today",
+  "bills_coupon_days_left": "{days}d left"
 }

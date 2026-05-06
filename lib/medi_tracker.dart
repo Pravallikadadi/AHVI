@@ -2263,16 +2263,17 @@ class _MediTrackScreenState extends State<MediTrackScreen>
     _isCustomCat = false;
     _customCatCtrl.clear();
 
+    final outerContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         final l = AppLocalizations.t;
         return StatefulBuilder(
-          builder: (context, setSheetState) {
+          builder: (sheetContext, setSheetState) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.85,
+              height: MediaQuery.of(sheetContext).size.height * 0.85,
               decoration: BoxDecoration(
                 color: phoneShell,
                 borderRadius: const BorderRadius.vertical(
@@ -2285,7 +2286,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                   24,
                   16,
                   24,
-                  MediaQuery.of(context).viewInsets.bottom + 24,
+                  MediaQuery.of(sheetContext).viewInsets.bottom + 24,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2302,7 +2303,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      l(context, 'medi_add_title'),
+                      l(outerContext, 'medi_add_title'),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -2313,8 +2314,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                     Expanded(
                       child: ListView(
                         children: [
-                          _buildInputLabel(l(context, 'medi_label_name')),
-                          _buildTextField(_nameCtrl, l(context, 'medi_hint_name')),
+                          _buildInputLabel(l(outerContext, 'medi_label_name')),
+                          _buildTextField(_nameCtrl, l(outerContext, 'medi_hint_name')),
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -2322,8 +2323,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInputLabel(l(context, 'medi_label_dose')),
-                                    _buildTextField(_doseCtrl, l(context, 'medi_hint_dose')),
+                                    _buildInputLabel(l(outerContext, 'medi_label_dose')),
+                                    _buildTextField(_doseCtrl, l(outerContext, 'medi_hint_dose')),
                                   ],
                                 ),
                               ),
@@ -2332,28 +2333,28 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildInputLabel(l(context, 'medi_label_time')),
-                                    _buildTextField(_timeCtrl, l(context, 'medi_hint_time')),
+                                    _buildInputLabel(l(outerContext, 'medi_label_time')),
+                                    _buildTextField(_timeCtrl, l(outerContext, 'medi_hint_time')),
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _buildInputLabel(l(context, 'medi_label_frequency')),
-                          _buildDropdown(_selFreq ?? l(context, 'medi_freq_once'), [
-                            l(context, 'medi_freq_once'),
-                            l(context, 'medi_freq_twice'),
-                            l(context, 'medi_freq_as_needed'),
+                          _buildInputLabel(l(outerContext, 'medi_label_frequency')),
+                          _buildDropdown(_selFreq ?? l(outerContext, 'medi_freq_once'), [
+                            l(outerContext, 'medi_freq_once'),
+                            l(outerContext, 'medi_freq_twice'),
+                            l(outerContext, 'medi_freq_as_needed'),
                           ], (v) => setSheetState(() => _selFreq = v!)),
                           const SizedBox(height: 16),
-                          _buildInputLabel(l(context, 'medi_label_category')),
+                          _buildInputLabel(l(outerContext, 'medi_label_category')),
                           _buildCategorySelector(setSheetState, AppLocalizations.t),
                           const SizedBox(height: 16),
-                          _buildInputLabel(l(context, 'medi_label_supply')),
+                          _buildInputLabel(l(outerContext, 'medi_label_supply')),
                           _buildTextField(
                             _supplyCtrl,
-                            l(context, 'medi_hint_supply'),
+                            l(outerContext, 'medi_hint_supply'),
                             isNumber: true,
                           ),
                         ],
@@ -2369,9 +2370,9 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         final customText = _customCatCtrl.text.trim();
                         final effectiveCat = _isCustomCat
                             ? customText
-                            : (_selCat ?? l(this.context, 'medi_cat_diabetes'));
+                            : (_selCat ?? l(outerContext, 'medi_cat_diabetes'));
                         if (name.isEmpty || dose.isEmpty || supply <= 0) {
-                          _showToast(AppLocalizations.t(this.context, 'medi_please_fill'), '⚠️');
+                          _showToast(AppLocalizations.t(outerContext, 'medi_please_fill'), '⚠️');
                           return;
                         }
                         if (_isCustomCat && customText.isEmpty) {
@@ -2381,13 +2382,13 @@ class _MediTrackScreenState extends State<MediTrackScreen>
 
                         try {
                           final appwrite = Provider.of<AppwriteService>(
-                            this.context,
+                            outerContext,
                             listen: false,
                           );
                           await appwrite.createMed({
                             'name': name,
                             'dose': dose,
-                            'freq': _selFreq ?? l(this.context, 'medi_freq_once'),
+                            'freq': _selFreq ?? l(outerContext, 'medi_freq_once'),
                             'time': _timeCtrl.text.trim().isEmpty
                                 ? '12:00 PM'
                                 : _timeCtrl.text.trim(),
@@ -2398,8 +2399,8 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                             'lastTaken': '',
                           });
 
-                          _showToast(AppLocalizations.t(this.context, 'medi_medicine_added'), '💊');
-                          Navigator.pop(context);
+                          _showToast(AppLocalizations.t(outerContext, 'medi_medicine_added'), '💊');
+                          Navigator.pop(sheetContext);
 
                           _nameCtrl.clear();
                           _doseCtrl.clear();
@@ -2424,7 +2425,7 @@ class _MediTrackScreenState extends State<MediTrackScreen>
                         ),
                         child: Center(
                           child: Text(
-                            l(context, 'medi_save'),
+                            l(outerContext, 'medi_save'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 15,

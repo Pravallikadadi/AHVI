@@ -854,5 +854,10 @@
   "daily_wear_page_title": "প্রতিদিনের পোশাক",
   "skincare_page_title": "ত্বকের যত্ন",
   "diet_page_title": "খাদ্যাভ্যাস",
-  "fitness_page_title": "ফিটনেস"
+  "fitness_page_title": "ফিটনেস",
+  "bills_coupon_expiry_label": "মেয়াদ শেষের তারিখ (ঐচ্ছিক)",
+  "bills_coupon_expiry_placeholder": "মেয়াদ শেষের তারিখ সেট করতে ট্যাপ করুন",
+  "bills_coupon_expired": "মেয়াদ শেষ",
+  "bills_coupon_expires_today": "আজ মেয়াদ শেষ",
+  "bills_coupon_days_left": "{days} দিন বাকি"
 }

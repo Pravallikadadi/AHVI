@@ -854,5 +854,10 @@
   "daily_wear_page_title": "ദൈനംദിന വസ്ത്രം",
   "skincare_page_title": "ചർമ്മ പരിചരണം",
   "diet_page_title": "ഭക്ഷണക്രമം",
-  "fitness_page_title": "ഫിറ്റ്നസ്"
+  "fitness_page_title": "ഫിറ്റ്നസ്",
+  "bills_coupon_expiry_label": "കാലഹരണ തീയതി (ഐച്ഛികം)",
+  "bills_coupon_expiry_placeholder": "കാലഹരണ തീയതി സജ്ജമാക്കാൻ ടാപ്പ് ചെയ്യൂ",
+  "bills_coupon_expired": "കാലഹരണപ്പെട്ടു",
+  "bills_coupon_expires_today": "ഇന്ന് കാലഹരണം",
+  "bills_coupon_days_left": "{days} ദിവസം ബാക്കി"
 }
