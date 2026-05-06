@@ -38,8 +38,18 @@ class SignInScreen extends StatelessWidget {
   Future<void> _handleGoogleLogin(BuildContext context) async {
     final appwrite = Provider.of<AppwriteService>(context, listen: false);
 
-    // Attempt the login
-    final success = await appwrite.loginWithGoogle();
+    bool success = false;
+    try {
+      success = await appwrite.loginWithGoogle();
+    } catch (e) {
+      debugPrint('[Google Sign-In] Exception: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-In error: $e')),
+        );
+      }
+      return;
+    }
 
     // If successful, check if first-time user and route accordingly
     if (success && context.mounted) {
@@ -491,10 +501,7 @@ class _SignUpPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SocialButton(
-            icon: const Text(
-              '',
-              style: TextStyle(fontSize: 17, color: Color(0xFF1A1D26)),
-            ),
+            icon: const _AppleIcon(),
             label: 'Continue with Apple',
             onTap: onAppleTap,
           ),
@@ -931,27 +938,146 @@ class _SocialButtonState extends State<_SocialButton> {
 class _GoogleIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback: (bounds) => const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFEA4335),
-          Color(0xFFFBBC05),
-          Color(0xFF34A853),
-          Color(0xFF4285F4),
-        ],
-      ).createShader(bounds),
-      child: const Text(
-        'G',
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
+    return CustomPaint(
+      size: const Size(20, 20),
+      painter: _GoogleLogoPainter(),
     );
   }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+    final double r = size.width / 2;
+
+    // Clip to circle
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    // White background
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r,
+      Paint()..color = Colors.white,
+    );
+
+    // Google 'G' using arcs and rectangles — standard 4-color logo
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    // Red (top-left arc)
+    canvas.drawArc(
+      rect.deflate(1),
+      _toRad(270),
+      _toRad(90),
+      true,
+      Paint()..color = const Color(0xFFEA4335),
+    );
+
+    // Blue (top-right arc)
+    canvas.drawArc(
+      rect.deflate(1),
+      _toRad(0),
+      _toRad(90),
+      true,
+      Paint()..color = const Color(0xFF4285F4),
+    );
+
+    // Green (bottom-right arc)
+    canvas.drawArc(
+      rect.deflate(1),
+      _toRad(90),
+      _toRad(90),
+      true,
+      Paint()..color = const Color(0xFF34A853),
+    );
+
+    // Yellow (bottom-left arc)
+    canvas.drawArc(
+      rect.deflate(1),
+      _toRad(180),
+      _toRad(90),
+      true,
+      Paint()..color = const Color(0xFFFBBC05),
+    );
+
+    // White inner circle (donut)
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r * 0.60,
+      Paint()..color = Colors.white,
+    );
+
+    // White block to cut right side (for the horizontal bar)
+    canvas.drawRect(
+      Rect.fromLTWH(cx, cy - r * 0.22, r, r * 0.44),
+      Paint()..color = Colors.white,
+    );
+
+    // Blue horizontal bar (the crossbar of the G)
+    canvas.drawRect(
+      Rect.fromLTWH(cx, cy - r * 0.18, r * 0.85, r * 0.36),
+      Paint()..color = const Color(0xFF4285F4),
+    );
+  }
+
+  double _toRad(double deg) => deg * 3.14159265 / 180;
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AppleIcon extends StatelessWidget {
+  const _AppleIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size(20, 20),
+      painter: _AppleLogoPainter(),
+    );
+  }
+}
+
+class _AppleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF1A1D26)
+      ..style = PaintingStyle.fill;
+
+    final double w = size.width;
+    final double h = size.height;
+
+    // Apple logo path (simplified, proportional)
+    final path = Path();
+
+    // Right lobe
+    path.moveTo(w * 0.72, h * 0.00);
+    path.cubicTo(w * 0.72, h * 0.00, w * 0.78, h * 0.12, w * 0.65, h * 0.22);
+    path.cubicTo(w * 0.52, h * 0.32, w * 0.42, h * 0.22, w * 0.42, h * 0.22);
+    path.cubicTo(w * 0.42, h * 0.22, w * 0.52, h * 0.05, w * 0.72, h * 0.00);
+    path.close();
+
+    // Body of apple
+    path.moveTo(w * 0.20, h * 0.38);
+    path.cubicTo(w * 0.28, h * 0.28, w * 0.38, h * 0.26, w * 0.45, h * 0.26);
+    path.cubicTo(w * 0.53, h * 0.26, w * 0.60, h * 0.30, w * 0.67, h * 0.30);
+    path.cubicTo(w * 0.74, h * 0.30, w * 0.82, h * 0.26, w * 0.88, h * 0.30);
+    path.cubicTo(w * 0.94, h * 0.34, w * 1.00, h * 0.44, w * 1.00, h * 0.56);
+    path.cubicTo(w * 1.00, h * 0.72, w * 0.92, h * 0.88, w * 0.82, h * 0.94);
+    path.cubicTo(w * 0.74, h * 0.99, w * 0.68, h * 0.96, w * 0.60, h * 0.96);
+    path.cubicTo(w * 0.52, h * 0.96, w * 0.46, h * 1.00, w * 0.38, h * 1.00);
+    path.cubicTo(w * 0.30, h * 1.00, w * 0.24, h * 0.96, w * 0.16, h * 0.92);
+    path.cubicTo(w * 0.06, h * 0.86, w * 0.00, h * 0.72, w * 0.00, h * 0.56);
+    path.cubicTo(w * 0.00, h * 0.46, w * 0.12, h * 0.48, w * 0.20, h * 0.38);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _Divider extends StatelessWidget {
