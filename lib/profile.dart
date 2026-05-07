@@ -1349,7 +1349,7 @@ class _ProfileView extends StatelessWidget {
             final appwrite = Provider.of<AppwriteService>(context, listen: false);
             // Try logout() method first; fallback to deleteSession directly
             try {
-              await appwrite.logout();
+              await appwrite.logout(); // also clears SharedPreferences
             } catch (_) {
               await appwrite.account.deleteSession(sessionId: 'current');
             }
@@ -1358,10 +1358,7 @@ class _ProfileView extends StatelessWidget {
           if (context.mounted) {
             Provider.of<ProfileController>(context, listen: false).reset();
           }
-          // 3. Clear onboardingComplete so next login shows onboarding
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setBool('onboardingComplete', false);
-          // 4. Navigate to SignIn, clear entire stack
+          // 3. Navigate to SignIn, clear entire stack
           if (context.mounted) {
             Navigator.of(context).pushNamedAndRemoveUntil(
               AppRoutes.signin,

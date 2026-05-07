@@ -116,6 +116,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   @override
   void initState() {
     super.initState();
+    // Defensively clear any stale in-memory items before fetching
+    _wardrobe.clear();
     _fetchWardrobeItems();
   }
 

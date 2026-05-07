@@ -876,8 +876,9 @@
   "skincare_page_title": "त्वचेची काळजी",
   "diet_page_title": "आहार",
   "fitness_page_title": "फिटनेस",
-  "bills_coupon_expiry_label": "कालबाह्य तारीख (पर्यायी)",
+  "bills_coupon_expiry_label": "कालबाह्य तारीख",
   "bills_coupon_expiry_placeholder": "कालबाह्य तारीख सेट करण्यासाठी टॅप करा",
+  "bills_coupon_expiry_required": "कृपया कालबाह्य तारीख निवडा",
   "bills_coupon_expired": "कालबाह्य झाले",
   "bills_coupon_expires_today": "आज कालबाह्य होते",
   "bills_coupon_days_left": "{days} दिवस शिल्लक"

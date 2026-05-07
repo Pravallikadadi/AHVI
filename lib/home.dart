@@ -585,7 +585,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
 
     if (idx == 1) {
       _activateTab(1);
-      _openNavScreen(const ChatScreen());
+      showAhviStylistChatSheet(context, moduleContext: 'style');
       return;
     }
     if (idx == 2) {
@@ -684,19 +684,44 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   void _openModuleChat(String moduleKey) {
-    // Overlay తెరవకుండా directly ChatScreen కి navigate చేయి
-    final module = (moduleKey == 'plan') ? 'prepare' : moduleKey;
-    _openNavScreen(ChatScreen(moduleContext: module));
+    // Each card కి తన specific module తో chat open అవ్వాలి
+    final String module;
+    final String? initialPrompt;
+
+    switch (moduleKey) {
+      case 'style':
+        module = 'style';
+        initialPrompt = null; // Style module — default style chat
+        break;
+      case 'organize':
+        module = 'organize';
+        initialPrompt = null; // Organise module — wardrobe/outfit organisation chat
+        break;
+      case 'plan':
+        module = 'prepare';
+        initialPrompt = null; // Plan/Prepare module — event & trip planning chat
+        break;
+      default:
+        module = moduleKey;
+        initialPrompt = null;
+    }
+
+    showAhviStylistChatSheet(
+      context,
+      moduleContext: module,
+      initialPrompt: initialPrompt,
+    );
   }
 
   void _openChatWithPrompt(String prompt) {
     final text = prompt.trim();
     final module = (_activeIntent ?? 'style').trim();
-    if (text.isEmpty) {
-      _openNavScreen(ChatScreen(moduleContext: module));
-      return;
-    }
-    _openNavScreen(ChatScreen(moduleContext: module, initialPrompt: text));
+    // ChatScreen కాదు — AhVi Stylist Chat sheet open చేయాలి
+    showAhviStylistChatSheet(
+      context,
+      moduleContext: module,
+      initialPrompt: text.isEmpty ? null : text,
+    );
   }
 
   void _openPickSheet(String name, String tag) {
@@ -774,7 +799,7 @@ class _Screen4State extends State<Screen4> with TickerProviderStateMixin, Widget
   }
 
   void _submitQuery(String query) {
-    // Overlay తెరవకుండా directly ChatScreen కి navigate చేయి
+    // AhVi Stylist Chat sheet తెరుచుకుంటుంది
     _openChatWithPrompt(query);
   }
 

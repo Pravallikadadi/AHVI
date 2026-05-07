@@ -411,7 +411,6 @@ class _LookCardState extends State<_LookCard> {
   @override
   Widget build(BuildContext context) {
     final look = widget.look;
-    final aspectRatio = widget.featured ? 2.0 : 1.0;
     final onAccent = Theme.of(context).colorScheme.onPrimary;
 
     return MouseRegion(
@@ -442,21 +441,18 @@ class _LookCardState extends State<_LookCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image / placeholder
-              Stack(
-                children: [
-                  look.imageUrl != null && look.imageUrl!.isNotEmpty
-                      ? AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Image.network(
+              // Image / placeholder — fills all available card height evenly
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    look.imageUrl != null && look.imageUrl!.isNotEmpty
+                        ? Image.network(
                             look.imageUrl!,
                             fit: BoxFit.cover,
                             width: double.infinity,
-                          ),
-                        )
-                      : AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Container(
+                          )
+                        : Container(
                             decoration:
                                 BoxDecoration(gradient: _bgGradient(look.bg)),
                             child: Center(
@@ -464,7 +460,6 @@ class _LookCardState extends State<_LookCard> {
                                   style: const TextStyle(fontSize: 32)),
                             ),
                           ),
-                        ),
                   // Delete button
                   Positioned(
                     top: 10,
@@ -491,58 +486,64 @@ class _LookCardState extends State<_LookCard> {
                     ),
                   ),
                 ],
+                ),
               ),
-              // Card info
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Badge
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _badgeBg(look.badge),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        look.category.toUpperCase(),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: _badgeColor(look.badge),
+              // ── Fixed-height bottom section: badge + title + desc ──
+              SizedBox(
+                height: 110,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Badge
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _badgeBg(look.badge),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          look.category.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: _badgeColor(look.badge),
+                          ),
                         ),
                       ),
-                    ),
-                    // Title
-                    Text(
-                      look.title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _t.textPrimary,
-                        height: 1.3,
+                      // Title
+                      Text(
+                        look.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _t.textPrimary,
+                          height: 1.3,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Description
-                    Text(
-                      look.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        color: _t.mutedText,
-                        height: 1.4,
+                      const SizedBox(height: 4),
+                      // Description
+                      Text(
+                        look.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _t.mutedText,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               // Try On button

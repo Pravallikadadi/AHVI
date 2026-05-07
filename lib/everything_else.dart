@@ -399,12 +399,11 @@ class _LooksGrid extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 0.62,
+        childAspectRatio: 0.58,
       ),
       itemCount: looks.length,
       itemBuilder: (context, index) => _LookCard(
         look: looks[index],
-        featured: index == 0,
         onDelete: onDelete,
         onShare: onShare,
       ),
@@ -415,13 +414,11 @@ class _LooksGrid extends StatelessWidget {
 // ── Look Card ────────────────────────────────────────────────────────────────
 class _LookCard extends StatefulWidget {
   final LookItem look;
-  final bool featured;
   final void Function(String id) onDelete;
   final void Function(LookItem look) onShare;
 
   const _LookCard({
     required this.look,
-    required this.featured,
     required this.onDelete,
     required this.onShare,
   });
@@ -467,7 +464,6 @@ class _LookCardState extends State<_LookCard> {
   @override
   Widget build(BuildContext context) {
     final look = widget.look;
-    final aspectRatio = widget.featured ? 2.0 : 1.0;
     final onAccent = Theme.of(context).colorScheme.onPrimary;
 
     return MouseRegion(
@@ -498,20 +494,18 @@ class _LookCardState extends State<_LookCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Stack(
-                children: [
-                  look.imageUrl != null && look.imageUrl!.isNotEmpty
-                      ? AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Image.network(
+              // ── Image fills available space evenly across all cards ──
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    look.imageUrl != null && look.imageUrl!.isNotEmpty
+                        ? Image.network(
                             look.imageUrl!,
                             fit: BoxFit.cover,
                             width: double.infinity,
-                          ),
-                        )
-                      : AspectRatio(
-                          aspectRatio: aspectRatio,
-                          child: Container(
+                          )
+                        : Container(
                             decoration:
                                 BoxDecoration(gradient: _bgGradient(look.bg)),
                             child: Center(
@@ -519,84 +513,91 @@ class _LookCardState extends State<_LookCard> {
                                   style: const TextStyle(fontSize: 32)),
                             ),
                           ),
-                        ),
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: AnimatedOpacity(
-                      opacity: _hovered ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      child: GestureDetector(
-                        onTap: () => widget.onDelete(look.id),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color:
-                                _t.phoneShellInner.withValues(alpha: 0.85),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _t.cardBorder, width: 1),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: AnimatedOpacity(
+                        opacity: _hovered ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: GestureDetector(
+                          onTap: () => widget.onDelete(look.id),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: _t.phoneShellInner.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: _t.cardBorder, width: 1),
+                            ),
+                            child: Center(
+                              child: Icon(Icons.close,
+                                  size: 14, color: _t.textPrimary),
+                            ),
                           ),
-                          child: Center(
-                            child: Icon(Icons.close,
-                                size: 14, color: _t.textPrimary),
-                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: _badgeBg(look.badge),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        look.category.toUpperCase(),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 8,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: _badgeColor(look.badge),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      look.title,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: _t.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      look.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        color: _t.mutedText,
-                        height: 1.4,
                       ),
                     ),
                   ],
                 ),
               ),
-              // Try On button
+              // ── Fixed-height bottom section: badge + title + desc + button ──
+              SizedBox(
+                height: 110,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _badgeBg(look.badge),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          look.category.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: _badgeColor(look.badge),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        look.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _t.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        look.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _t.mutedText,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // ── Try On button always pinned at bottom ──
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(10, 4, 10, 10),

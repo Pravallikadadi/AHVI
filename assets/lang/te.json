@@ -876,8 +876,9 @@
   "skincare_page_title": "చర్మ సంరక్షణ",
   "diet_page_title": "ఆహారం",
   "fitness_page_title": "ఫిట్‌నెస్",
-  "bills_coupon_expiry_label": "గడువు తేదీ (ఐచ్ఛికం)",
+  "bills_coupon_expiry_label": "గడువు తేదీ",
   "bills_coupon_expiry_placeholder": "గడువు తేదీ సెట్ చేయడానికి నొక్కండి",
+  "bills_coupon_expiry_required": "దయచేసి గడువు తేదీని ఎంచుకోండి",
   "bills_coupon_expired": "గడువు మించింది",
   "bills_coupon_expires_today": "ఈరోజు గడువు",
   "bills_coupon_days_left": "{days} రోజులు మిగిలాయి"

@@ -534,6 +534,10 @@ class _BillsScreenState extends State<BillsScreen>
       _showToast(AppLocalizations.t(context, 'bills_coupon_saved'));
       return;
     }
+    if (_newCouponExpiry == null) {
+      _showToast(AppLocalizations.t(context, 'bills_coupon_expiry_required'));
+      return;
+    }
 
     _setOverlayState(() => _isSavingCoupon = true);
     try {
@@ -2567,11 +2571,7 @@ class _BillsScreenState extends State<BillsScreen>
                       ),
                     ),
                   ),
-                  if (_newCouponExpiry != null)
-                    GestureDetector(
-                      onTap: () => _setOverlayState(() => _newCouponExpiry = null),
-                      child: Icon(Icons.close_rounded, size: 14, color: _t.mutedText),
-                    ),
+
                 ],
               ),
             ),

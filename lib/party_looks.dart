@@ -1,10 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:appwrite/models.dart' as appwrite_models;
+import 'package:appwrite/models.dart' hide Row;
 import 'package:provider/provider.dart';
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/services/appwrite_service.dart';
 import 'package:myapp/app_localizations.dart';
 
+// ── Data model ───────────────────────────────────────────────────────────────
+class _LookItem {
+  final String id;
+  final String title;
+  final String description;
+  final String emoji;
+  final String category;
+  final String? imageUrl;
+  final _LookBadgeStyle badge;
+  final _LookBgStyle bg;
+
+  const _LookItem({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.emoji,
+    required this.category,
+    this.imageUrl,
+    required this.badge,
+    required this.bg,
+  });
+}
+
+enum _LookBadgeStyle {
+  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBadge
+}
+enum _LookBgStyle {
+  streetwear, athleisure, boho, minimalist, vintage, monochrome, cottagecore, defaultBg
+}
+
+// ── Main Screen ──────────────────────────────────────────────────────────────
 class PartyLooksScreen extends StatefulWidget {
   const PartyLooksScreen({super.key});
 
@@ -13,191 +44,568 @@ class PartyLooksScreen extends StatefulWidget {
 }
 
 class _PartyLooksScreenState extends State<PartyLooksScreen> {
+  AppThemeTokens get _t => context.themeTokens;
+  Color get _bg => _t.backgroundPrimary;
+  Color get _bg2 => _t.backgroundSecondary;
+  Color get _phoneShell => _t.phoneShell;
+  Color get _text => _t.textPrimary;
+
+  static const String _occasion = 'Party';
+  static const String _emptyEmoji = '🎉';
+  static const String _titleKey = 'calendar_occasion_party';
+  static const String _subtitleKey = 'boards_party_looks_sub';
+
   bool _isLoading = true;
-  List<appwrite_models.Document> _boards = [];
+  String? _toastMessage;
+  List<_LookItem> _looks = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchPartyBoards();
+    _fetchLooks();
   }
 
-  Future<void> _fetchPartyBoards() async {
+  Future<void> _fetchLooks() async {
     try {
       final appwrite = Provider.of<AppwriteService>(context, listen: false);
-      final boards = await appwrite.getSavedBoardsByOccasion('Party');
+      final docs = await appwrite.getSavedBoardsByOccasion(_occasion);
+
+      final List<_LookItem> loadedLooks = [];
+      for (var doc in docs) {
+        final badgeIndex = doc.$id.length % _LookBadgeStyle.values.length;
+        final dynamicBadge = _LookBadgeStyle.values[badgeIndex];
+        final dynamicBg = _LookBgStyle.values[badgeIndex];
+
+        loadedLooks.add(_LookItem(
+          id: doc.$id,
+          title: doc.data['occasion'] ?? _occasion,
+          description: doc.data['outfitDescription'] ?? 'Custom $_occasion inspiration',
+          emoji: doc.data['emoji'] ?? _emptyEmoji,
+          category: _occasion,
+          imageUrl: doc.data['imageUrl'],
+          badge: dynamicBadge,
+          bg: dynamicBg,
+        ));
+      }
+
       if (mounted) {
         setState(() {
-          _boards = boards;
+          _looks = loadedLooks;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
+      _showToast(context.tr('error'));
     }
+  }
+
+  Future<void> _deleteLook(String id) async {
+    setState(() => _looks.removeWhere((l) => l.id == id));
+    try {
+      final appwrite = Provider.of<AppwriteService>(context, listen: false);
+      await appwrite.deleteSavedBoard(id);
+      _showToast(context.tr('wardrobe_remove'));
+    } catch (e) {
+      _showToast(context.tr('error'));
+    }
+  }
+
+  void _showToast(String msg) {
+    setState(() => _toastMessage = msg);
+    Future.delayed(const Duration(milliseconds: 2200), () {
+      if (mounted) setState(() => _toastMessage = null);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final t = context.themeTokens;
+    final countText = _looks.isEmpty
+        ? context.tr('wardrobe_empty_title')
+        : '${_looks.length} ${context.tr('fitness_saved')}';
 
     return Scaffold(
-      backgroundColor: t.backgroundPrimary,
-      body: Column(
+      backgroundColor: _bg,
+      body: Stack(
         children: [
-          // ── Header ──
           Container(
-            padding: EdgeInsets.fromLTRB(
-                14, MediaQuery.of(context).padding.top + 12, 14, 14),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 stops: const [0.0, 0.5, 1.0],
-                colors: [
-                  t.phoneShellInner,
-                  t.phoneShell,
-                  t.backgroundSecondary
-                ],
+                colors: [_bg, _bg2, _bg],
               ),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: t.panel,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: t.cardBorder),
+          ),
+          Column(
+            children: [
+              _Header(
+                countText: countText,
+                titleKey: _titleKey,
+                subtitleKey: _subtitleKey,
+              ),
+              Expanded(
+                child: Container(
+                  color: _bg,
+                  child: _isLoading
+                      ? Center(child: CircularProgressIndicator(color: _t.accent.primary))
+                      : _looks.isEmpty
+                          ? _EmptyState(emoji: _emptyEmoji, titleKey: _titleKey)
+                          : _LooksGrid(
+                              looks: _looks,
+                              onDelete: _deleteLook,
+                              onShare: (look) => _showToast(context.tr('wardrobe_share')),
+                            ),
+                ),
+              ),
+            ],
+          ),
+          if (_toastMessage != null)
+            Positioned(
+              bottom: 28,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _phoneShell,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    _toastMessage!,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _text,
                     ),
-                    child: Icon(Icons.chevron_left_rounded,
-                        color: t.textPrimary, size: 22),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${context.tr('calendar_occasion_party')} ',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: t.textPrimary,
-                            letterSpacing: -0.5,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Header ───────────────────────────────────────────────────────────────────
+class _Header extends StatelessWidget {
+  final String countText;
+  final String titleKey;
+  final String subtitleKey;
+  final String? titleLabel;
+  final String? subtitleLabel;
+
+  const _Header({
+    required this.countText,
+    required this.titleKey,
+    required this.subtitleKey,
+    this.titleLabel,
+    this.subtitleLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+          14, MediaQuery.of(context).padding.top + 12, 14, 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+          colors: [t.phoneShellInner, t.phoneShell, t.backgroundSecondary],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: t.panel,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: t.cardBorder),
+              ),
+              child: Icon(Icons.chevron_left_rounded, color: t.textPrimary, size: 22),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${titleLabel ?? context.tr(titleKey)} ',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: t.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      TextSpan(
+                        text: subtitleLabel ?? context.tr(subtitleKey),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 20,
+                          fontWeight: FontWeight.w300,
+                          color: t.accent.primary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  countText,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    color: t.mutedText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Looks Grid ───────────────────────────────────────────────────────────────
+class _LooksGrid extends StatelessWidget {
+  final List<_LookItem> looks;
+  final void Function(String id) onDelete;
+  final void Function(_LookItem look) onShare;
+
+  const _LooksGrid({
+    required this.looks,
+    required this.onDelete,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.62,
+      ),
+      itemCount: looks.length,
+      itemBuilder: (context, index) => _LookCard(
+        look: looks[index],
+        featured: index == 0,
+        onDelete: onDelete,
+        onShare: onShare,
+      ),
+    );
+  }
+}
+
+// ── Look Card ────────────────────────────────────────────────────────────────
+class _LookCard extends StatefulWidget {
+  final _LookItem look;
+  final bool featured;
+  final void Function(String id) onDelete;
+  final void Function(_LookItem look) onShare;
+
+  const _LookCard({
+    required this.look,
+    required this.featured,
+    required this.onDelete,
+    required this.onShare,
+  });
+
+  @override
+  State<_LookCard> createState() => _LookCardState();
+}
+
+class _LookCardState extends State<_LookCard> {
+  bool _hovered = false;
+  AppThemeTokens get _t => context.themeTokens;
+
+  LinearGradient _bgGradient(_LookBgStyle bg) {
+    switch (bg) {
+      case _LookBgStyle.streetwear:
+        return LinearGradient(colors: [
+          _t.accent.tertiary.withValues(alpha: 0.3),
+          _t.accent.primary.withValues(alpha: 0.15),
+        ]);
+      case _LookBgStyle.athleisure:
+        return LinearGradient(colors: [
+          _t.accent.secondary.withValues(alpha: 0.3),
+          _t.accent.tertiary.withValues(alpha: 0.1),
+        ]);
+      default:
+        return LinearGradient(colors: [_t.panel, _t.backgroundSecondary]);
+    }
+  }
+
+  Color _badgeColor(_LookBadgeStyle badge) {
+    switch (badge) {
+      case _LookBadgeStyle.streetwear: return _t.accent.primary;
+      case _LookBadgeStyle.athleisure: return _t.accent.secondary;
+      case _LookBadgeStyle.boho:       return _t.accent.tertiary;
+      default:                          return _t.mutedText;
+    }
+  }
+
+  Color _badgeBg(_LookBadgeStyle badge) {
+    switch (badge) {
+      case _LookBadgeStyle.streetwear:
+        return _t.accent.primary.withValues(alpha: 0.12);
+      case _LookBadgeStyle.minimalist:
+        return _t.accent.primary.withValues(alpha: 0.15);
+      case _LookBadgeStyle.vintage:
+        return _t.accent.secondary.withValues(alpha: 0.16);
+      case _LookBadgeStyle.monochrome:
+        return _t.panel;
+      case _LookBadgeStyle.cottagecore:
+        return _t.accent.tertiary.withValues(alpha: 0.14);
+      default:
+        return _t.panel;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final look = widget.look;
+    final onAccent = Theme.of(context).colorScheme.onPrimary;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit:  (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: () {},
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: _t.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _hovered ? _t.accent.tertiary : _t.cardBorder,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _hovered
+                    ? _t.accent.tertiary.withValues(alpha: 0.18)
+                    : Colors.black.withValues(alpha: 0.2),
+                blurRadius: _hovered ? 28 : 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Image ──
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    look.imageUrl != null && look.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            look.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          )
+                        : Container(
+                            decoration: BoxDecoration(gradient: _bgGradient(look.bg)),
+                            child: Center(
+                              child: Text(look.emoji, style: const TextStyle(fontSize: 32)),
+                            ),
+                          ),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: AnimatedOpacity(
+                        opacity: _hovered ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: GestureDetector(
+                          onTap: () => widget.onDelete(look.id),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: _t.phoneShellInner.withValues(alpha: 0.85),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: _t.cardBorder, width: 1),
+                            ),
+                            child: Center(
+                              child: Icon(Icons.close, size: 14, color: _t.textPrimary),
+                            ),
                           ),
                         ),
-                        TextSpan(
-                          text: context.tr('boards_party_looks_sub'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // ── Bottom: badge + title + desc ──
+              SizedBox(
+                height: 110,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _badgeBg(look.badge),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          look.category.toUpperCase(),
                           style: TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 20,
-                            fontWeight: FontWeight.w300,
-                            color: t.accent.primary,
-                            letterSpacing: -0.5,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: _badgeColor(look.badge),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        look.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: _t.textPrimary,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        look.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          color: _t.mutedText,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // ── Try On button ──
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+                child: GestureDetector(
+                  onTap: () {},
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 9),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [_t.accent.tertiary, _t.accent.primary],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _t.accent.tertiary.withValues(alpha: 0.40),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.auto_awesome_rounded, size: 14, color: onAccent),
+                        const SizedBox(width: 6),
+                        Text(
+                          context.tr('daily_wear_try_on'),
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: onAccent,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          // ── Body ──
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: t.accent.primary))
-                : _boards.isEmpty
-                    ? _buildEmptyState(t)
-                    : _buildBoardsGrid(t),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(AppThemeTokens t) {
+// ── Empty state ──────────────────────────────────────────────────────────────
+class _EmptyState extends StatelessWidget {
+  final String emoji;
+  final String titleKey;
+  const _EmptyState({required this.emoji, required this.titleKey});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.themeTokens;
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: t.panel,
-              shape: BoxShape.circle,
-              border: Border.all(color: t.cardBorder),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 52)),
+            const SizedBox(height: 16),
+            Text(
+              context.tr(titleKey),
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: t.textPrimary,
+              ),
             ),
-            child: Icon(Icons.celebration_rounded,
-                size: 48, color: t.accent.secondary),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            context.tr('boards_party_looks'),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: t.textPrimary,
+            const SizedBox(height: 8),
+            Text(
+              context.tr('wardrobe_insight_empty'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 14,
+                color: t.mutedText,
+                height: 1.5,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            context.tr('wardrobe_insight_empty'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: t.mutedText,
-              height: 1.5,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _buildBoardsGrid(AppThemeTokens t) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.65,
-      ),
-      itemCount: _boards.length,
-      itemBuilder: (context, index) {
-        final board = _boards[index];
-        final imageUrl = board.data['imageUrl'] ?? '';
-
-        return GestureDetector(
-          onTap: () {
-            // TODO: Open fullscreen view
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: t.cardBorder),
-              color: t.panel,
-              image: imageUrl.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(imageUrl), fit: BoxFit.cover)
-                  : null,
-            ),
-            child: imageUrl.isEmpty
-                ? Center(
-                    child: Icon(Icons.image_not_supported, color: t.mutedText))
-                : null,
-          ),
-        );
-      },
     );
   }
 }

@@ -331,9 +331,19 @@ class _MainNavigationShellState extends State<MainNavigationShell>
 
     // ✅ Built here so locale changes cause a full rebuild of all screens
     // Order must match navItems exactly: Home(0), Chat(1), Wardrobe(2), Planner(3), Explore(4)
+    // Nav bar total height: pillH(64) + maxBulge(11) + extra(6) + bottom padding(8) = ~89
+    // MediaQuery.paddingOf(context).bottom is added in Positioned so we add it here too.
+    // navBarHeight: nav bar visual height only (bottom system padding chat page లో SafeArea handle చేస్తుంది)
+    final double navBarTotalH = 64.0 + 11.0 + 6.0 + _S.sm + MediaQuery.paddingOf(context).bottom;
     final pages = <Widget>[
       _HomePageHost(key: const PageStorageKey('home'), onNavTapRequested: _switchToIndex),
-      const ChatScreen(key: PageStorageKey('chat'), showBackButton: false),
+      AhviStylistChatPage(
+        key: const PageStorageKey('chat'),
+        moduleContext: 'style',
+        navBarHeight: navBarTotalH,
+        // Back button తో home tab (index 0) కి switch చేయి — white screen రాకుండా
+        onNavToHome: () => _switchToIndex(0),
+      ),
       const WardrobeScreen(key: PageStorageKey('wardrobe')),
       const BoardsScreen(key: PageStorageKey('boards')),
       const SizedBox.shrink(),

@@ -876,8 +876,9 @@
   "skincare_page_title": "ಚರ್ಮ ಆರೈಕೆ",
   "diet_page_title": "ಆಹಾರ ಕ್ರಮ",
   "fitness_page_title": "ಫಿಟ್‌ನೆಸ್",
-  "bills_coupon_expiry_label": "ಮುಕ್ತಾಯ ದಿನಾಂಕ (ಐಚ್ಛಿಕ)",
+  "bills_coupon_expiry_label": "ಮುಕ್ತಾಯ ದಿನಾಂಕ",
   "bills_coupon_expiry_placeholder": "ಮುಕ್ತಾಯ ದಿನಾಂಕ ಹೊಂದಿಸಲು ಟ್ಯಾಪ್ ಮಾಡಿ",
+  "bills_coupon_expiry_required": "ದಯವಿಟ್ಟು ಮುಕ್ತಾಯ ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ",
   "bills_coupon_expired": "ಅವಧಿ ಮೀರಿದೆ",
   "bills_coupon_expires_today": "ಇಂದು ಮುಕ್ತಾಯ",
   "bills_coupon_days_left": "{days} ದಿನ ಬಾಕಿ"

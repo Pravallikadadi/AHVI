@@ -1049,31 +1049,88 @@ class _AppleLogoPainter extends CustomPainter {
     final double w = size.width;
     final double h = size.height;
 
-    // Apple logo path (simplified, proportional)
-    final path = Path();
+    // ── Leaf / stem ──────────────────────────────────────────────
+    // Curves upward and to the right from the top-centre of the fruit
+    final leaf = Path();
+    leaf.moveTo(w * 0.500, h * 0.220); // base of stem
+    leaf.cubicTo(
+      w * 0.500, h * 0.100, // control 1
+      w * 0.680, h * 0.000, // control 2
+      w * 0.780, h * 0.040, // tip of leaf
+    );
+    leaf.cubicTo(
+      w * 0.680, h * 0.060, // control 1
+      w * 0.560, h * 0.120, // control 2
+      w * 0.500, h * 0.220, // back to base
+    );
+    leaf.close();
+    canvas.drawPath(leaf, paint);
 
-    // Right lobe
-    path.moveTo(w * 0.72, h * 0.00);
-    path.cubicTo(w * 0.72, h * 0.00, w * 0.78, h * 0.12, w * 0.65, h * 0.22);
-    path.cubicTo(w * 0.52, h * 0.32, w * 0.42, h * 0.22, w * 0.42, h * 0.22);
-    path.cubicTo(w * 0.42, h * 0.22, w * 0.52, h * 0.05, w * 0.72, h * 0.00);
-    path.close();
+    // ── Fruit body ───────────────────────────────────────────────
+    // Classic bitten-apple silhouette
+    final body = Path();
 
-    // Body of apple
-    path.moveTo(w * 0.20, h * 0.38);
-    path.cubicTo(w * 0.28, h * 0.28, w * 0.38, h * 0.26, w * 0.45, h * 0.26);
-    path.cubicTo(w * 0.53, h * 0.26, w * 0.60, h * 0.30, w * 0.67, h * 0.30);
-    path.cubicTo(w * 0.74, h * 0.30, w * 0.82, h * 0.26, w * 0.88, h * 0.30);
-    path.cubicTo(w * 0.94, h * 0.34, w * 1.00, h * 0.44, w * 1.00, h * 0.56);
-    path.cubicTo(w * 1.00, h * 0.72, w * 0.92, h * 0.88, w * 0.82, h * 0.94);
-    path.cubicTo(w * 0.74, h * 0.99, w * 0.68, h * 0.96, w * 0.60, h * 0.96);
-    path.cubicTo(w * 0.52, h * 0.96, w * 0.46, h * 1.00, w * 0.38, h * 1.00);
-    path.cubicTo(w * 0.30, h * 1.00, w * 0.24, h * 0.96, w * 0.16, h * 0.92);
-    path.cubicTo(w * 0.06, h * 0.86, w * 0.00, h * 0.72, w * 0.00, h * 0.56);
-    path.cubicTo(w * 0.00, h * 0.46, w * 0.12, h * 0.48, w * 0.20, h * 0.38);
-    path.close();
+    // Start at the notch between the two lobes (top-centre)
+    body.moveTo(w * 0.500, h * 0.270);
 
-    canvas.drawPath(path, paint);
+    // ── Left lobe (top-left curve) ──
+    body.cubicTo(
+      w * 0.420, h * 0.230, // control 1
+      w * 0.150, h * 0.240, // control 2
+      w * 0.090, h * 0.390, // end: left side begins
+    );
+
+    // ── Left side curving down ──
+    body.cubicTo(
+      w * 0.020, h * 0.540, // control 1
+      w * 0.020, h * 0.690, // control 2
+      w * 0.085, h * 0.810, // inflection
+    );
+
+    // ── Bottom-left round ──
+    body.cubicTo(
+      w * 0.140, h * 0.910, // control 1
+      w * 0.230, h * 0.980, // control 2
+      w * 0.330, h * 0.980, // bottom-left point
+    );
+
+    // ── Bottom centre (bite notch / valley) ──
+    body.cubicTo(
+      w * 0.390, h * 0.980, // control 1
+      w * 0.420, h * 0.940, // control 2
+      w * 0.500, h * 0.940, // centre-bottom
+    );
+
+    // ── Bottom-right round ──
+    body.cubicTo(
+      w * 0.580, h * 0.940, // control 1
+      w * 0.610, h * 0.980, // control 2
+      w * 0.670, h * 0.980, // bottom-right point
+    );
+
+    // ── Right side curving up ──
+    body.cubicTo(
+      w * 0.770, h * 0.980, // control 1
+      w * 0.860, h * 0.910, // control 2
+      w * 0.915, h * 0.810, // inflection
+    );
+
+    // ── Right side upper ──
+    body.cubicTo(
+      w * 0.978, h * 0.690, // control 1
+      w * 0.978, h * 0.540, // control 2
+      w * 0.910, h * 0.390, // right shoulder
+    );
+
+    // ── Right lobe (top-right curve) ──
+    body.cubicTo(
+      w * 0.850, h * 0.240, // control 1
+      w * 0.580, h * 0.230, // control 2
+      w * 0.500, h * 0.270, // back to start notch
+    );
+
+    body.close();
+    canvas.drawPath(body, paint);
   }
 
   @override

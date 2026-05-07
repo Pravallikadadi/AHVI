@@ -876,8 +876,9 @@
   "skincare_page_title": "त्वचा की देखभाल",
   "diet_page_title": "आहार",
   "fitness_page_title": "फिटनेस",
-  "bills_coupon_expiry_label": "समाप्ति तिथि (वैकल्पिक)",
+  "bills_coupon_expiry_label": "समाप्ति तिथि",
   "bills_coupon_expiry_placeholder": "समाप्ति तिथि सेट करने के लिए टैप करें",
+  "bills_coupon_expiry_required": "कृपया एक समाप्ति तिथि चुनें",
   "bills_coupon_expired": "समाप्त हो गया",
   "bills_coupon_expires_today": "आज समाप्त होता है",
   "bills_coupon_days_left": "{days} दिन बचे"

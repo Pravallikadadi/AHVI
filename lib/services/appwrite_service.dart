@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:appwrite/appwrite.dart';
 import 'package:appwrite/models.dart';
 import 'package:appwrite/enums.dart';
-import 'package:myapp/config/env.dart'; 
+import 'package:myapp/config/env.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppwriteService extends ChangeNotifier {
   late Client client;
@@ -115,6 +116,9 @@ class AppwriteService extends ChangeNotifier {
      try {
        await account.deleteSession(sessionId: 'current');
        clearUserCache();
+       // Wipe all locally cached data so it cannot leak to the next user
+       final prefs = await SharedPreferences.getInstance();
+       await prefs.clear();
        notifyListeners();
      } catch(e) {
        debugPrint("Logout error: $e");

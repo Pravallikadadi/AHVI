@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:myapp/theme/theme_tokens.dart';
 import 'package:myapp/widgets/ahvi_chat_prompt_bar.dart';
 import 'package:myapp/widgets/ahvi_home_text.dart';
+import 'package:myapp/widgets/ahvi_stylist_chat.dart';
 
 enum _TryOnStage { preview, loading, camera, captured }
 
@@ -729,63 +730,7 @@ void dispose() {
   void _openChat() {
     HapticFeedback.lightImpact();
     setState(() => _chatOpen = true);
-    _chatGreetingTimer?.cancel();
-    if (_messages.isEmpty) {
-      _chatGreetingTimer = Timer(const Duration(milliseconds: 700), () {
-        if (!mounted || _messages.isNotEmpty) return;
-        setState(() {
-          _messages.add(
-            _ChatMessage(
-              id: DateTime.now().microsecondsSinceEpoch,
-              text:
-                  AppLocalizations.t(context, 'daily_wear_ahvi_greeting'),
-              isUser: false,
-              createdAt: DateTime.now(),
-            ),
-          );
-        });
-        _scrollChatToBottom();
-      });
-    }
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      barrierColor: Colors.transparent,
-      backgroundColor: Colors.transparent,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.88,
-        child: Scaffold(
-          key: _chatScaffoldKey,
-          backgroundColor: Colors.transparent,
-          resizeToAvoidBottomInset: false,
-          drawer: _historyDrawer(),
-          body: Container(
-            decoration: BoxDecoration(
-              color: bg2Color,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border.all(color: cardBorderColor),
-            ),
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                Container(
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(
-                    color: panel2Color,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                _chatHeader(),
-                Expanded(child: _chatMessages()),
-                if (_quickPromptsVisible) _chatQuickPrompts(),
-                _chatBar(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    ).whenComplete(() {
+    showAhviStylistChatSheet(context, moduleContext: 'style').whenComplete(() {
       if (mounted) setState(() => _chatOpen = false);
     });
   }
