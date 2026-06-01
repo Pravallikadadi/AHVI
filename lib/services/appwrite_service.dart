@@ -156,40 +156,46 @@ class AppwriteService extends ChangeNotifier {
   // 👔 WARDROBE (OUTFITS) DB METHODS
   // =========================================================================
 
-  Future<List<Map<String, dynamic>>> getWardrobeItems() async {
-    try {
-      final user = await getCurrentUser();
-      if (user == null) throw Exception("User not authenticated");
+ Future<List<Map<String, dynamic>>> getWardrobeItems() async {
+  try {
+    final user = await getCurrentUser();
+    if (user == null) throw Exception("User not authenticated");
 
-      final result = await databases.listDocuments(
-        databaseId: Env.appwriteDatabaseId,
-        collectionId: Env.outfitsCollection, 
-        queries: [
-          // 🛑 AS REQUESTED: Kept user_id ONLY for the Wardrobe/Outfits table
-          Query.equal('user_id', user.$id), 
-          Query.orderDesc('\$createdAt'), 
-        ],
-      );
+    final result = await databases.listDocuments(
+      databaseId: Env.appwriteDatabaseId,
+      collectionId: Env.outfitsCollection,
+      queries: [
+        Query.equal('user_id', user.$id),
+        Query.orderDesc('\$createdAt'),
+      ],
+    );
 
-      return result.documents.map((doc) {
-        return {
-          "id": doc.$id,
-          "name": doc.data['name'],
-          "category": doc.data['category'],
-          "sub_category": doc.data['sub_category'],
-          "color_code": doc.data['color_code'],
-          "pattern": doc.data['pattern'],
-          "occasions": doc.data['occasions'],
-          "image_url": doc.data['image_url'], 
-        };
-      }).toList();
+    return result.documents.map((doc) {
+      final data = doc.data;
 
-    } catch (e) {
-      debugPrint("👕 Error fetching wardrobe items: $e");
-      return []; 
-    }
+      return {
+        "id": doc.$id,
+        "name": data['name'] ?? "Item",
+        "category": data['category'] ?? "Tops",
+        "sub_category": data['sub_category'] ?? "Unknown",
+
+        // 🔥 AI CONTRACT FIELDS (CRITICAL)
+        "type": data['sub_category'] ?? "item",
+        "color": data['color_code'] ?? "#000000",
+        "style": data['style'] ?? "casual",
+
+        // existing
+        "color_code": data['color_code'] ?? "#000000",
+        "pattern": data['pattern'] ?? "plain",
+        "occasions": data['occasions'] ?? [],
+        "image_url": data['image_url'],
+      };
+    }).toList();
+  } catch (e) {
+    debugPrint("👕 Error fetching wardrobe items: $e");
+    return [];
   }
-
+}
   // =========================================================================
   // CALENDAR PLANS DB METHODS
   // =========================================================================
